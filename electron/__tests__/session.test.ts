@@ -21,6 +21,7 @@ function setup(overrides: Partial<SessionDeps> = {}) {
       capture: vi.fn().mockResolvedValue({ text: 'Hello there, friend.', scope: 'field' }),
       apply: vi.fn().mockResolvedValue(undefined),
     },
+    dictionary: { prompt: vi.fn().mockReturnValue(''), apply: vi.fn((text: string) => text) },
     getSettings: () => DEFAULT_SETTINGS,
     hasApiKey: () => true,
     hasRewriteKey: () => true,
@@ -153,6 +154,60 @@ describe('session', () => {
     session.start();
     session.stop();
     expect(deps.orb.setPhase).toHaveBeenLastCalledWith({ phase: 'transcribing', tick: false });
+  });
+
+  describe('personal dictionary', () => {
+    it('sends the dictionary prompt with the audio and pastes the fixed text', async () => {
+      const { deps, session } = setup({
+        transcriber: { transcribe: vi.fn().mockResolvedValue('I tested mini max') },
+        dictionary: {
+          prompt: () => 'Notes about MiniMax.',
+          apply: vi.fn().mockReturnValue('I tested MiniMax'),
+        },
+      });
+
+      session.start();
+      session.stop();
+      await session.receiveAudio(audio());
+
+      expect(deps.transcriber.transcribe).toHaveBeenCalledWith(expect.anything(), {
+        vocabulary: 'Notes about MiniMax.',
+      });
+      expect(deps.dictionary.apply).toHaveBeenCalledWith('I tested mini max');
+      expect(deps.injector.paste).toHaveBeenCalledWith('I tested MiniMax');
+      expect(deps.onTranscript).toHaveBeenCalledWith('I tested MiniMax');
+    });
+
+    it('fixes a spoken instruction before the rewrite sees it', async () => {
+      const { deps, session } = setup({
+        transcriber: { transcribe: vi.fn().mockResolvedValue('sign it as shiv raj') },
+        dictionary: { prompt: () => '', apply: () => 'sign it as Shivaraj' },
+      });
+
+      session.start('edit');
+      session.stop();
+      await session.receiveAudio(audio());
+
+      expect(deps.rewriter.rewrite).toHaveBeenCalledWith(
+        'Hello there, friend.',
+        'sign it as Shivaraj'
+      );
+    });
+
+    it('does not consult the dictionary when nothing was heard', async () => {
+      const apply = vi.fn();
+      const { deps, session } = setup({
+        transcriber: { transcribe: vi.fn().mockResolvedValue('') },
+        dictionary: { prompt: () => '', apply },
+      });
+
+      session.start();
+      session.stop();
+      await session.receiveAudio(audio());
+
+      expect(apply).not.toHaveBeenCalled();
+      expect(deps.injector.paste).not.toHaveBeenCalled();
+    });
   });
 
   describe('voice edit', () => {

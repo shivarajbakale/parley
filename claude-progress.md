@@ -6,21 +6,23 @@
 - Standard startup path: `./init.sh`.
 - Standard verification path: `make check`.
 - `parley-001`, `parley-002` and `parley-003` are `passing`. `parley-004`
-  remains `in_progress`: `docs/MANUAL_CHECKLIST.md` exists and covers every
-  manual step (paste targets, gesture, onboarding from a clean state,
-  System Settings deep links, a real Groq key and an invalid key, errors,
-  the tray, and offline behaviour), but nobody has walked it yet — walking it
-  requires `make dev` and cannot be done from this session. `make check`
-  passes on the current tree.
-- Plan: docs/superpowers/plans/2026-09-21-parley-v1.md. All twelve plan tasks
-  have been implemented; the only step left before v1 can be called complete
-  is walking `docs/MANUAL_CHECKLIST.md` by hand and recording its evidence on
-  `parley-004`.
-- Blueprint approved by the user on 2026-09-21 (design spec). Next step after
-  `parley-004` passes: the "Out of v1" list in
-  `docs/superpowers/specs/2026-09-21-parley-design.md`.
-- Current blocker: none — `parley-004` is waiting on a human running
-  `make dev` and walking the checklist, not on any code change.
+  (dictation by hand) and `parley-005` (voice edit) are `blocked` on a human
+  walking `docs/MANUAL_CHECKLIST.md` with `make dev`; no code is pending on
+  either. Both are merged to `main`, along with the waveform pill and the
+  glass sounds.
+- `parley-006` (personal dictionary) is `in_progress` on branch
+  `personal-dictionary`. Slice 1 is done: `electron/dictionary.ts` builds the
+  Whisper prompt and applies sounds-like rules, `electron/dictionary-store.ts`
+  keeps `dictionary.json` in userData, and `electron/session.ts` uses both.
+  There is no UI yet, so the dictionary can only be filled by editing that
+  file.
+- Next step: run `plan-feature` for the Dictionary settings tab (table, inline
+  add row, import and export), get it approved, then build it with the IPC
+  channels `dictionary:list`, `dictionary:upsert` and `dictionary:remove`.
+  That slice also migrates the `vocabulary` setting into entries and removes
+  its textarea from the General tab. After it: snippets, pill text mode with
+  add-by-voice, learning from corrections, on-screen context.
+- Current blocker: none.
 
 ## Session Log
 

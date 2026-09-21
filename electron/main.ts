@@ -17,6 +17,8 @@ import { promisify } from 'node:util';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 import { createAudioWatchdog } from './audio-watchdog';
+import { applyReplacements, splitVocabulary, whisperPrompt } from './dictionary';
+import { createDictionaryStore } from './dictionary-store';
 import { createEditTargets } from './edit-target';
 import { createFieldReader } from './field-reader';
 import { createGestureDetector } from './gesture-detector';
@@ -138,6 +140,7 @@ async function startApp() {
   Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]));
 
   const store = createSettingsStore({ dir: app.getPath('userData'), crypto: safeStorage });
+  const dictionary = createDictionaryStore({ dir: app.getPath('userData') });
   const transcriber = createTranscriber({ getApiKey: () => store.getApiKey() });
 
   const injector = createInjector({
@@ -235,6 +238,16 @@ async function startApp() {
     injector,
     rewriter,
     editTargets,
+    dictionary: {
+      // The old free-text vocabulary setting still counts until the
+      // Dictionary tab replaces it.
+      prompt: () => whisperPrompt(dictionary.list(), splitVocabulary(store.get().vocabulary)),
+      apply: (text) => {
+        const { text: fixed, hits } = applyReplacements(text, dictionary.list());
+        dictionary.recordUses(hits);
+        return fixed;
+      },
+    },
     getSettings: () => store.get(),
     hasApiKey: () => store.hasApiKey(),
     hasRewriteKey: () => store.hasRewriteKey(),

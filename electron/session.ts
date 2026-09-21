@@ -35,6 +35,8 @@ export interface SessionDeps {
   injector: Pick<Injector, 'paste'>;
   rewriter: Pick<Rewriter, 'rewrite'>;
   editTargets: EditTargets;
+  /** The personal dictionary: words for Whisper going in, spelling fixes coming out. */
+  dictionary: { prompt(): string; apply(text: string): string };
   getSettings(): Settings;
   hasApiKey(): boolean;
   hasRewriteKey(): boolean;
@@ -120,13 +122,15 @@ export function createSession(deps: SessionDeps): Session {
       try {
         // The field is read while Whisper works: the gesture key is up by
         // now, so the keystroke fallback cannot collide with a held modifier.
-        const [spoken, target] = await Promise.all([
+        const [heard, target] = await Promise.all([
           deps.transcriber.transcribe(
             { data: audio.data, mimeType: audio.mimeType },
-            { vocabulary: deps.getSettings().vocabulary }
+            { vocabulary: deps.dictionary.prompt() }
           ),
           mode === 'edit' ? deps.editTargets.capture() : null,
         ]);
+        // An instruction gets the same fixes: "sound like Shivaraj" names a person too.
+        const spoken = heard && deps.dictionary.apply(heard);
         if (!spoken) {
           finish({ phase: 'cancelled' }, 0);
           return;

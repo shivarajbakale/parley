@@ -86,7 +86,7 @@
       "area": "release",
       "title": "End-to-end dictation verified by hand",
       "user_visible_behavior": "Dictation pastes into Safari, Chrome, Slack, VS Code, Terminal and Notes.",
-      "status": "in_progress",
+      "status": "blocked",
       "plan": "none: packaging config and a manual checklist, no UI",
       "verification": [
         "Walk docs/MANUAL_CHECKLIST.md."
@@ -95,7 +95,7 @@
         "make check exit 0 on 2026-09-22; full unit suite 275 tests across 37 files pass (includes src/orb/__tests__/phase-handler.test.ts, 9 tests, and electron/__tests__/audio-watchdog.test.ts, 4 tests), story-probe suite 106 tests pass, skill-lint 36 files/145 code blocks pass.",
         "docs/MANUAL_CHECKLIST.md written on 2026-09-22 covering paste targets, gesture (including changing gesture key/tap count), onboarding from a clean state (including the System Settings deep-link check on macOS 26), a real Groq key and an invalid key, errors, offline behaviour, and the tray (including quit and single-instance). No box on that checklist has been ticked yet — manual verification with `make dev` is pending and this feature stays in_progress until it is walked."
       ],
-      "notes": "Plan task 12. Cannot be marked passing without a human walking docs/MANUAL_CHECKLIST.md by hand; that requires launching the app, which this session does not do."
+      "notes": "Blocked on a human: cannot be marked passing without someone walking docs/MANUAL_CHECKLIST.md by hand with `make dev`. No code change is pending. Moved from in_progress on 2026-09-22 so parley-006 can be the one feature in flight."
     },
     {
       "id": "parley-005",
@@ -114,6 +114,23 @@
         "resources/parley-ax built universal (arm64 + x86_64) by scripts/build-ax-helper.sh and returned the focused element's role and value when run by hand."
       ],
       "notes": "Blocked on a human: needs `make dev`, a MiniMax API key and the manual checklist. The MiniMax request shape (MiniMax-M3, thinking disabled) follows platform.minimax.io docs but has never been sent with a real key."
+    },
+    {
+      "id": "parley-006",
+      "priority": 7,
+      "area": "dictation",
+      "title": "Personal dictionary: names and jargon spelled the user's way",
+      "user_visible_behavior": "Words in the dictionary are sent to Whisper with the audio so it leans toward the user's spelling, and sounds-like rules (\"mini max\" to \"MiniMax\") fix what it still gets wrong before the paste. Later slices add a Dictionary settings tab, snippets, add-by-voice, learning from corrections and on-screen context.",
+      "status": "in_progress",
+      "plan": "none: slice 1 is main process only; the Dictionary tab is planned with plan-feature before any UI is built",
+      "verification": [
+        "make check",
+        "Add an entry to dictionary.json by hand, dictate its sounds-like phrase, and see the stored spelling pasted."
+      ],
+      "evidence": [
+        "Slice 1 on branch personal-dictionary, 2026-09-22: electron/dictionary.ts (whisperPrompt, applyReplacements), electron/dictionary-store.ts and the session wiring, with 17 + 11 + 3 new unit tests passing."
+      ],
+      "notes": "Slice 1 has no UI: the only way to fill the dictionary is editing dictionary.json in the userData folder. The old free-text vocabulary setting still feeds the Whisper prompt until the Dictionary tab replaces it and migrates it."
     }
   ]
 }
