@@ -28,11 +28,11 @@ describe('orb window', () => {
     expect(ORB_SIZE).toEqual({ width: 260, height: 260 });
   });
 
-  it('sits bottom center of the work area, 48 px above its bottom edge', () => {
+  it('sits bottom center of the work area, 16 px above its bottom edge', () => {
     const bounds = orbBounds({ x: 100, y: 25, width: 1000, height: 800 });
     expect(bounds).toEqual({
       x: 100 + (1000 - ORB_SIZE.width) / 2,
-      y: 25 + 800 - ORB_SIZE.height - 48,
+      y: 25 + 800 - ORB_SIZE.height - 16,
       ...ORB_SIZE,
     });
   });

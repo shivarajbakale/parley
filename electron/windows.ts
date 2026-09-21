@@ -16,7 +16,7 @@ export interface Rect {
 }
 
 export const ORB_SIZE = { width: 260, height: 260 };
-const ORB_BOTTOM_MARGIN = 48;
+const ORB_BOTTOM_MARGIN = 16;
 
 export function orbBounds(workArea: Rect): Rect {
   return {
