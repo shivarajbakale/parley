@@ -11,6 +11,7 @@ function fakeRecorder(overrides: Partial<Recorder> = {}): Recorder {
     stop: vi.fn().mockResolvedValue(null),
     discard: vi.fn(),
     level: vi.fn().mockReturnValue(0),
+    bands: vi.fn().mockReturnValue({ low: 0, mid: 0, high: 0 }),
     ...overrides,
   };
 }

@@ -13,10 +13,15 @@ function fakeStream(tracks: ReturnType<typeof fakeTrack>[]) {
 
 class FakeAnalyser {
   fftSize = 0;
+  frequencyBinCount = 256;
   getByteTimeDomainData() {}
+  getByteFrequencyData(target: Uint8Array) {
+    target.fill(255);
+  }
 }
 
 class FakeAudioContext {
+  sampleRate = 48000;
   close = vi.fn().mockResolvedValue(undefined);
   createAnalyser() {
     return new FakeAnalyser() as unknown as AnalyserNode;
@@ -196,5 +201,28 @@ describe('createRecorder failure paths', () => {
 
     vi.advanceTimersByTime(STOP_TIMEOUT_MS * 2);
     expect(tracks[0].stop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('createRecorder bands', () => {
+  beforeEach(() => {
+    vi.stubGlobal('navigator', {
+      mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream([fakeTrack()])) },
+    });
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is silent before recording starts', () => {
+    expect(createRecorder().bands()).toEqual({ low: 0, mid: 0, high: 0 });
+  });
+
+  it('reads the analyser spectrum while recording', async () => {
+    const recorder = createRecorder();
+    await recorder.start();
+    expect(recorder.bands()).toEqual({ low: 1, mid: 1, high: 1 });
+    recorder.discard();
   });
 });

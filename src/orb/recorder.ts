@@ -1,5 +1,6 @@
 import type { RecordedAudio } from '../../electron/types';
 
+import { bandsFromSpectrum, SILENT_BANDS, type Bands } from './bands';
 import { levelFromSamples } from './level';
 
 /**
@@ -24,6 +25,8 @@ export interface Recorder {
   discard(): void;
   /** Current voice level, 0 to 1. */
   level(): number;
+  /** Current low/mid/high voice energy, each 0 to 1. */
+  bands(): Bands;
 }
 
 export function createRecorder(): Recorder {
@@ -32,6 +35,7 @@ export function createRecorder(): Recorder {
   let audioContext: AudioContext | null = null;
   let analyser: AnalyserNode | null = null;
   let samples = new Uint8Array(0);
+  let spectrum = new Uint8Array(0);
   let chunks: Blob[] = [];
   let startedAt = 0;
   // Bumped by stop()/discard() (and by a fresh start()) to invalidate any
@@ -68,6 +72,7 @@ export function createRecorder(): Recorder {
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
       samples = new Uint8Array(analyser.fftSize);
+      spectrum = new Uint8Array(analyser.frequencyBinCount);
       audioContext.createMediaStreamSource(stream).connect(analyser);
 
       mediaRecorder = new MediaRecorder(stream, {
@@ -125,6 +130,12 @@ export function createRecorder(): Recorder {
       if (!analyser) return 0;
       analyser.getByteTimeDomainData(samples);
       return levelFromSamples(samples);
+    },
+
+    bands() {
+      if (!analyser || !audioContext) return SILENT_BANDS;
+      analyser.getByteFrequencyData(spectrum);
+      return bandsFromSpectrum(spectrum, audioContext.sampleRate);
     },
   };
 }
