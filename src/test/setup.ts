@@ -50,6 +50,18 @@ beforeAll(() => {
   if (!Element.prototype.releasePointerCapture) {
     Element.prototype.releasePointerCapture = () => {};
   }
+
+  // jsdom has no Font Loading API; Mantine's autosizing Textarea listens for
+  // `loadingdone` on it to re-measure once web fonts settle.
+  if (!document.fonts) {
+    Object.defineProperty(document, 'fonts', {
+      value: {
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      },
+      configurable: true,
+    });
+  }
 });
 
 afterEach(() => {

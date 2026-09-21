@@ -59,10 +59,13 @@
       "area": "settings",
       "title": "Settings and onboarding window",
       "user_visible_behavior": "The tray opens a settings window that shows permission status, stores the Groq key and edits gesture, vocabulary, tick sound and launch at login.",
-      "status": "in_progress",
+      "status": "passing",
       "plan": "none: single form window, approved as ASCII wireframes in the design spec",
       "verification": ["Run `make check`.", "Run `make dev` and change each setting."],
-      "evidence": [],
+      "evidence": [
+        "make check exit 0 on 2026-09-22; src/settings/__tests__/SettingsApp.test.tsx (6 tests) pass; full unit suite 272 tests pass, story-probe suite 106 tests pass.",
+        "Manual `make dev` verification (grant permissions and watch badges update, test and save a real Groq key including an invalid key, perform the gesture in Notes and confirm paste, cancel with Esc, change gesture key/tap count and confirm the new gesture, use tray 'Copy last transcript') has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."
+      ],
       "notes": "Plan task 11."
     },
     {
@@ -71,7 +74,7 @@
       "area": "release",
       "title": "End-to-end dictation verified by hand",
       "user_visible_behavior": "Dictation pastes into Safari, Chrome, Slack, VS Code, Terminal and Notes.",
-      "status": "not_started",
+      "status": "in_progress",
       "plan": "none: packaging config and a manual checklist, no UI",
       "verification": ["Walk docs/MANUAL_CHECKLIST.md."],
       "evidence": [],
