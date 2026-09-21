@@ -11,11 +11,13 @@ import {
   Text,
   Title,
 } from '@mantine/core';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import type { PermissionKind, PermissionStatus } from '../../electron/types';
 
+import { Pressable, StaggerGroup, StaggerItem } from './motion';
 import classes from './settings.module.css';
 import { useRequestPermission, useSetApiKey } from './use-parley';
 
@@ -32,8 +34,21 @@ function PermissionRow({
   granted: boolean;
 }) {
   const request = useRequestPermission();
+  const wasGranted = useRef(granted);
+  const [justGranted, setJustGranted] = useState(false);
+
+  useEffect(() => {
+    if (granted && !wasGranted.current) {
+      setJustGranted(true);
+      const timer = setTimeout(() => setJustGranted(false), 1200);
+      wasGranted.current = granted;
+      return () => clearTimeout(timer);
+    }
+    wasGranted.current = granted;
+  }, [granted]);
+
   return (
-    <Stack gap={4}>
+    <Stack gap={4} className={justGranted ? classes.glow : undefined}>
       <Group justify="space-between">
         <Group gap="xs">
           <Text size="sm">{label}</Text>
@@ -42,14 +57,16 @@ function PermissionRow({
           </Badge>
         </Group>
         {!granted && (
-          <Button
-            size="xs"
-            variant="light"
-            loading={request.isPending}
-            onClick={() => request.mutate(kind)}
-          >
-            Grant {label}
-          </Button>
+          <Pressable>
+            <Button
+              size="xs"
+              variant="light"
+              loading={request.isPending}
+              onClick={() => request.mutate(kind)}
+            >
+              Grant {label}
+            </Button>
+          </Pressable>
         )}
       </Group>
       {request.isError && (
@@ -85,9 +102,16 @@ function ApiKeySection({ hasApiKey }: { hasApiKey: boolean }) {
           {...form.register('apiKey')}
         />
         <Group gap="sm">
-          <Button type="submit" size="xs" className={classes.primary} loading={setApiKey.isPending}>
-            Test and save
-          </Button>
+          <Pressable>
+            <Button
+              type="submit"
+              size="xs"
+              className={classes.primary}
+              loading={setApiKey.isPending}
+            >
+              Test and save
+            </Button>
+          </Pressable>
           {result && (
             <Text size="sm" c={result.ok ? 'teal' : 'red'}>
               {result.message}
@@ -114,28 +138,40 @@ export function SetupTab({
   hasApiKey: boolean;
 }) {
   return (
-    <Stack gap="lg">
-      <Box>
-        <Title order={4}>{needsSetup ? 'Finish setup' : 'Setup'}</Title>
-        <Text size="sm" c="dimmed" mt={4}>
-          Microphone to hear you, Accessibility to see the key and paste, a Groq key to
-          transcribe.
-        </Text>
-      </Box>
-      <Box className={classes.glass} p="md">
-        <Stack gap="sm">
-          <PermissionRow kind="microphone" label="Microphone" granted={permissions.microphone} />
-          <Divider />
-          <PermissionRow
-            kind="accessibility"
-            label="Accessibility"
-            granted={permissions.accessibility}
-          />
-        </Stack>
-      </Box>
-      <Box className={classes.glass} p="md">
-        <ApiKeySection hasApiKey={hasApiKey} />
-      </Box>
-    </Stack>
+    <StaggerGroup>
+      <Stack gap="lg">
+        <StaggerItem>
+          <Box>
+            <Title order={4}>{needsSetup ? 'Finish setup' : 'Setup'}</Title>
+            <Text size="sm" c="dimmed" mt={4}>
+              Microphone to hear you, Accessibility to see the key and paste, a Groq key to
+              transcribe.
+            </Text>
+          </Box>
+        </StaggerItem>
+        <StaggerItem>
+          <Box className={classes.glass} p="md">
+            <Stack gap="sm">
+              <PermissionRow
+                kind="microphone"
+                label="Microphone"
+                granted={permissions.microphone}
+              />
+              <Divider />
+              <PermissionRow
+                kind="accessibility"
+                label="Accessibility"
+                granted={permissions.accessibility}
+              />
+            </Stack>
+          </Box>
+        </StaggerItem>
+        <StaggerItem>
+          <Box className={classes.glass} p="md">
+            <ApiKeySection hasApiKey={hasApiKey} />
+          </Box>
+        </StaggerItem>
+      </Stack>
+    </StaggerGroup>
   );
 }

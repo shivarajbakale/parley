@@ -1,19 +1,16 @@
-/* eslint-disable react-refresh/only-export-components -- this module also exports
-   TAB_ORDER, a constant array (not a primitive), so `allowConstantExport` doesn't
-   cover it; it never changes on edit, so the fast-refresh warning doesn't apply. */
 import { Alert, Box, Tabs } from '@mantine/core';
+import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 
 import type { PermissionStatus, Settings, SettingsView } from '../../electron/types';
 
 import { GeneralTab } from './GeneralTab';
 import { GestureTab } from './GestureTab';
+import { panelVariants, tabDirection } from './motion';
 import classes from './settings.module.css';
 import { SetupTab } from './SetupTab';
+import { type TabId } from './tabs';
 import { TabRail } from './TabRail';
-
-export type TabId = 'setup' | 'gesture' | 'general';
-export const TAB_ORDER: TabId[] = ['setup', 'gesture', 'general'];
 
 export function SettingsShell({
   settings,
@@ -28,6 +25,12 @@ export function SettingsShell({
 }) {
   const needsSetup = !permissions.microphone || !permissions.accessibility || !settings.hasApiKey;
   const [active, setActive] = useState<TabId>(needsSetup ? 'setup' : 'gesture');
+  const [direction, setDirection] = useState<1 | -1>(1);
+
+  const select = (next: TabId) => {
+    setDirection(tabDirection(active, next));
+    setActive(next);
+  };
 
   return (
     <Tabs
@@ -36,27 +39,36 @@ export function SettingsShell({
       radius="md"
       className={classes.shell}
       value={active}
-      onChange={(value) => value && setActive(value as TabId)}
+      onChange={(value) => value && select(value as TabId)}
     >
-      <TabRail needsSetup={needsSetup} />
+      <TabRail needsSetup={needsSetup} active={active} />
       <Box flex={1} miw={0} p="xl" style={{ overflowY: 'auto' }}>
         {saveFailed && (
           <Alert color="red" variant="light" mb="md">
             Could not save settings
           </Alert>
         )}
-        <Tabs.Panel value="setup">
-          <SetupTab
-            needsSetup={needsSetup}
-            permissions={permissions}
-            hasApiKey={settings.hasApiKey}
-          />
-        </Tabs.Panel>
-        <Tabs.Panel value="gesture">
-          <GestureTab settings={settings} onChange={onChange} />
-        </Tabs.Panel>
-        <Tabs.Panel value="general">
-          <GeneralTab settings={settings} onChange={onChange} />
+        <Tabs.Panel value={active}>
+          <AnimatePresence mode="wait" custom={direction} initial={false}>
+            <motion.div
+              key={active}
+              custom={direction}
+              variants={panelVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+            >
+              {active === 'setup' && (
+                <SetupTab
+                  needsSetup={needsSetup}
+                  permissions={permissions}
+                  hasApiKey={settings.hasApiKey}
+                />
+              )}
+              {active === 'gesture' && <GestureTab settings={settings} onChange={onChange} />}
+              {active === 'general' && <GeneralTab settings={settings} onChange={onChange} />}
+            </motion.div>
+          </AnimatePresence>
         </Tabs.Panel>
       </Box>
     </Tabs>
