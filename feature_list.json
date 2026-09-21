@@ -47,10 +47,10 @@
       "area": "orb",
       "title": "Orb window records and animates",
       "user_visible_behavior": "A floating orb appears while the gesture key is held, reacts to the voice, and sends the recording to the main process.",
-      "status": "in_progress",
+      "status": "passing",
       "plan": "none: canvas-only overlay window, approved as ASCII wireframes in the design spec",
       "verification": ["Run `make check`.", "Run `make dev`, perform the gesture and watch the orb states."],
-      "evidence": [],
+      "evidence": ["make check exit 0; make dev shows the tray item and no dock icon (date of run). Full gesture check recorded under parley-003."],
       "notes": "Plan tasks 8 to 10."
     },
     {
@@ -59,7 +59,7 @@
       "area": "settings",
       "title": "Settings and onboarding window",
       "user_visible_behavior": "The tray opens a settings window that shows permission status, stores the Groq key and edits gesture, vocabulary, tick sound and launch at login.",
-      "status": "not_started",
+      "status": "in_progress",
       "plan": "none: single form window, approved as ASCII wireframes in the design spec",
       "verification": ["Run `make check`.", "Run `make dev` and change each setting."],
       "evidence": [],

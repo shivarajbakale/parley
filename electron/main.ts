@@ -1,20 +1,32 @@
-import { app, BrowserWindow, Menu, shell } from 'electron';
-import { DEFAULT_BOUNDS, windowOptions, type WindowBounds } from './window-options';
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  ipcMain,
+  Menu,
+  nativeImage,
+  safeStorage,
+  screen,
+  shell,
+  Tray,
+} from 'electron';
 import { fileURLToPath } from 'node:url';
-import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { uIOhook, UiohookKey } from 'uiohook-napi';
+
+import { createGestureDetector } from './gesture-detector';
+import { createInjector } from './injector';
+import { createKeyHook } from './key-hook';
+import { getPermissions, requestPermission } from './permissions';
+import { createSession } from './session';
+import { createSettingsStore } from './settings-store';
+import { createTranscriber } from './transcriber';
+import { trayMenuTemplate } from './tray';
+import type { KeyTestResult, PermissionKind, RecordedAudio, Settings } from './types';
+import { orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// The built directory structure
-//
-// ├─┬─┬ dist
-// │ │ └── index.html
-// │ │
-// │ ├─┬ dist-electron
-// │ │ ├── main.js
-// │ │ └── preload.mjs
-// │
 process.env.APP_ROOT = path.join(__dirname, '..');
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
@@ -26,100 +38,188 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST;
 
-const boundsFile = () => path.join(app.getPath('userData'), 'window-state.json');
+const PRELOAD = path.join(__dirname, 'preload.mjs');
 
-function readBounds(): WindowBounds {
-  try {
-    const saved = JSON.parse(readFileSync(boundsFile(), 'utf8')) as WindowBounds;
-    if (typeof saved.width === 'number' && typeof saved.height === 'number') return saved;
-  } catch {
-    // First launch, or the file was corrupted — either way, defaults are fine.
-  }
-  return DEFAULT_BOUNDS;
+/** Parley's own pages. `index.html` (the scaffold demo) is never loaded — see DECISIONS.md. */
+function loadPage(window: BrowserWindow, page: 'orb' | 'settings') {
+  if (VITE_DEV_SERVER_URL) window.loadURL(`${VITE_DEV_SERVER_URL}${page}.html`);
+  else window.loadFile(path.join(RENDERER_DIST, `${page}.html`));
 }
 
-function persistBounds(window: BrowserWindow) {
-  if (window.isDestroyed() || window.isMinimized()) return;
-  try {
-    writeFileSync(boundsFile(), JSON.stringify(window.getBounds()));
-  } catch {
-    // A window that can't remember its size is a nuisance, not a crash.
-  }
+let orbWindow: BrowserWindow | null = null;
+let settingsWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let lastTranscript: string | null = null;
+let hookRunning = false;
+
+function createOrbWindow() {
+  orbWindow = new BrowserWindow(orbWindowOptions(PRELOAD));
+  orbWindow.setIgnoreMouseEvents(true);
+  orbWindow.setAlwaysOnTop(true, 'screen-saver');
+  orbWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  loadPage(orbWindow, 'orb');
 }
 
-let win: BrowserWindow | null;
-
-function createWindow() {
-  win = new BrowserWindow(
-    windowOptions({ bounds: readBounds(), preloadPath: path.join(__dirname, 'preload.mjs') })
-  );
-
-  win.once('ready-to-show', () => win?.show());
-  win.on('close', () => win && persistBounds(win));
-  win.on('closed', () => {
-    win = null;
+function openSettings() {
+  if (settingsWindow) {
+    settingsWindow.show();
+    settingsWindow.focus();
+    return;
+  }
+  settingsWindow = new BrowserWindow(settingsWindowOptions(PRELOAD));
+  settingsWindow.once('ready-to-show', () => settingsWindow?.show());
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
   });
-
-  // External links belong in the user's browser, not in an app window with no
-  // address bar to show them where they've landed.
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  settingsWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
-
-  // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', new Date().toLocaleString());
-  });
-
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'));
-  }
+  loadPage(settingsWindow, 'settings');
 }
-
-/**
- * Application menu.
- *
- * Without this Electron ships its default menu, which names the app "Electron".
- * The roles give us working Cmd+C/V, Cmd+W, and the macOS services menu for free.
- */
-function buildMenu() {
-  const isMac = process.platform === 'darwin';
-
-  const template: Electron.MenuItemConstructorOptions[] = [
-    ...(isMac
-      ? ([{ role: 'appMenu' }] as Electron.MenuItemConstructorOptions[])
-      : []),
-    { role: 'fileMenu' },
-    { role: 'editMenu' },
-    { role: 'viewMenu' },
-    { role: 'windowMenu' },
-  ];
-
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-}
-
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-    win = null;
-  }
-});
-
-app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
 
 app.whenReady().then(() => {
-  buildMenu();
-  createWindow();
+  app.dock?.hide();
+  // Cmd+C / Cmd+V in the settings window need an Edit menu, dock icon or not.
+  Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]));
+
+  const store = createSettingsStore({ dir: app.getPath('userData'), crypto: safeStorage });
+  const transcriber = createTranscriber({ getApiKey: () => store.getApiKey() });
+
+  const injector = createInjector({
+    snapshot: () => ({
+      text: clipboard.readText(),
+      html: clipboard.readHTML(),
+      rtf: clipboard.readRTF(),
+      image: clipboard.readImage(),
+    }),
+    restore: (saved) => {
+      clipboard.clear();
+      clipboard.write({
+        ...(saved.text ? { text: saved.text } : {}),
+        ...(saved.html ? { html: saved.html } : {}),
+        ...(saved.rtf ? { rtf: saved.rtf } : {}),
+        ...(saved.image.isEmpty() ? {} : { image: saved.image }),
+      });
+    },
+    writeText: (text) => clipboard.writeText(text),
+    sendPaste: () => uIOhook.keyTap(UiohookKey.V, [UiohookKey.Meta]),
+  });
+
+  const isReady = () => {
+    const permissions = getPermissions();
+    return permissions.microphone && permissions.accessibility && store.hasApiKey();
+  };
+
+  function refreshTray() {
+    const template = trayMenuTemplate(
+      { ready: isReady(), lastTranscript },
+      {
+        copyLast: () => lastTranscript && clipboard.writeText(lastTranscript),
+        openSettings,
+        quit: () => app.quit(),
+      }
+    );
+    tray?.setContextMenu(Menu.buildFromTemplate(template));
+  }
+
+  createOrbWindow();
+
+  const session = createSession({
+    orb: {
+      show: () => {
+        const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+        orbWindow?.setBounds(orbBounds(display.workArea));
+        // `showInactive`, never `show`: the user's text field must keep focus.
+        orbWindow?.showInactive();
+      },
+      hide: () => orbWindow?.hide(),
+      setPhase: (payload) => orbWindow?.webContents.send('orb:phase', payload),
+    },
+    transcriber,
+    injector,
+    getSettings: () => store.get(),
+    hasApiKey: () => store.hasApiKey(),
+    getPermissions,
+    openSettings,
+    onTranscript: (text) => {
+      lastTranscript = text;
+      refreshTray();
+    },
+  });
+
+  const detector = createGestureDetector({
+    key: store.get().gestureKey,
+    tapCount: store.get().tapCount,
+    onStart: () => session.start(),
+    onStop: () => session.stop(),
+    onCancel: () => session.cancel(),
+  });
+  const keyHook = createKeyHook(uIOhook, UiohookKey as unknown as Record<string, number>, (event) =>
+    detector.handle(event)
+  );
+
+  /** The hook sees nothing until Accessibility is granted, so start it only then. */
+  function startHookWhenTrusted() {
+    if (hookRunning || !getPermissions().accessibility) return;
+    keyHook.start();
+    hookRunning = true;
+    refreshTray();
+  }
+  startHookWhenTrusted();
+  const trustPoll = setInterval(() => {
+    startHookWhenTrusted();
+    if (hookRunning) clearInterval(trustPoll);
+  }, 2000);
+
+  function applySettings(settings: Settings) {
+    detector.configure({ key: settings.gestureKey, tapCount: settings.tapCount });
+    app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
+  }
+  applySettings(store.get());
+
+  ipcMain.on('orb:audio', (event, audio: RecordedAudio) => {
+    if (event.sender !== orbWindow?.webContents) return;
+    if (!(audio?.data instanceof ArrayBuffer) || typeof audio.durationMs !== 'number') return;
+    void session.receiveAudio({ data: audio.data, mimeType: 'audio/webm', durationMs: audio.durationMs });
+  });
+
+  ipcMain.handle('settings:get', () => store.view());
+  ipcMain.handle('settings:update', (_event, patch: Partial<Settings>) => {
+    applySettings(store.update(typeof patch === 'object' && patch ? patch : {}));
+    return store.view();
+  });
+  ipcMain.handle('settings:setApiKey', async (_event, key: unknown): Promise<KeyTestResult> => {
+    if (typeof key !== 'string' || key.trim() === '') return { ok: false, message: 'Enter a key' };
+    const result = await transcriber.testKey(key.trim());
+    if (result.ok) {
+      store.setApiKey(key.trim());
+      refreshTray();
+    }
+    return result;
+  });
+  ipcMain.handle('permissions:get', () => getPermissions());
+  ipcMain.handle('permissions:request', async (_event, kind: PermissionKind) => {
+    if (kind !== 'microphone' && kind !== 'accessibility') return getPermissions();
+    const status = await requestPermission(kind);
+    startHookWhenTrusted();
+    refreshTray();
+    return status;
+  });
+
+  tray = new Tray(nativeImage.createEmpty());
+  tray.setTitle('◉');
+  tray.setToolTip('Parley');
+  refreshTray();
+
+  // Onboarding: without Accessibility the hook is blind, so a gesture can never open this.
+  if (!isReady()) openSettings();
+
+  app.on('will-quit', () => {
+    clearInterval(trustPoll);
+    if (hookRunning) keyHook.stop();
+  });
 });
+
+// A menu bar app outlives its windows.
+app.on('window-all-closed', () => {});
