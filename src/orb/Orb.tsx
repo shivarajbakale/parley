@@ -20,6 +20,16 @@ export function Orb() {
   const phaseRef = useRef<OrbPhase>('cancelled');
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState('');
+  // Keeps the canvas loop alive through the exit animation: `visible` turning
+  // false starts the fade-out immediately, but the done/error look must stay
+  // rendered while it plays rather than freezing the instant it begins.
+  const [exiting, setExiting] = useState(false);
+  const wasVisibleRef = useRef(visible);
+
+  if (wasVisibleRef.current && !visible) {
+    setExiting(true);
+  }
+  wasVisibleRef.current = visible;
 
   useEffect(() => {
     const recorder = createRecorder();
@@ -55,8 +65,11 @@ export function Orb() {
         initial={false}
         animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 0.85 }}
         transition={SPRING}
+        onAnimationComplete={() => {
+          if (!visible) setExiting(false);
+        }}
       >
-        <OrbCanvas size={ORB_CANVAS_SIZE} running={visible} read={read} />
+        <OrbCanvas size={ORB_CANVAS_SIZE} running={visible || exiting} read={read} />
       </motion.div>
       <Text size="xs" c="red.4" fw={500} h={16}>
         {message}

@@ -11,6 +11,12 @@ import type { Recorder } from './recorder';
  */
 const EMPTY_AUDIO: RecordedAudio = { data: new ArrayBuffer(0), mimeType: '', durationMs: 0 };
 
+// Main shows `done` for DONE_MS then hides the window after DONE_MS + FADE_MS
+// (see electron/session.ts). This local delay must leave at least 150ms of
+// margin before that hide, or the window can vanish mid fade-out; 600ms (the
+// originally desired value, to give the done look real dwell time) would
+// leave none, so this is clamped to the largest round value that keeps the
+// margin: (DONE_MS + FADE_MS) - 150 = 300.
 const HIDE_DELAY_DONE_MS = 300;
 const HIDE_DELAY_ERROR_MS = 3000;
 

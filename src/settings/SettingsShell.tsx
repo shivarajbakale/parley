@@ -1,5 +1,5 @@
 import { Alert, Box, Tabs } from '@mantine/core';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { useState } from 'react';
 
 import type { PermissionStatus, Settings, SettingsView } from '../../electron/types';
@@ -48,27 +48,39 @@ export function SettingsShell({
             Could not save settings
           </Alert>
         )}
-        <Tabs.Panel value={active}>
-          <AnimatePresence mode="wait" custom={direction} initial={false}>
-            <motion.div
-              key={active}
-              custom={direction}
-              variants={panelVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-            >
-              {active === 'setup' && (
-                <SetupTab
-                  needsSetup={needsSetup}
-                  permissions={permissions}
-                  hasApiKey={settings.hasApiKey}
-                />
-              )}
-              {active === 'gesture' && <GestureTab settings={settings} onChange={onChange} />}
-              {active === 'general' && <GeneralTab settings={settings} onChange={onChange} />}
-            </motion.div>
-          </AnimatePresence>
+        <Tabs.Panel value="setup">
+          <motion.div
+            custom={direction}
+            variants={panelVariants}
+            initial={false}
+            animate={active === 'setup' ? 'center' : 'enter'}
+          >
+            <SetupTab
+              needsSetup={needsSetup}
+              permissions={permissions}
+              hasApiKey={settings.hasApiKey}
+            />
+          </motion.div>
+        </Tabs.Panel>
+        <Tabs.Panel value="gesture">
+          <motion.div
+            custom={direction}
+            variants={panelVariants}
+            initial={false}
+            animate={active === 'gesture' ? 'center' : 'enter'}
+          >
+            <GestureTab settings={settings} onChange={onChange} />
+          </motion.div>
+        </Tabs.Panel>
+        <Tabs.Panel value="general">
+          <motion.div
+            custom={direction}
+            variants={panelVariants}
+            initial={false}
+            animate={active === 'general' ? 'center' : 'enter'}
+          >
+            <GeneralTab settings={settings} onChange={onChange} />
+          </motion.div>
         </Tabs.Panel>
       </Box>
     </Tabs>

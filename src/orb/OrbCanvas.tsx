@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { OrbPhase } from '../../electron/types';
 
@@ -37,24 +37,53 @@ export function OrbCanvas({ size, running, read }: OrbCanvasProps) {
   readRef.current = read;
   const rendererRef = useRef<OrbRenderer | null>(null);
   const frameRef = useRef<ReturnType<typeof createFrame> | null>(null);
+  // 'gl' is the default; a failed compile/link or a lost context that never
+  // recovers drops us to the 2D fallback. The canvas below is keyed on this
+  // mode so the fallback always draws on a canvas that never asked for WebGL.
+  const [mode, setMode] = useState<'gl' | '2d'>('gl');
 
   // Effect A: the renderer and its GL program are mount-scoped, not tied to
   // `running`. A canvas has exactly one WebGL context for its lifetime, so
   // creating and disposing this per running-toggle (or under StrictMode's
-  // double-invoked effect) would exhaust it after the first cycle.
+  // double-invoked effect) would exhaust it after the first cycle. It does
+  // depend on `mode`, but that only changes on WebGL failure/loss, not on
+  // every render.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    rendererRef.current = createOrbRenderer(canvas, buildPalette(readTokenBytes));
     frameRef.current = createFrame('cancelled');
 
+    if (mode !== 'gl') {
+      return () => {
+        frameRef.current = null;
+      };
+    }
+
+    rendererRef.current = createOrbRenderer(canvas, buildPalette(readTokenBytes));
+    if (!rendererRef.current) setMode('2d');
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      // The context is already dead: do not call dispose() on it.
+      rendererRef.current = null;
+    };
+    const handleContextRestored = () => {
+      const renderer = createOrbRenderer(canvas, buildPalette(readTokenBytes));
+      if (renderer) rendererRef.current = renderer;
+      else setMode('2d');
+    };
+    canvas.addEventListener('webglcontextlost', handleContextLost, false);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
+
     return () => {
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       rendererRef.current?.dispose();
       rendererRef.current = null;
       frameRef.current = null;
     };
-  }, []);
+  }, [mode]);
 
   // Effect B: the render loop itself, started and stopped by `running`.
   useEffect(() => {
@@ -91,6 +120,13 @@ export function OrbCanvas({ size, running, read }: OrbCanvasProps) {
   // does not false-positive on it.
   const canvasStyle = { width: `${size}px`, height: `${size}px`, display: 'block' };
   return (
-    <canvas ref={canvasRef} aria-hidden="true" width={pixels} height={pixels} style={canvasStyle} />
+    <canvas
+      key={mode}
+      ref={canvasRef}
+      aria-hidden="true"
+      width={pixels}
+      height={pixels}
+      style={canvasStyle}
+    />
   );
 }

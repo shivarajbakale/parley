@@ -158,12 +158,20 @@ export function createOrbRenderer(
   const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
   const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT);
   const program = gl.createProgram();
-  if (!vertex || !fragment || !program) return null;
+  if (!vertex || !fragment || !program) {
+    if (vertex) gl.deleteShader(vertex);
+    if (fragment) gl.deleteShader(fragment);
+    if (program) gl.deleteProgram(program);
+    return null;
+  }
   gl.attachShader(program, vertex);
   gl.attachShader(program, fragment);
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     console.error('orb program failed to link', gl.getProgramInfoLog(program));
+    gl.deleteShader(vertex);
+    gl.deleteShader(fragment);
+    gl.deleteProgram(program);
     return null;
   }
   gl.useProgram(program);
