@@ -23,6 +23,10 @@ describe('orb window', () => {
     });
   });
 
+  it('is 260 px square so the orb glow has room to fade out', () => {
+    expect(ORB_SIZE).toEqual({ width: 260, height: 260 });
+  });
+
   it('sits bottom center of the work area, 48 px above its bottom edge', () => {
     const bounds = orbBounds({ x: 100, y: 25, width: 1000, height: 800 });
     expect(bounds).toEqual({

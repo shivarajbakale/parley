@@ -10,10 +10,4 @@
 
 .root {
   height: 100%;
-  opacity: 0;
-  transition: opacity 120ms ease-out;
-}
-
-.root[data-visible='true'] {
-  opacity: 1;
 }
