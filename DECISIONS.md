@@ -6,6 +6,21 @@ silently undo.
 
 ---
 
+## 2026-09-22: No generic `ipcRenderer` bridge in the preload
+
+- **What:** Removed the scaffold's `contextBridge.exposeInMainWorld('ipcRenderer', …)`
+  block and its `Window` declaration. `window.parley` is the whole renderer/main
+  seam, and every `settings:*` / `permissions:*` handler checks `event.sender`.
+- **Why:** The generic bridge let any renderer `invoke`/`send` an arbitrary
+  channel, which turns one renderer XSS into full main-process reach — including
+  `settings:setApiKey`. The preload is loaded into the orb window too.
+- **Rejected alternatives:** Keeping it behind a channel allowlist (a second
+  list to keep in sync with the handlers); leaving it because only the unopened
+  scaffold demo used it (an unused hole is still a hole).
+- **Constraint:** Renderer host detection is `'parley' in window`
+  (`src/lib/platform.ts`), not `ipcRenderer`. New channels get a named method on
+  `window.parley` and a sender check in the handler.
+
 ## 2026-09-21: `uiohook-napi` for the global key hook and paste keystroke
 
 - **What:** Added `uiohook-napi` as a runtime dependency of the main process.

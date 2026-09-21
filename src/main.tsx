@@ -38,8 +38,3 @@ enableMocking().then(() => {
     </React.StrictMode>
   );
 });
-
-// contextBridge — messages pushed from the Electron main process.
-window.ipcRenderer.on('main-process-message', (_event, message) => {
-  console.log(message);
-});

@@ -264,12 +264,28 @@ async function startApp() {
     void session.receiveAudio({ data: audio.data, mimeType: 'audio/webm', durationMs: audio.durationMs });
   });
 
-  ipcMain.handle('settings:get', () => store.view());
-  ipcMain.handle('settings:update', (_event, patch: Partial<Settings>) => {
+  /**
+   * Settings and permissions are the settings window's alone. The preload
+   * bridge is loaded into the orb too, so without this check a compromised orb
+   * renderer could read the settings or trigger a permission prompt.
+   */
+  function onlySettingsWindow(event: Electron.IpcMainInvokeEvent) {
+    if (event.sender !== settingsWindow?.webContents) {
+      throw new Error('Refused: this channel is the settings window only');
+    }
+  }
+
+  ipcMain.handle('settings:get', (event) => {
+    onlySettingsWindow(event);
+    return store.view();
+  });
+  ipcMain.handle('settings:update', (event, patch: Partial<Settings>) => {
+    onlySettingsWindow(event);
     applySettings(store.update(typeof patch === 'object' && patch ? patch : {}));
     return store.view();
   });
-  ipcMain.handle('settings:setApiKey', async (_event, key: unknown): Promise<KeyTestResult> => {
+  ipcMain.handle('settings:setApiKey', async (event, key: unknown): Promise<KeyTestResult> => {
+    onlySettingsWindow(event);
     if (typeof key !== 'string' || key.trim() === '') return { ok: false, message: 'Enter a key' };
     const result = await transcriber.testKey(key.trim());
     if (result.ok) {
@@ -278,8 +294,12 @@ async function startApp() {
     }
     return result;
   });
-  ipcMain.handle('permissions:get', () => getPermissions());
-  ipcMain.handle('permissions:request', async (_event, kind: PermissionKind) => {
+  ipcMain.handle('permissions:get', (event) => {
+    onlySettingsWindow(event);
+    return getPermissions();
+  });
+  ipcMain.handle('permissions:request', async (event, kind: PermissionKind) => {
+    onlySettingsWindow(event);
     if (kind !== 'microphone' && kind !== 'accessibility') return getPermissions();
     const status = await requestPermission(kind);
     startHookWhenTrusted();

@@ -7,7 +7,7 @@
  */
 
 /** True when the preload bridge is present — i.e. we're inside Electron. */
-export const isElectron = typeof window !== 'undefined' && 'ipcRenderer' in window;
+export const isElectron = typeof window !== 'undefined' && 'parley' in window;
 
 /** True on macOS, where the traffic lights need horizontal room in the titlebar. */
 export const isMac =

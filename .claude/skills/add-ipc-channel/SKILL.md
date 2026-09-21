@@ -20,9 +20,9 @@ renderer reaches the OS only through channels exposed by the preload bridge.
    });
    ```
    **Validate every argument** — the renderer is untrusted input.
-2. **Preload bridge** (`electron/preload.ts`) — the generic `ipcRenderer` bridge
-   already forwards `invoke`/`send`/`on`. For a first-class API, expose a named
-   method instead of a raw channel:
+2. **Preload bridge** (`electron/preload.ts`) — there is no generic bridge: it
+   was removed so no renderer can name a channel. Expose a named method on the
+   existing `window.parley` API (or a new namespace) instead of a raw channel:
    ```ts
    contextBridge.exposeInMainWorld('api', {
      openFile: () => ipcRenderer.invoke('dialog:openFile'),
@@ -40,7 +40,9 @@ renderer reaches the OS only through channels exposed by the preload bridge.
 
 - Use `invoke`/`handle` for request→response; use `send` + `webContents.send`
   only for fire-and-forget or main→renderer pushes (see the existing
-  `main-process-message` example in `electron/main.ts`).
+  `orb:audio` and `orb:phase` channels in `electron/main.ts`).
+- Check `event.sender` in every handler that touches settings, secrets or the
+  OS, so only the window that owns the channel can call it.
 - Never expose `ipcRenderer` methods that take an arbitrary channel to product
   code — prefer named, typed methods on a small `window.api`.
 - Never enable `nodeIntegration` or disable `contextIsolation`.
