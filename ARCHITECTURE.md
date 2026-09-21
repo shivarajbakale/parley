@@ -24,8 +24,9 @@ an agent needs *in order to find its way around* belongs here rather than there.
 | `electron/permissions.ts` | Microphone and Accessibility status, request, System Settings deep links |
 | `electron/tray.ts` | Menu bar item and menu |
 | `electron/audio-watchdog.ts` | Pure timer that recovers a session wedged waiting on `orb:audio` |
+| `electron/orb-audio.ts` | Pure `parseOrbAudio` — validates and bounds the `orb:audio` payload |
 | `electron/main.ts` | Wiring: creates windows, hook, IPC handlers, tray, login item |
-| `electron/preload.ts` | Exposes `window.parley` |
+| `electron/preload.ts` | Exposes `window.parley` — the only bridge; no generic `ipcRenderer` |
 | `orb.html`, `src/orb/*` | Orb window: recorder, level meter, canvas, tick sound, `phase-handler.ts` |
 | `settings.html`, `src/settings/*` | Settings and onboarding window |
 
@@ -45,18 +46,17 @@ real audio arrives, and on timeout, a malformed `orb:audio`, or the orb's
 `render-process-gone` (which also reloads the orb), recovers the session with
 an empty, zero-duration payload — the cancelled path a too-short recording
 already takes. `main.ts` also takes a single-instance lock so a second launch
-quits instead of doubling the key hook and tray icon, quits if startup fails
-instead of hanging half-initialized, and hands `shell.openExternal` only an
-http(s) URL. The settings window shows an inline error Alert when an IPC
-mutation fails.
+opens settings instead of doubling the key hook and tray icon, quits if startup
+fails, hands `shell.openExternal` only an http(s) URL, and sets the login item
+only when packaged. The settings window shows an inline Alert on an IPC failure.
 
 <!-- rocketship:own shape -->
 ## The shape
 
 ```
 electron/
-  main.ts            the main process: window lifecycle, IPC handlers
-  preload.ts         the context-isolated bridge — the only renderer/main seam
+  main.ts            main process: windows, IPC handlers (each checks event.sender)
+  preload.ts         the context-isolated bridge — named methods only, no raw channel
   window-options.ts  a pure function, unit-tested in electron/__tests__/
 src/                 the renderer, a React app
   main.tsx           boots React: MSW, then QueryClient -> Theme -> Router

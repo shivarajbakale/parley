@@ -22,6 +22,10 @@ previous clipboard content is back afterwards (copy a word first, paste it after
 - [ ] Esc while holding cancels; nothing is pasted.
 - [ ] A press shorter than 300 ms of audio pastes nothing.
 - [ ] A second gesture during transcription is ignored.
+- [ ] At the 10-minute auto-stop the gesture modifier is still physically held,
+      so the injected Cmd+V may arrive as Cmd+Option+V (or Cmd+Shift+V) and do
+      nothing or the wrong thing. Hold past the auto-stop and confirm the
+      transcript still lands in the target app.
 - [ ] Changing the gesture key in Settings and performing the new gesture
       works; the old key no longer shows the orb.
 - [ ] Changing the tap count in Settings and performing the new gesture works.
@@ -77,3 +81,11 @@ previous clipboard content is back afterwards (copy a word first, paste it after
 - [ ] With no network connection, dictating leaves the system clipboard
       exactly as it was before the gesture (nothing partially copied or
       pasted).
+
+## Packaged build
+
+- [ ] Recording works in a packaged, hardened-runtime build. If the microphone
+      is silent there while it works under `make dev`, the hardened runtime is
+      denying capture: add an entitlements plist granting
+      `com.apple.security.device.audio-input` and point `electron-builder.json5`
+      at it, then re-test.
