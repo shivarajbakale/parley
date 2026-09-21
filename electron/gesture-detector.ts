@@ -91,6 +91,14 @@ export function createGestureDetector(options: GestureDetectorOptions): GestureD
   }
 
   function configure(config: { key: GestureKey; tapCount: TapCount }) {
+    // Every settings update calls this, including a vocabulary or tick-sound
+    // change. Resetting then would make an in-progress hold forget it is
+    // recording, so no `stop` would ever be emitted and the mic would stay
+    // live until the auto-stop.
+    if (config.key === key && config.tapCount === tapCount) return;
+    // The gesture really did change under a live recording: end the session
+    // rather than abandon it with the mic open.
+    if (recording) options.onCancel();
     key = config.key;
     tapCount = config.tapCount;
     recording = false;

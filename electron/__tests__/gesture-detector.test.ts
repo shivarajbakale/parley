@@ -136,6 +136,36 @@ describe('gesture detector', () => {
     expect(g.onStart).toHaveBeenCalledTimes(1);
   });
 
+  it('leaves an in-progress hold alone when the config is unchanged', () => {
+    const g = setup();
+    g.tap();
+    g.tap();
+    g.down();
+    g.wait(200);
+    expect(g.onStart).toHaveBeenCalledTimes(1);
+
+    // A vocabulary or tick-sound change re-applies the same key and tap count.
+    g.detector.configure({ key: 'AltRight', tapCount: 3 });
+
+    g.up();
+    expect(g.onStop).toHaveBeenCalledTimes(1);
+    expect(g.onCancel).not.toHaveBeenCalled();
+  });
+
+  it('cancels an in-progress hold when the gesture itself changes', () => {
+    const g = setup();
+    g.tap();
+    g.tap();
+    g.down();
+    g.wait(200);
+    expect(g.onStart).toHaveBeenCalledTimes(1);
+
+    g.detector.configure({ key: 'Shift', tapCount: 2 });
+
+    expect(g.onCancel).toHaveBeenCalledTimes(1);
+    expect(g.onStop).not.toHaveBeenCalled();
+  });
+
   it('can run the gesture again after a completed one', () => {
     const g = setup();
     for (let i = 0; i < 2; i += 1) {

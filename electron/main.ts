@@ -74,6 +74,10 @@ if (!gotSingleInstanceLock) {
   app.quit();
 }
 
+// With no dock icon, relaunching the app is how a user asks for the settings
+// window; the second instance quits, so the first one has to answer.
+app.on('second-instance', () => openSettings());
+
 let orbWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -248,7 +252,9 @@ async function startApp() {
 
   function applySettings(settings: Settings) {
     detector.configure({ key: settings.gestureKey, tapCount: settings.tapCount });
-    app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
+    // Only the packaged app: in dev this would register the bare Electron
+    // binary from node_modules as a login item.
+    if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
   }
   applySettings(store.get());
 
