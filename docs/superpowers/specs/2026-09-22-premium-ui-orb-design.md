@@ -75,13 +75,13 @@ Uniforms:
 
 | Uniform | Drives |
 | --- | --- |
-| `uTime` | Base noise flow |
+| `uFlow` | Noise flow position, integrated on the CPU so speed changes never make the field jump |
 | `uLow` | Lobe displacement, and the only source of size change |
-| `uMid` | Flow speed |
+| `uMid` | Flow speed (folded into `uFlow` on the CPU) |
 | `uHigh` | Shimmer and rim intensity |
-| `uPhaseFrom`, `uPhaseTo`, `uPhaseMix` | Crossfade between phase looks |
-| `uPalette[4]` | Colours, read from CSS tokens |
-| `uReducedMotion` | Slows flow, disables shimmer |
+| `uFrom`, `uTo`, `uMix` | Crossfade between phase looks |
+| `uAurora[3]`, `uDone`, `uError` | Colours, read from CSS tokens |
+| `uCalm` | Set under reduced motion: slows flow, disables shimmer |
 
 Size stays near constant: at most a 6 percent swell, driven by the smoothed
 low band only.
@@ -95,7 +95,7 @@ low band only.
 | done | Teal bloom, then fade out |
 | error | Desaturate to red, one slow pulse; error message stays below the orb |
 
-Phase changes crossfade over 300 ms through `uPhaseMix`. No hard cuts.
+Phase changes crossfade over 300 ms through `uMix`. No hard cuts.
 `src/orb/phase-mix.ts` (new, pure) tracks from, to, and mix given phase events
 and elapsed time.
 
@@ -108,8 +108,9 @@ and elapsed time.
 - Palette is read from CSS custom properties once at init (and on theme
   change), converted to linear RGB floats in `src/orb/palette.ts` (new, pure).
   No colour literals, so `ui-lint` stays green.
-- Orb window grows from 180 px to 240 px to give the glow room. Canvas is
-  rendered at `devicePixelRatio` for crispness.
+- The orb window grows from 220 px to 260 px and the canvas from 180 px to
+  240 px, to give the glow room. The canvas is rendered at `devicePixelRatio`
+  for crispness.
 - Appear and dismiss use `motion`: scale 0.85 to 1 with opacity, on the shared
   spring. This replaces the current 120 ms CSS opacity transition.
 
@@ -160,14 +161,14 @@ Behaviour and the `use-parley.ts` data flow are unchanged.
 ### Reduced motion
 
 With `prefers-reduced-motion`, all UI motion collapses to opacity fades, and
-the orb sets `uReducedMotion` to slow flow and drop shimmer.
+the orb sets `uCalm` to slow flow and drop shimmer.
 
 ## 4. Testing
 
 - Unit tests, written first: `envelope`, `bands`, `palette`, `phase-mix`.
 - Existing suites stay green: settings tab selection, a11y, recorder, phase
   handler. `electron/__tests__/windows.test.ts` assertions are updated for the
-  240 px orb window and the vibrancy option.
+  260 px orb window and the vibrancy option.
 - The shader itself is judged by eye through a Storybook story that feeds it
   synthetic signals (silence, sine sweep, speech-like envelope) and lets the
   phase be switched. No pixel tests.
@@ -187,7 +188,7 @@ the orb sets `uReducedMotion` to slow flow and drop shimmer.
 ## Build order
 
 1. Tokens and motion presets.
-2. Orb audio math (`envelope`, `bands`, `palette`, `phase-mix`).
+2. Orb audio math (`envelope`, `bands`, `palette`, `phase-mix`, `frame`).
 3. Shader, Storybook story, `Orb.tsx` rewire, window size.
 4. Settings split into components, no visual change.
 5. Glass restyle and vibrancy.
