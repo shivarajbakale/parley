@@ -9,6 +9,47 @@ or the commands — those are in [AGENTS.md](AGENTS.md), which is read every
 session. This one is read on demand, which is what keeps that one short: anything
 an agent needs *in order to find its way around* belongs here rather than there.
 
+## Parley
+
+| File | Responsibility |
+|------|----------------|
+| `electron/types.ts` | Shared types: `GestureKey`, `Settings`, `OrbPhase`, `ParleyApi`, IPC payloads |
+| `electron/gesture-detector.ts` | Pure tap-tap-hold state machine |
+| `electron/key-hook.ts` | Maps `uiohook-napi` events to detector events |
+| `electron/transcriber.ts` | Groq call, error mapping, key test |
+| `electron/injector.ts` | Clipboard snapshot, paste keystroke, restore |
+| `electron/settings-store.ts` | JSON settings plus encrypted API key |
+| `electron/session.ts` | Orchestrates one dictation session |
+| `electron/windows.ts` | Pure window option and bounds functions for orb and settings windows |
+| `electron/permissions.ts` | Microphone and Accessibility status, request, System Settings deep links |
+| `electron/tray.ts` | Menu bar item and menu |
+| `electron/audio-watchdog.ts` | Pure timer that recovers a session wedged waiting on `orb:audio` |
+| `electron/main.ts` | Wiring: creates windows, hook, IPC handlers, tray, login item |
+| `electron/preload.ts` | Exposes `window.parley` |
+| `orb.html`, `src/orb/*` | Orb window: recorder, level meter, canvas, tick sound, `phase-handler.ts` |
+| `settings.html`, `src/settings/*` | Settings and onboarding window |
+
+The main process owns all state. Units under `electron/` take their
+dependencies as arguments and never import Electron, except `main.ts` and
+`permissions.ts`.
+
+`src/orb/phase-handler.ts`, pulled out of `Orb.tsx`, turns each `orb:phase`
+event into recorder calls and orb visibility: it clears any pending hide timer
+so a new phase always supersedes a stale one, guards `recorder.start()`/`stop()`
+failures, and on `transcribing` always calls `sendAudio` exactly once — empty
+payload if there is no real recording — since the session is blocked in
+`awaiting_audio` until that call arrives. `electron/audio-watchdog.ts` is the
+main-process half of the same guarantee: `main.ts` arms it
+(`AUDIO_WATCHDOG_MS`, 5000 ms) on entering `awaiting_audio`, clears it when
+real audio arrives, and on timeout, a malformed `orb:audio`, or the orb's
+`render-process-gone` (which also reloads the orb), recovers the session with
+an empty, zero-duration payload — the cancelled path a too-short recording
+already takes. `main.ts` also takes a single-instance lock so a second launch
+quits instead of doubling the key hook and tray icon, quits if startup fails
+instead of hanging half-initialized, and hands `shell.openExternal` only an
+http(s) URL. The settings window shows an inline error Alert when an IPC
+mutation fails.
+
 <!-- rocketship:own shape -->
 ## The shape
 

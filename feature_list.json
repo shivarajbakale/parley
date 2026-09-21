@@ -77,8 +77,11 @@
       "status": "in_progress",
       "plan": "none: packaging config and a manual checklist, no UI",
       "verification": ["Walk docs/MANUAL_CHECKLIST.md."],
-      "evidence": [],
-      "notes": "Plan task 12."
+      "evidence": [
+        "make check exit 0 on 2026-09-22; full unit suite 275 tests across 37 files pass (includes src/orb/__tests__/phase-handler.test.ts, 9 tests, and electron/__tests__/audio-watchdog.test.ts, 4 tests), story-probe suite 106 tests pass, skill-lint 36 files/145 code blocks pass.",
+        "docs/MANUAL_CHECKLIST.md written on 2026-09-22 covering paste targets, gesture (including changing gesture key/tap count), onboarding from a clean state (including the System Settings deep-link check on macOS 26), a real Groq key and an invalid key, errors, offline behaviour, and the tray (including quit and single-instance). No box on that checklist has been ticked yet — manual verification with `make dev` is pending and this feature stays in_progress until it is walked."
+      ],
+      "notes": "Plan task 12. Cannot be marked passing without a human walking docs/MANUAL_CHECKLIST.md by hand; that requires launching the app, which this session does not do."
     }
   ]
 }

@@ -1,8 +1,11 @@
 # Parley
 
-Tap-tap-hold voice dictation: Groq Whisper speech-to-text pasted at the cursor
+Tap-tap-hold voice dictation for macOS. Tap Right Option twice, hold the third
+press, speak, release: Groq Whisper transcribes and the text is pasted at your
+cursor. Design: [docs/superpowers/specs/2026-09-21-parley-design.md](docs/superpowers/specs/2026-09-21-parley-design.md).
 
-Generated with [create-electron-app](https://www.npmjs.com/package/create-electron-app).
+Run it with `make dev`. It needs Microphone and Accessibility permission and a
+Groq API key, all set from the tray's Settings window.
 
 ## Run
 
