@@ -14,16 +14,34 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
 
+import { createAudioWatchdog } from './audio-watchdog';
 import { createGestureDetector } from './gesture-detector';
 import { createInjector } from './injector';
 import { createKeyHook } from './key-hook';
 import { getPermissions, requestPermission } from './permissions';
-import { createSession } from './session';
+import { createSession, type Session } from './session';
 import { createSettingsStore } from './settings-store';
 import { createTranscriber } from './transcriber';
 import { trayMenuTemplate } from './tray';
 import type { KeyTestResult, PermissionKind, RecordedAudio, Settings } from './types';
 import { orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
+
+/**
+ * How long the session may sit in `awaiting_audio` before the watchdog
+ * assumes the `orb:audio` message is never coming (a crashed or reloaded orb
+ * renderer) and recovers it with an empty, zero-duration payload.
+ */
+const AUDIO_WATCHDOG_MS = 5000;
+
+/** Only ever hand `shell.openExternal` a web URL, never a custom scheme. */
+function isExternalHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -44,6 +62,16 @@ const PRELOAD = path.join(__dirname, 'preload.mjs');
 function loadPage(window: BrowserWindow, page: 'orb' | 'settings') {
   if (VITE_DEV_SERVER_URL) window.loadURL(`${VITE_DEV_SERVER_URL}${page}.html`);
   else window.loadFile(path.join(RENDERER_DIST, `${page}.html`));
+}
+
+/**
+ * A second launch would install a second global key hook and a second tray
+ * icon, so one gesture would paste twice. Only the first instance runs; a
+ * second one quits immediately.
+ */
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
 }
 
 let orbWindow: BrowserWindow | null = null;
@@ -72,13 +100,22 @@ function openSettings() {
     settingsWindow = null;
   });
   settingsWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (isExternalHttpUrl(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
   loadPage(settingsWindow, 'settings');
 }
 
-app.whenReady().then(() => {
+if (gotSingleInstanceLock) {
+  startApp().catch((error) => {
+    console.error('Parley failed to start', error);
+    app.quit();
+  });
+}
+
+/** Wraps startup so a failure is logged and the app quits instead of hanging half-initialized. */
+async function startApp() {
+  await app.whenReady();
   app.dock?.hide();
   // Cmd+C / Cmd+V in the settings window need an Edit menu, dock icon or not.
   Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]));
@@ -125,7 +162,30 @@ app.whenReady().then(() => {
 
   createOrbWindow();
 
-  const session = createSession({
+  /**
+   * A dropped `orb:audio` message otherwise wedges the session in
+   * `awaiting_audio` forever: the orb stays visible and every later
+   * `start()` returns early. `session.receiveAudio` treats a zero-duration
+   * payload the same as a too-short recording — the cancelled path, nothing
+   * pasted, clipboard untouched — so it is a safe recovery from any of this
+   * function's callers. `session` is assigned just below; every caller of
+   * this function only runs after that assignment.
+   */
+  // Declared before its initializer (below) so `recoverStuckSession` and the
+  // watchdog it feeds can close over it ahead of `createSession` — both are
+  // only ever called after the assignment on the next few lines runs.
+  // eslint-disable-next-line prefer-const
+  let session: Session;
+  function recoverStuckSession() {
+    audioWatchdog.clear();
+    void session.receiveAudio({ data: new ArrayBuffer(0), mimeType: 'audio/webm', durationMs: 0 });
+  }
+  const audioWatchdog = createAudioWatchdog({
+    timeoutMs: AUDIO_WATCHDOG_MS,
+    onTimeout: recoverStuckSession,
+  });
+
+  session = createSession({
     orb: {
       show: () => {
         const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
@@ -134,7 +194,13 @@ app.whenReady().then(() => {
         orbWindow?.showInactive();
       },
       hide: () => orbWindow?.hide(),
-      setPhase: (payload) => orbWindow?.webContents.send('orb:phase', payload),
+      setPhase: (payload) => {
+        orbWindow?.webContents.send('orb:phase', payload);
+        // `transcribing` is the phase set on entering `awaiting_audio`
+        // (`session.stop()`); every other phase means the wait is over.
+        if (payload.phase === 'transcribing') audioWatchdog.arm();
+        else audioWatchdog.clear();
+      },
     },
     transcriber,
     injector,
@@ -146,6 +212,14 @@ app.whenReady().then(() => {
       lastTranscript = text;
       refreshTray();
     },
+  });
+
+  // A crashed or reloaded orb renderer can never send the audio it was
+  // asked for. Recover the wedged session and reload the orb so later
+  // gestures still work.
+  orbWindow?.webContents.on('render-process-gone', () => {
+    recoverStuckSession();
+    if (orbWindow) loadPage(orbWindow, 'orb');
   });
 
   const detector = createGestureDetector({
@@ -179,8 +253,14 @@ app.whenReady().then(() => {
   applySettings(store.get());
 
   ipcMain.on('orb:audio', (event, audio: RecordedAudio) => {
+    // A message from anyone but the orb is silently ignored, not recovered:
+    // it never armed the watchdog, so there is nothing to unstick.
     if (event.sender !== orbWindow?.webContents) return;
-    if (!(audio?.data instanceof ArrayBuffer) || typeof audio.durationMs !== 'number') return;
+    if (!(audio?.data instanceof ArrayBuffer) || typeof audio.durationMs !== 'number') {
+      recoverStuckSession();
+      return;
+    }
+    audioWatchdog.clear();
     void session.receiveAudio({ data: audio.data, mimeType: 'audio/webm', durationMs: audio.durationMs });
   });
 
@@ -219,7 +299,7 @@ app.whenReady().then(() => {
     clearInterval(trustPoll);
     if (hookRunning) keyHook.stop();
   });
-});
+}
 
 // A menu bar app outlives its windows.
 app.on('window-all-closed', () => {});

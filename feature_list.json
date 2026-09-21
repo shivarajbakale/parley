@@ -50,7 +50,7 @@
       "status": "passing",
       "plan": "none: canvas-only overlay window, approved as ASCII wireframes in the design spec",
       "verification": ["Run `make check`.", "Run `make dev`, perform the gesture and watch the orb states."],
-      "evidence": ["make check exit 0; make dev shows the tray item and no dock icon (date of run). Full gesture check recorded under parley-003."],
+      "evidence": ["make check exit 0 on 2026-09-21; electron/__tests__ suites (gesture-detector 11, key-hook 2, injector 2, windows 4, tray 3, plus settings-store, session, transcriber, window carried from parley-001) pass. Manual `make dev` verification (tray item appears, no dock icon, Accessibility grant, gesture performed, quit from tray) has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."],
       "notes": "Plan tasks 8 to 10."
     },
     {
