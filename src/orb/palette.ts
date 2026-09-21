@@ -13,7 +13,7 @@ export interface OrbPalette {
 }
 
 export const PALETTE_TOKENS = {
-  aurora: ['--app-aurora-violet', '--app-aurora-cyan', '--app-aurora-pink'],
+  aurora: ['--app-aurora-deep', '--app-aurora-core', '--app-aurora-glow'],
   done: '--mantine-color-teal-5',
   error: '--mantine-color-red-6',
 } as const;
@@ -30,9 +30,9 @@ const toLinear = ([r, g, b]: Rgb): Rgb => [
 ];
 
 export function buildPalette(readBytes: (token: string) => Rgb): OrbPalette {
-  const [violet, cyan, pink] = PALETTE_TOKENS.aurora.map((token) => toLinear(readBytes(token)));
+  const [deep, core, glow] = PALETTE_TOKENS.aurora.map((token) => toLinear(readBytes(token)));
   return {
-    aurora: [violet, cyan, pink],
+    aurora: [deep, core, glow],
     done: toLinear(readBytes(PALETTE_TOKENS.done)),
     error: toLinear(readBytes(PALETTE_TOKENS.error)),
   };

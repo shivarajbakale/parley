@@ -31,7 +31,7 @@ Out of scope:
 | --- | --- | --- |
 | Orb renderer | Raw WebGL fragment shader, no three.js | Real lighting feel, no new dependency, cheap at this canvas size |
 | Animation library | `motion` (Framer Motion) for React UI only | Layout animations and springs; the orb's per-frame audio loop stays on `requestAnimationFrame` |
-| Visual direction | Dark glass with aurora accents | One violet, cyan, pink gradient family shared by orb and UI so both windows read as one product. Light theme remains, secondary |
+| Visual direction | Solid tinted dark with single-hue accents | One indigo-violet hue at three depths, shared by orb and UI so both windows read as one product. Amended after first look: the violet, cyan, pink family read as a rainbow and was dropped. Light theme remains, secondary |
 | Component library | Keep Mantine | `ui-lint` and existing tests depend on it |
 
 ## 1. Orb
@@ -118,8 +118,9 @@ and elapsed time.
 
 In `src/theme.ts` and `src/App.css`:
 
-- Aurora colours: violet, cyan, pink, exposed as CSS custom properties and one
-  gradient token.
+- Aurora colours: one indigo-violet hue at three depths (deep, core, glow),
+  exposed as CSS custom properties and one gradient token. The settings window
+  background is a solid tint of the same hue (`--app-tint-bg`).
 - Surfaces: near-black base; glass panel (translucent fill, 1 px light border,
   backdrop blur); elevated glass for hover.
 - Motion: one spring preset (stiffness 380, damping 30), one ease curve, and

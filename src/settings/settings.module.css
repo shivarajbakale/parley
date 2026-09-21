@@ -7,7 +7,7 @@
 .shell {
   height: 100vh;
   overflow: hidden;
-  background: color-mix(in oklab, var(--mantine-color-body) 55%, transparent);
+  background: var(--app-tint-bg);
 }
 
 .rail {
@@ -83,7 +83,7 @@
 
 @keyframes glow-settle {
   from {
-    box-shadow: 0 0 0 1px var(--app-aurora-cyan), 0 0 24px -4px var(--app-aurora-violet);
+    box-shadow: 0 0 0 1px var(--app-aurora-glow), 0 0 24px -4px var(--app-aurora-core);
   }
   to {
     box-shadow: 0 0 0 1px transparent, 0 0 0 0 transparent;
@@ -97,7 +97,7 @@
 }
 
 :global(:focus-visible) {
-  outline: 2px solid var(--app-aurora-cyan);
+  outline: 2px solid var(--app-aurora-glow);
   outline-offset: 2px;
 }
 

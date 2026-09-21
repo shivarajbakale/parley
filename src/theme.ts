@@ -197,11 +197,12 @@ export const theme = createTheme({
 });
 
 const aurora = {
-  '--app-aurora-violet': 'oklch(0.62 0.22 295)',
-  '--app-aurora-cyan': 'oklch(0.78 0.14 210)',
-  '--app-aurora-pink': 'oklch(0.72 0.2 350)',
+  // One indigo-violet hue at three depths; the orb and the UI accents share it.
+  '--app-aurora-deep': 'oklch(0.42 0.2 280)',
+  '--app-aurora-core': 'oklch(0.6 0.22 287)',
+  '--app-aurora-glow': 'oklch(0.8 0.12 295)',
   '--app-aurora-gradient':
-    'linear-gradient(120deg, var(--app-aurora-violet), var(--app-aurora-cyan) 55%, var(--app-aurora-pink))',
+    'linear-gradient(120deg, var(--app-aurora-deep), var(--app-aurora-core))',
 };
 
 /**
@@ -215,7 +216,7 @@ const aurora = {
  * answer is `dark[8]`, which this theme has spent on the page itself, and a
  * control the colour of its background is a control the reader cannot see.
  *
- * The aurora tokens (`--app-aurora-violet`, `--app-aurora-cyan`, `--app-aurora-pink`,
+ * The aurora tokens (`--app-aurora-deep`, `--app-aurora-core`, `--app-aurora-glow`,
  * `--app-aurora-gradient`) and glass tokens (`--app-glass`, `--app-glass-hover`,
  * `--app-glass-border`) are also declared here.
  *
@@ -227,6 +228,7 @@ export const cssVariablesResolver: CSSVariablesResolver = t => ({
   light: {
     '--app-surface': t.white,
     '--app-control': t.colors.gray[1],
+    '--app-tint-bg': 'oklch(0.97 0.015 287)',
     '--app-glass': 'color-mix(in oklab, white 72%, transparent)',
     '--app-glass-hover': 'color-mix(in oklab, white 86%, transparent)',
     '--app-glass-border': 'color-mix(in oklab, black 10%, transparent)',
@@ -244,6 +246,7 @@ export const cssVariablesResolver: CSSVariablesResolver = t => ({
     '--mantine-color-dimmed': t.colors.dark[3],
     '--app-surface': t.colors.dark[7],
     '--app-control': t.colors.dark[6],
+    '--app-tint-bg': 'oklch(0.19 0.045 285)',
     '--app-glass': 'color-mix(in oklab, white 6%, transparent)',
     '--app-glass-hover': 'color-mix(in oklab, white 10%, transparent)',
     '--app-glass-border': 'color-mix(in oklab, white 12%, transparent)',
