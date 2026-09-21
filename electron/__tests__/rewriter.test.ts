@@ -46,6 +46,70 @@ describe('rewriter', () => {
     );
   });
 
+  describe('explain with web search', () => {
+    const toolReply = (query: string) =>
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'c1',
+                    type: 'function',
+                    function: { name: 'web_search', arguments: JSON.stringify({ query }) },
+                  },
+                ],
+              },
+            },
+          ],
+        })
+      );
+
+    it('runs the search the model asks for and answers from the results', async () => {
+      const webSearch = vi
+        .fn()
+        .mockResolvedValue([{ title: 'T', url: 'https://e.com', snippet: 'S' }]);
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce(toolReply('parley app'))
+        .mockResolvedValueOnce(reply('It is an app. (e.com)'));
+      const rewriter = createRewriter({ getApiKey: () => 'k', fetchFn, webSearch });
+
+      await expect(rewriter.explain('Parley')).resolves.toBe('It is an app. (e.com)');
+      expect(webSearch).toHaveBeenCalledWith('parley app');
+      const first = JSON.parse(fetchFn.mock.calls[0][1].body);
+      expect(first.tools[0].function.name).toBe('web_search');
+      expect(first.messages[0].content).toContain('web_search');
+      const second = JSON.parse(fetchFn.mock.calls[1][1].body);
+      const tool = second.messages.at(-1);
+      expect(tool).toMatchObject({ role: 'tool', tool_call_id: 'c1' });
+      expect(tool.content).toContain('https://e.com');
+    });
+
+    it('tells the model a failed search failed, and stops offering the tool after two rounds', async () => {
+      const webSearch = vi.fn().mockRejectedValue(new Error('down'));
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce(toolReply('a'))
+        .mockResolvedValueOnce(toolReply('b'))
+        .mockResolvedValueOnce(reply('From memory.'));
+      const rewriter = createRewriter({ getApiKey: () => 'k', fetchFn, webSearch });
+
+      await expect(rewriter.explain('x')).resolves.toBe('From memory.');
+      const bodies = fetchFn.mock.calls.map(call => JSON.parse(call[1].body));
+      expect(bodies[1].messages.at(-1).content).toContain('search failed');
+      expect(bodies[2].tools).toBeUndefined();
+    });
+
+    it('never offers the tool to voice edit', async () => {
+      const fetchFn = vi.fn().mockResolvedValue(reply('Hi.'));
+      await createRewriter({ getApiKey: () => 'k', fetchFn, webSearch: vi.fn() }).rewrite('a', 'b');
+      expect(JSON.parse(fetchFn.mock.calls[0][1].body).tools).toBeUndefined();
+    });
+  });
+
   it('fails an explanation without a key, or with an empty reply', async () => {
     await expect(setup(vi.fn(), null).explain('x')).rejects.toMatchObject({ kind: 'no_key' });
     const fetchFn = vi.fn().mockResolvedValue(reply('<think>hm</think>'));
@@ -99,6 +163,9 @@ describe('rewriter', () => {
     expect(JSON.parse(init.body).max_completion_tokens).toBe(1);
 
     const bad = setup(vi.fn().mockResolvedValue(reply('', 401)));
-    await expect(bad.testKey('nope')).resolves.toEqual({ ok: false, message: 'Invalid MiniMax key' });
+    await expect(bad.testKey('nope')).resolves.toEqual({
+      ok: false,
+      message: 'Invalid MiniMax key',
+    });
   });
 });

@@ -171,6 +171,11 @@ Needs a MiniMax key (Settings, Setup). Default explain key is Right Control.
       keeps focus.
 - [ ] A quick tap-tap-hold-release with no question gives a plain explanation.
 - [ ] The answers are in English.
+- [ ] Select a recent product or obscure name and ask "what is this?": the answer
+      takes a couple of seconds longer, uses current facts and ends with a site
+      name in parentheses. Selecting a common word or code does not search.
+- [ ] With Wi-Fi off, a failed search still ends in an answer or the usual error,
+      never a stuck skeleton.
 - [ ] Repeat in Safari, Chrome, VS Code and Terminal. Where the app hides its
       selection, the card appears beside the pointer instead.
 - [ ] Select text at the bottom of the screen: the card flips above it. Select

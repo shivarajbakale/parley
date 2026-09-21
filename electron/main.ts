@@ -37,6 +37,7 @@ import { createSession, type Session } from './session';
 import { createSettingsStore } from './settings-store';
 import { createTranscriber } from './transcriber';
 import { trayMenuTemplate } from './tray';
+import { createWebSearch } from './web-search';
 import { createWordOffer } from './word-offer';
 import type {
   ExplainContent,
@@ -189,7 +190,10 @@ async function startApp() {
     sendSelectAll: () => uIOhook.keyTap(UiohookKey.A, [UiohookKey.Meta]),
   });
 
-  const rewriter = createRewriter({ getApiKey: () => store.getRewriteKey() });
+  const rewriter = createRewriter({
+    getApiKey: () => store.getRewriteKey(),
+    webSearch: createWebSearch(),
+  });
   const editTargets = createEditTargets({
     reader: createFieldReader({
       helperPath: AX_HELPER,
