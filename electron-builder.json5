@@ -13,6 +13,7 @@
   mac: {
     // The Accessibility reader voice edit uses; see scripts/build-ax-helper.sh.
     extraResources: [{ from: 'resources/parley-ax', to: 'parley-ax' }],
+    icon: 'build/icon.icns',
     target: ['dmg'],
     // No Developer ID yet: skip electron-builder's signing, scripts/adhoc-sign.cjs signs ad hoc.
     identity: null,
