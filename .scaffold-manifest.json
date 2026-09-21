@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 1,
+  "scaffolder": "create-electron-app",
+  "scaffolderVersion": "0.2.0",
+  "framework": "electron",
+  "language": "typescript",
+  "category": "desktop",
+  "projectName": "parley",
+  "description": "Tap-tap-hold voice dictation: Groq Whisper speech-to-text pasted at the cursor",
+  "entrypoint": "electron/main.ts",
+  "scripts": {
+    "dev": "npm run dev",
+    "build": "npm run build",
+    "preview": "npm run preview"
+  },
+  "defaultPort": null,
+  "healthcheck": null,
+  "packageManager": "npm",
+  "capabilities": [
+    "electron",
+    "vite",
+    "react",
+    "typescript",
+    "electron-builder"
+  ],
+  "monorepoHints": {
+    "packageNameField": "package.json#name",
+    "tsconfigExtendsField": "tsconfig.json#extends",
+    "portEnvVar": null
+  }
+}

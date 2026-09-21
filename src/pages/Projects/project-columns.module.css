@@ -1,0 +1,31 @@
+/*
+ * Column widths and responsive hiding for the Projects table.
+ *
+ * These were Tailwind utilities on each column's `meta` — `w-28`, and
+ * `hidden w-36 @md:table-cell`. Nothing in this app emits utility classes any
+ * more, so left as they were the widths would apply to nothing and the progress
+ * column would simply always show: a silent layout change with no error
+ * anywhere, which is the failure mode that makes a leftover class worse than a
+ * missing one.
+ *
+ * `@container data-table` is the same query the `@md:` prefix meant, written
+ * against the container `src/components/data-table.module.css` names. The
+ * threshold is 28rem, which is what Tailwind's `@md` container breakpoint was.
+ *
+ * A media query is not something an inline style can express, so this is a CSS
+ * module — the sanctioned escape hatch — rather than a `style` prop.
+ */
+.status {
+  width: 7rem;
+}
+
+.progress {
+  display: none;
+  width: 9rem;
+}
+
+@container data-table (min-width: 28rem) {
+  .progress {
+    display: table-cell;
+  }
+}
