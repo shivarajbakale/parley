@@ -57,7 +57,11 @@ export function orbWindowOptions(preloadPath: string) {
 }
 
 /** Bounds are set per show, by `placeCard`; the size here is only the first frame. */
-export function explainWindowOptions(preloadPath: string) {
+export function explainWindowOptions(
+  preloadPath: string,
+  platform: NodeJS.Platform = process.platform
+) {
+  const isMac = platform === 'darwin';
   return {
     width: CARD_WIDTH,
     height: CARD_MIN_HEIGHT,
@@ -69,6 +73,14 @@ export function explainWindowOptions(preloadPath: string) {
     movable: false,
     // The selection the card explains must stay selected and focused.
     focusable: false,
+    // A non-activating panel takes clicks and scrolling without activating
+    // Parley; `acceptFirstMouse` stops the first click being spent on focus.
+    type: isMac ? ('panel' as const) : undefined,
+    acceptFirstMouse: true,
+    // Real glass: the desktop blurs through the card. `active` keeps it from
+    // greying out, since this window is never the key window.
+    vibrancy: isMac ? ('hud' as const) : undefined,
+    visualEffectState: isMac ? ('active' as const) : undefined,
     alwaysOnTop: true,
     skipTaskbar: true,
     fullscreenable: false,

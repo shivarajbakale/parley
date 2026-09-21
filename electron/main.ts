@@ -23,7 +23,7 @@ import { createCorrectionWatcher } from './correction-watcher';
 import { applyReplacements, splitVocabulary, whisperPrompt } from './dictionary';
 import { createDictionaryStore } from './dictionary-store';
 import { createEditTargets } from './edit-target';
-import { createExplain } from './explain';
+import { createExplain, EXPLAIN_LEAVE_MS } from './explain';
 import { CARD_MIN_HEIGHT, CARD_WIDTH, maxCardHeight, placeCard } from './explain-placement';
 import { createFieldReader } from './field-reader';
 import { createGestureDetector } from './gesture-detector';
@@ -229,14 +229,25 @@ async function startApp() {
     );
   }
 
-  function pushExplain(content: ExplainContent) {
-    explainWindow?.webContents.send('explain:state', { ...content, maxHeight: explainMaxHeight });
+  let lastExplain: ExplainContent = { status: 'empty' };
+  let explainHideTimer: ReturnType<typeof setTimeout> | undefined;
+  let explainLeaving = false;
+
+  function pushExplain(content: ExplainContent, closing = false) {
+    lastExplain = content;
+    explainWindow?.webContents.send('explain:state', {
+      ...content,
+      maxHeight: explainMaxHeight,
+      ...(closing ? { closing } : {}),
+    });
   }
 
   const explain = createExplain({
     rewriter,
     view: {
       show: (anchor, content) => {
+        clearTimeout(explainHideTimer);
+        explainLeaving = false;
         explainAnchor = anchor;
         explainHeight = CARD_MIN_HEIGHT;
         explainMaxHeight = maxCardHeight(explainDisplay().workArea);
@@ -246,7 +257,16 @@ async function startApp() {
         explainWindow?.showInactive();
       },
       update: pushExplain,
-      hide: () => explainWindow?.hide(),
+      // Let the card melt away before the window goes.
+      hide: () => {
+        if (!explainWindow?.isVisible() || explainLeaving) return;
+        explainLeaving = true;
+        pushExplain(lastExplain, true);
+        explainHideTimer = setTimeout(() => {
+          explainLeaving = false;
+          explainWindow?.hide();
+        }, EXPLAIN_LEAVE_MS);
+      },
     },
   });
 

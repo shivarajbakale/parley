@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActionIcon, Skeleton, Stack, Tooltip } from '@mantine/core';
-import { Check, Copy, Sparkles } from 'lucide-react';
+import { Check, Copy, Sparkles, X } from 'lucide-react';
 import Markdown from 'react-markdown';
 
 import type { ExplainState } from '../../electron/types';
@@ -91,14 +91,25 @@ export function ExplainCard({ state }: { state: ExplainState }) {
   return (
     <div
       ref={card}
-      className={classes.card}
+      className={`${classes.card} ${state.closing ? classes.leaving : ''}`}
       role="region"
       aria-label="Explanation"
       style={{ maxHeight: state.maxHeight }}
     >
       <div className={classes.header}>
         <Title state={state} />
-        {state.status === 'ready' ? <CopyButton markdown={state.markdown} /> : <kbd className={classes.esc}>esc</kbd>}
+        <div className={classes.actions}>
+          {state.status === 'ready' && <CopyButton markdown={state.markdown} />}
+          <ActionIcon
+            variant="subtle"
+            size="sm"
+            color="gray"
+            aria-label="Close"
+            onClick={() => window.parley.dismissExplain()}
+          >
+            <X size={14} />
+          </ActionIcon>
+        </div>
       </div>
       <div className={classes.body}>
         <Body state={state} />

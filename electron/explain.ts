@@ -11,6 +11,9 @@ import type { ExplainContent, Rect } from './types';
  * land in the card for a new one.
  */
 
+/** How long the card's exit animation runs before its window hides. */
+export const EXPLAIN_LEAVE_MS = 420;
+
 /** How long "select some text first" stays up. */
 export const EMPTY_HIDE_MS = 2000;
 

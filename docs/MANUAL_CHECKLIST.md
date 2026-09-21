@@ -177,8 +177,12 @@ Needs a MiniMax key (Settings, Setup). Default explain key is Right Control.
       at the right edge: the card shifts left. Try a second display.
 - [ ] A typical answer shows without a scrollbar. Select a whole paragraph of
       code: the card grows, and only scrolls past 60% of the screen height.
-- [ ] The Copy icon puts the answer's markdown on the clipboard and shows a tick. Esc, or a click outside
-      the card, dismisses it.
+- [ ] The Copy icon puts the answer's markdown on the clipboard and shows a tick. Esc, the X button, or a click
+      outside the card dismisses it; the card melts away rather than vanishing.
+- [ ] The card reads as glass: the desktop blurs through it, over light and dark
+      wallpapers, and its text stays legible. Its corners match the window's.
+- [ ] Clicking Copy or X, and scrolling a long answer with the wheel, work without
+      the text field losing focus.
 - [ ] With nothing selected the card says "Select some text first" and goes away
       after two seconds.
 - [ ] Selecting text in a password field shows nothing to explain, and the

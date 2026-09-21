@@ -116,7 +116,8 @@ export type ExplainContent =
   | { status: 'error'; message: string };
 
 /** Content plus the tallest the card may grow before it scrolls. */
-export type ExplainState = ExplainContent & { maxHeight: number };
+/** `closing` plays the exit animation; the window hides once it has finished. */
+export type ExplainState = ExplainContent & { maxHeight: number; closing?: boolean };
 
 /** `window.parley`, exposed by `electron/preload.ts`. */
 export interface ParleyApi {

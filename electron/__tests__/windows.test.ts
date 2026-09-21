@@ -75,6 +75,15 @@ describe('explain window', () => {
     expect(options.show).toBe(false);
   });
 
+  it('is a clickable, scrollable glass panel on macOS', () => {
+    const options = explainWindowOptions('/app/preload.mjs', 'darwin');
+    expect(options.type).toBe('panel');
+    expect(options.acceptFirstMouse).toBe(true);
+    expect(options.vibrancy).toBe('hud');
+    expect(options.visualEffectState).toBe('active');
+    expect(explainWindowOptions('/app/preload.mjs', 'linux').vibrancy).toBeUndefined();
+  });
+
   it('locks down the renderer', () => {
     expect(explainWindowOptions('/app/preload.mjs').webPreferences).toMatchObject({
       preload: '/app/preload.mjs',

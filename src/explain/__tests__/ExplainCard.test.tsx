@@ -11,6 +11,7 @@ const api = {
   copyExplain: vi.fn(),
   reportExplainHeight: vi.fn(),
   onExplain: vi.fn(),
+  dismissExplain: vi.fn(),
 };
 
 const themed = (children: React.ReactNode) => (
@@ -31,6 +32,12 @@ describe('ExplainCard', () => {
     show({ status: 'loading', maxHeight: 500 });
     expect(screen.getByRole('status', { name: 'Explaining' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument();
+  });
+
+  it('closes from its own button, since it never takes the keyboard', async () => {
+    show({ status: 'loading', maxHeight: 500 });
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(api.dismissExplain).toHaveBeenCalledOnce();
   });
 
   it('renders the markdown answer and copies its source', async () => {
