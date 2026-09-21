@@ -13,6 +13,8 @@ import type { DictionaryEntry } from './dictionary';
 export const MAX_ENTRIES = 500;
 const MAX_WORD_CHARS = 60;
 const MAX_SOUNDS_LIKE = 8;
+/** Offers to remember a word stop after this many go unanswered. */
+export const MAX_DECLINES = 2;
 
 export interface DictionaryInput {
   /** Present to edit that entry; absent to add, or to merge into the same word. */
@@ -27,6 +29,10 @@ export interface DictionaryStore {
   upsert(input: DictionaryInput): DictionaryEntry | null;
   remove(id: string): void;
   recordUses(ids: string[]): void;
+  /** The user let an offer to remember this word pass. */
+  decline(word: string): void;
+  /** Declined often enough that offering again would be nagging. */
+  isIgnored(word: string): boolean;
 }
 
 function cleanPhrase(value: unknown): string | null {
@@ -69,8 +75,18 @@ export function createDictionaryStore(deps: { dir: string; now?: () => number })
   const now = deps.now ?? Date.now;
 
   let entries: DictionaryEntry[] = [];
+  /** Lowercase word to the number of offers declined. */
+  let declined: Record<string, number> = {};
   try {
-    const body = JSON.parse(readFileSync(file, 'utf8')) as { entries?: unknown };
+    const body = JSON.parse(readFileSync(file, 'utf8')) as {
+      entries?: unknown;
+      declined?: unknown;
+    };
+    if (typeof body.declined === 'object' && body.declined !== null) {
+      declined = Object.fromEntries(
+        Object.entries(body.declined).filter(([, count]) => typeof count === 'number')
+      ) as Record<string, number>;
+    }
     if (Array.isArray(body.entries)) {
       entries = body.entries
         .map(cleanEntry)
@@ -84,7 +100,7 @@ export function createDictionaryStore(deps: { dir: string; now?: () => number })
   function save() {
     // Rename is atomic, so a crash mid-write cannot leave half a dictionary.
     const temporary = `${file}.tmp`;
-    writeFileSync(temporary, JSON.stringify({ entries }, null, 2));
+    writeFileSync(temporary, JSON.stringify({ entries, declined }, null, 2));
     renameSync(temporary, file);
   }
 
@@ -116,6 +132,8 @@ export function createDictionaryStore(deps: { dir: string; now?: () => number })
         next = { id: randomUUID(), word, soundsLike, uses: 0, lastUsedAt: now() };
         entries = [...entries, next];
       }
+      // Adding a word by any route is a change of mind about declining it.
+      delete declined[word.toLowerCase()];
       save();
       return next;
     },
@@ -137,5 +155,13 @@ export function createDictionaryStore(deps: { dir: string; now?: () => number })
       });
       if (changed) save();
     },
+
+    decline(word) {
+      const key = word.toLowerCase();
+      declined = { ...declined, [key]: (declined[key] ?? 0) + 1 };
+      save();
+    },
+
+    isIgnored: (word) => (declined[word.toLowerCase()] ?? 0) >= MAX_DECLINES,
   };
 }

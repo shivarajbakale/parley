@@ -17,6 +17,9 @@ import { promisify } from 'node:util';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 import { createAudioWatchdog } from './audio-watchdog';
+import { createCommonWords } from './common-words';
+import { detectCorrection } from './correction-detect';
+import { createCorrectionWatcher } from './correction-watcher';
 import { applyReplacements, splitVocabulary, whisperPrompt } from './dictionary';
 import { createDictionaryStore } from './dictionary-store';
 import { createEditTargets } from './edit-target';
@@ -31,7 +34,14 @@ import { createSession, type Session } from './session';
 import { createSettingsStore } from './settings-store';
 import { createTranscriber } from './transcriber';
 import { trayMenuTemplate } from './tray';
-import type { KeyTestResult, PermissionKind, Settings } from './types';
+import { createWordOffer } from './word-offer';
+import type {
+  KeyTestResult,
+  OrbPhasePayload,
+  PermissionKind,
+  SessionMode,
+  Settings,
+} from './types';
 import { orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
 
 /**
@@ -217,23 +227,53 @@ async function startApp() {
     onTimeout: recoverStuckSession,
   });
 
-  session = createSession({
-    orb: {
-      show: () => {
-        const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-        orbWindow?.setBounds(orbBounds(display.workArea));
-        // `showInactive`, never `show`: the user's text field must keep focus.
-        orbWindow?.showInactive();
-      },
-      hide: () => orbWindow?.hide(),
-      setPhase: (payload) => {
-        orbWindow?.webContents.send('orb:phase', payload);
-        // `transcribing` is the phase set on entering `awaiting_audio`
-        // (`session.stop()`); every other phase means the wait is over.
-        if (payload.phase === 'transcribing') audioWatchdog.arm();
-        else audioWatchdog.clear();
-      },
+  const orb = {
+    show: () => {
+      const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+      orbWindow?.setBounds(orbBounds(display.workArea));
+      // `showInactive`, never `show`: the user's text field must keep focus.
+      orbWindow?.showInactive();
     },
+    hide: () => orbWindow?.hide(),
+    setPhase: (payload: OrbPhasePayload) => {
+      orbWindow?.webContents.send('orb:phase', payload);
+      // `transcribing` is the phase set on entering `awaiting_audio`
+      // (`session.stop()`); every other phase means the wait is over.
+      if (payload.phase === 'transcribing') audioWatchdog.arm();
+      else audioWatchdog.clear();
+    },
+  };
+
+  // Learning from corrections: after a dictation, watch the field for a fixed
+  // word, offer to remember it, and take one tap of the dictation key as yes.
+  const fieldReader = createFieldReader({
+    helperPath: AX_HELPER,
+    run: async (file, options) => (await execFileAsync(file, [], options)).stdout,
+  });
+  const isCommonWord = createCommonWords();
+  const wordOffer = createWordOffer({
+    orb,
+    isIdle: () => session.state() === 'idle',
+    key: () => store.get().gestureKey,
+    onAccept: ({ heard, word }) => dictionary.upsert({ word, soundsLike: [heard] }),
+    onDecline: ({ word }) => dictionary.decline(word),
+  });
+  const correctionWatcher = createCorrectionWatcher({
+    reader: fieldReader,
+    detect: (pasted, value) => detectCorrection(pasted, value, { isCommonWord }),
+    onCorrection: (correction) => {
+      if (!dictionary.isIgnored(correction.word)) wordOffer.offer(correction);
+    },
+  });
+  /** A new gesture owns the pill and the field; anything still learning lets go. */
+  function startSession(mode: SessionMode) {
+    correctionWatcher.cancel();
+    wordOffer.cancel();
+    session.start(mode);
+  }
+
+  session = createSession({
+    orb,
     transcriber,
     injector,
     rewriter,
@@ -253,6 +293,7 @@ async function startApp() {
     hasRewriteKey: () => store.hasRewriteKey(),
     getPermissions,
     openSettings,
+    onDictation: (text) => correctionWatcher.watch(text),
     onTranscript: (text) => {
       lastTranscript = text;
       refreshTray();
@@ -270,7 +311,7 @@ async function startApp() {
   const detector = createGestureDetector({
     key: store.get().gestureKey,
     tapCount: store.get().tapCount,
-    onStart: () => session.start(),
+    onStart: () => startSession('dictate'),
     onStop: () => session.stop(),
     onCancel: () => session.cancel(),
   });
@@ -279,7 +320,7 @@ async function startApp() {
   const editDetector = createGestureDetector({
     key: store.get().editGestureKey,
     tapCount: store.get().tapCount,
-    onStart: () => session.start('edit'),
+    onStart: () => startSession('edit'),
     onStop: () => session.stop(),
     onCancel: () => session.cancel(),
   });
@@ -288,6 +329,7 @@ async function startApp() {
     uIOhook,
     UiohookKey as unknown as Record<string, number>,
     (event) => {
+      wordOffer.handleKey(event);
       detector.handle(event);
       if (editEnabled) editDetector.handle(event);
     }

@@ -44,6 +44,8 @@ export interface SessionDeps {
   /** The settings window doubles as onboarding. */
   openSettings(): void;
   onTranscript(text: string): void;
+  /** A dictation, not an edit, has just been pasted: the text now sits in a field. */
+  onDictation?(text: string): void;
 }
 
 export interface Session {
@@ -141,6 +143,7 @@ export function createSession(deps: SessionDeps): Session {
           await deps.editTargets.apply(target, text);
         } else {
           await deps.injector.paste(text);
+          deps.onDictation?.(text);
         }
         deps.onTranscript(text);
         finish({ phase: 'done' }, DONE_MS);

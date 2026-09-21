@@ -11,17 +11,22 @@
   either. Both are merged to `main`, along with the waveform pill and the
   glass sounds.
 - `parley-006` (personal dictionary) is `in_progress` on branch
-  `personal-dictionary`. Slice 1 is done: `electron/dictionary.ts` builds the
-  Whisper prompt and applies sounds-like rules, `electron/dictionary-store.ts`
-  keeps `dictionary.json` in userData, and `electron/session.ts` uses both.
-  There is no UI yet, so the dictionary can only be filled by editing that
-  file.
-- Next step: run `plan-feature` for the Dictionary settings tab (table, inline
-  add row, import and export), get it approved, then build it with the IPC
-  channels `dictionary:list`, `dictionary:upsert` and `dictionary:remove`.
-  That slice also migrates the `vocabulary` setting into entries and removes
-  its textarea from the General tab. After it: snippets, pill text mode with
-  add-by-voice, learning from corrections, on-screen context.
+  `personal-dictionary`. Done so far: the core (`electron/dictionary.ts`,
+  `electron/dictionary-store.ts`, used by `electron/session.ts`), and learning
+  from corrections: after a dictation `electron/correction-watcher.ts` re-reads
+  the field, `electron/correction-detect.ts` decides whether one word was
+  respelled, and `electron/word-offer.ts` asks on the pill
+  (`src/orb/Notice.tsx`) and takes one clean tap of the dictation key as yes.
+  None of the learning path has been tried in the real app yet; the manual
+  steps are the "Personal dictionary" section of `docs/MANUAL_CHECKLIST.md`.
+- Next step: have the user walk that section, tune the detector on what they
+  report, then run `plan-feature` for the Dictionary settings tab (table,
+  inline add row, import and export, the learning toggle, migration of the
+  `vocabulary` setting). After it: snippets, add-by-voice, on-screen context.
+- A second worktree, `.claude/worktrees/explain-selection`, belongs to other
+  work. Its untracked `explain-selection.feature-plan.json` and
+  `FEATURE-PLAN.md` in the repo root fail `plan-lint` (P4) and were left
+  alone; `vite.config.ts` now keeps `.claude/**` out of the test run.
 - Current blocker: none.
 
 ## Session Log

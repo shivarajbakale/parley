@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Stack, Text } from '@mantine/core';
+import { Box, Stack, Text } from '@mantine/core';
 import { motion } from 'motion/react';
 
 import { SPRING } from '@/lib/motion';
@@ -7,8 +7,9 @@ import { SPRING } from '@/lib/motion';
 import type { OrbPhase, SessionMode } from '../../electron/types';
 
 import { SILENT_BANDS } from './bands';
+import { Notice } from './Notice';
 import { Pill } from './Pill';
-import { createPhaseHandler } from './phase-handler';
+import { createPhaseHandler, type OrbNotice } from './phase-handler';
 import { createRecorder, type Recorder } from './recorder';
 import { playSound } from './sounds';
 import classes from './Orb.module.css';
@@ -19,6 +20,7 @@ export function Orb() {
   const modeRef = useRef<SessionMode>('dictate');
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState('');
+  const [notice, setNotice] = useState<OrbNotice | null>(null);
   // Keeps the canvas loop alive through the exit animation: `visible` turning
   // false starts the fade-out immediately, but the done/error look must stay
   // rendered while it plays rather than freezing the instant it begins.
@@ -45,6 +47,7 @@ export function Orb() {
       },
       setVisible,
       setMessage,
+      setNotice,
     });
     const unsubscribe = window.parley.onOrbPhase(handlePhase);
 
@@ -70,6 +73,9 @@ export function Orb() {
       <Text size="xs" c="red.4" fw={500} h={16}>
         {message}
       </Text>
+      <Box className={classes.noticeSlot}>
+        <Notice notice={notice} />
+      </Box>
       <motion.div
         initial={false}
         // Only the fade lives here; the pill opens and folds itself on the canvas.

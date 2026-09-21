@@ -9,5 +9,16 @@
 }
 
 .root {
+  position: relative;
   height: 100%;
+}
+
+/* Centred on the spot the canvas pill occupies, which is folded while a notice shows. */
+.noticeSlot {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 18px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
 }

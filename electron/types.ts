@@ -49,12 +49,21 @@ export const DEFAULT_SETTINGS: Settings = {
 /** `dictate` pastes what was said; `edit` applies it to the focused field. */
 export type SessionMode = 'dictate' | 'edit';
 
-export type OrbPhase = 'listening' | 'transcribing' | 'done' | 'error' | 'cancelled';
+/** `notice` is the pill speaking outside a session: an offer to remember a word. */
+export type OrbPhase = 'listening' | 'transcribing' | 'done' | 'error' | 'cancelled' | 'notice';
+
+/** How long an unanswered notice stays up, and how long its "yes" does. */
+export const NOTICE_MS = 6000;
+export const NOTICE_ACCEPTED_MS = 900;
 
 export interface OrbPhasePayload {
   phase: OrbPhase;
-  /** Only with `error`. */
+  /** With `error`, and with `notice` where it is the text on the pill. */
   message?: string;
+  /** Only with `notice`: the smaller line that says how to answer. */
+  hint?: string;
+  /** Only with `notice`: the answer was yes, so the pill wears the done colour. */
+  accepted?: boolean;
   /** With `listening` and `transcribing`: sounds are on, so play this phase's. */
   tick?: boolean;
   /** Only with `listening`, and only for a voice edit: the orb changes hue. */

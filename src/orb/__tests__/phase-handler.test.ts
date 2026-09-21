@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { RecordedAudio } from '../../../electron/types';
+import { NOTICE_ACCEPTED_MS, NOTICE_MS, type RecordedAudio } from '../../../electron/types';
 import type { Recorder } from '../recorder';
 
 import { createPhaseHandler } from '../phase-handler';
@@ -23,6 +23,7 @@ function harness(recorder: Recorder) {
   const onMode = vi.fn();
   const setVisible = vi.fn();
   const setMessage = vi.fn();
+  const setNotice = vi.fn();
   const handler = createPhaseHandler({
     recorder,
     sendAudio,
@@ -31,8 +32,9 @@ function harness(recorder: Recorder) {
     onMode,
     setVisible,
     setMessage,
+    setNotice,
   });
-  return { handler, sendAudio, playSound, onPhase, onMode, setVisible, setMessage };
+  return { handler, sendAudio, playSound, onPhase, onMode, setVisible, setMessage, setNotice };
 }
 
 describe('createPhaseHandler', () => {
@@ -176,5 +178,42 @@ describe('createPhaseHandler', () => {
 
     await handler.handlePhase({ phase: 'listening' });
     expect(onMode).toHaveBeenLastCalledWith('dictate');
+  });
+
+  it('shows a notice in place of the waveform, then folds it before main hides the window', async () => {
+    const { handler, onPhase, setVisible, setNotice, playSound } = harness(fakeRecorder());
+    await handler.handlePhase({ phase: 'notice', message: 'Remember “MiniMax”?', hint: 'Tap Shift' });
+
+    expect(onPhase).toHaveBeenLastCalledWith('cancelled');
+    expect(setVisible).toHaveBeenLastCalledWith(false);
+    expect(setNotice).toHaveBeenLastCalledWith({
+      message: 'Remember “MiniMax”?',
+      hint: 'Tap Shift',
+      accepted: false,
+    });
+    expect(playSound).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(NOTICE_MS - 201);
+    expect(setNotice).not.toHaveBeenLastCalledWith(null);
+    vi.advanceTimersByTime(1);
+    expect(setNotice).toHaveBeenLastCalledWith(null);
+  });
+
+  it('an accepted notice is brief, and chimes when sounds are on', async () => {
+    const { handler, setNotice, playSound } = harness(fakeRecorder());
+    await handler.handlePhase({ phase: 'listening', tick: true });
+    playSound.mockClear();
+
+    await handler.handlePhase({ phase: 'notice', message: 'Added “MiniMax”', accepted: true });
+    expect(playSound).toHaveBeenCalledWith('done', 'dictate');
+    vi.advanceTimersByTime(NOTICE_ACCEPTED_MS - 200);
+    expect(setNotice).toHaveBeenLastCalledWith(null);
+  });
+
+  it('a session starting clears a notice at once', async () => {
+    const { handler, setNotice } = harness(fakeRecorder());
+    await handler.handlePhase({ phase: 'notice', message: 'Remember “MiniMax”?' });
+    await handler.handlePhase({ phase: 'listening' });
+    expect(setNotice).toHaveBeenLastCalledWith(null);
   });
 });

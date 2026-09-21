@@ -194,6 +194,22 @@ describe('session', () => {
       );
     });
 
+    it('reports a pasted dictation, and never a voice edit', async () => {
+      const onDictation = vi.fn();
+      const { session } = setup({ onDictation });
+
+      session.start();
+      session.stop();
+      await session.receiveAudio(audio());
+      expect(onDictation).toHaveBeenCalledExactlyOnceWith('hello world');
+
+      await vi.runAllTimersAsync();
+      session.start('edit');
+      session.stop();
+      await session.receiveAudio(audio());
+      expect(onDictation).toHaveBeenCalledTimes(1);
+    });
+
     it('does not consult the dictionary when nothing was heard', async () => {
       const apply = vi.fn();
       const { deps, session } = setup({

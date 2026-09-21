@@ -42,4 +42,17 @@ describe('Orb', () => {
     );
     expect(container.querySelector('canvas')!.style.width).toBe('196px');
   });
+
+  it('shows a notice with its hint, and drops it when a session starts', async () => {
+    render(
+      <ThemeProvider defaultTheme="dark" storageKey="test-color-scheme">
+        <Orb />
+      </ThemeProvider>
+    );
+    await act(async () =>
+      emit({ phase: 'notice', message: 'Remember “MiniMax”?', hint: 'Tap Shift to save' })
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('Remember “MiniMax”?');
+    expect(screen.getByText('Tap Shift to save')).toBeInTheDocument();
+  });
 });

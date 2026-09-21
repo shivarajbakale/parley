@@ -1,8 +1,10 @@
-import type {
-  OrbPhase,
-  OrbPhasePayload,
-  RecordedAudio,
-  SessionMode,
+import {
+  NOTICE_ACCEPTED_MS,
+  NOTICE_MS,
+  type OrbPhase,
+  type OrbPhasePayload,
+  type RecordedAudio,
+  type SessionMode,
 } from '../../electron/types';
 
 import type { Recorder } from './recorder';
@@ -25,6 +27,15 @@ const EMPTY_AUDIO: RecordedAudio = { data: new ArrayBuffer(0), mimeType: '', dur
 // margin: (DONE_MS + FADE_MS) - 150 = 300.
 const HIDE_DELAY_DONE_MS = 300;
 const HIDE_DELAY_ERROR_MS = 3000;
+/** A notice folds this long before main hides the window under it. */
+const NOTICE_EXIT_MS = 200;
+
+/** The pill speaking outside a session. */
+export interface OrbNotice {
+  message: string;
+  hint?: string;
+  accepted: boolean;
+}
 
 export interface PhaseHandlerDeps {
   recorder: Recorder;
@@ -35,6 +46,7 @@ export interface PhaseHandlerDeps {
   onMode: (mode: SessionMode) => void;
   setVisible: (visible: boolean) => void;
   setMessage: (message: string) => void;
+  setNotice: (notice: OrbNotice | null) => void;
 }
 
 export interface PhaseHandler {
@@ -49,7 +61,8 @@ export interface PhaseHandler {
  * fake `sendAudio`, with no real media APIs involved.
  */
 export function createPhaseHandler(deps: PhaseHandlerDeps): PhaseHandler {
-  const { recorder, sendAudio, playSound, onPhase, onMode, setVisible, setMessage } = deps;
+  const { recorder, sendAudio, playSound, onPhase, onMode, setVisible, setMessage, setNotice } =
+    deps;
   // Both arrive with `listening` and hold until the next one: the later
   // phases of a session do not repeat them.
   let sessionMode: SessionMode = 'dictate';
@@ -64,12 +77,27 @@ export function createPhaseHandler(deps: PhaseHandlerDeps): PhaseHandler {
   }
 
   function scheduleHide(delayMs: number) {
-    hideTimer = setTimeout(() => setVisible(false), delayMs);
+    hideTimer = setTimeout(() => {
+      setVisible(false);
+      setNotice(null);
+    }, delayMs);
   }
 
-  async function handlePhase({ phase, message, tick, mode }: OrbPhasePayload) {
+  async function handlePhase({ phase, message, hint, accepted, tick, mode }: OrbPhasePayload) {
     // A new phase always supersedes any pending hide from a previous done/error.
     clearHideTimer();
+    if (phase === 'notice') {
+      // Words, not a waveform: the canvas pill stays folded and the notice
+      // takes its place.
+      onPhase('cancelled');
+      setMessage('');
+      setVisible(false);
+      setNotice({ message: message ?? '', hint, accepted: accepted ?? false });
+      if (accepted && sounds) playSound('done', 'dictate');
+      scheduleHide((accepted ? NOTICE_ACCEPTED_MS : NOTICE_MS) - NOTICE_EXIT_MS);
+      return;
+    }
+    setNotice(null);
     onPhase(phase);
     if (phase === 'listening') {
       sessionMode = mode ?? 'dictate';

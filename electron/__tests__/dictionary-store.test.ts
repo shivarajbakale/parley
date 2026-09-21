@@ -104,6 +104,18 @@ describe('dictionary store', () => {
     ]);
   });
 
+  it('stops offering a word that was declined twice, until it is added', () => {
+    const store = open();
+    store.decline('MiniMax');
+    expect(store.isIgnored('minimax')).toBe(false);
+    store.decline('minimax');
+    expect(open().isIgnored('MiniMax')).toBe(true);
+
+    const reopened = open();
+    reopened.upsert({ word: 'MiniMax', soundsLike: [] });
+    expect(open().isIgnored('MiniMax')).toBe(false);
+  });
+
   it('writes plain JSON a person can read and export', () => {
     open().upsert({ word: 'Groq', soundsLike: [] });
     const body = JSON.parse(readFileSync(path.join(dir, 'dictionary.json'), 'utf8'));

@@ -133,3 +133,29 @@ Command, with the same number of presses as dictation.
       and the row says so.
 - [ ] Voice edit works in the packaged build: `parley-ax` is inside
       `Parley.app/Contents/Resources`.
+
+## Personal dictionary
+
+The dictionary is `dictionary.json` in the app's userData folder. Until the
+Dictionary tab exists, accepting an offer is the only way to add to it from
+inside the app.
+
+- [ ] In Notes, dictate a sentence of five or more words that contains a name
+      Whisper gets wrong. Fix only that name by hand and stop typing. Within
+      about five seconds the pill asks `Remember “Name”?` and names the
+      dictation key.
+- [ ] Tap the dictation key once: the pill turns teal with `Added “Name”`, and
+      `dictionary.json` holds the name with the misspelling under `soundsLike`.
+- [ ] Dictate the same sentence again: the name is pasted correctly.
+- [ ] Let an offer pass twice for the same word: it is not offered a third
+      time.
+- [ ] With an offer showing, start a dictation with the usual gesture: the
+      offer gives way to the waveform and nothing is added.
+- [ ] With an offer showing, type a capital letter with Shift: nothing is
+      added.
+- [ ] Change an ordinary word (`today` to `tomorrow`), rewrite half the
+      sentence, or add a sentence after it: no offer appears.
+- [ ] Repeat the first check in Chrome and Slack. Where the app hides the
+      field's value no offer appears; that is expected, not a bug.
+- [ ] The offer never takes focus from the text field.
+

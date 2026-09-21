@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import path from 'node:path';
 import electron from 'vite-plugin-electron/simple';
 import react from '@vitejs/plugin-react';
@@ -77,6 +78,9 @@ export default defineConfig(({ command }) => {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
+    // A git worktree under `.claude/worktrees` is a second copy of this repo
+    // with its own branch: its tests are that branch's business, not this run's.
+    exclude: [...configDefaults.exclude, '.claude/**'],
   },
   };
 });
