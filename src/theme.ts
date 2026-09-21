@@ -196,6 +196,14 @@ export const theme = createTheme({
   },
 });
 
+const aurora = {
+  '--app-aurora-violet': 'oklch(0.62 0.22 295)',
+  '--app-aurora-cyan': 'oklch(0.78 0.14 210)',
+  '--app-aurora-pink': 'oklch(0.72 0.2 350)',
+  '--app-aurora-gradient':
+    'linear-gradient(120deg, var(--app-aurora-violet), var(--app-aurora-cyan) 55%, var(--app-aurora-pink))',
+};
+
 /**
  * Mantine paints Paper and Card with `--mantine-color-body`, which makes a card
  * the same tone as the page behind it. This starter's design separates them by
@@ -207,16 +215,21 @@ export const theme = createTheme({
  * answer is `dark[8]`, which this theme has spent on the page itself, and a
  * control the colour of its background is a control the reader cannot see.
  *
- * These two are the only colour tokens this app declares outside the theme.
+ * The aurora tokens (`--app-aurora-violet`, `--app-aurora-cyan`, `--app-aurora-pink`,
+ * `--app-aurora-gradient`) and glass tokens (`--app-glass`, `--app-glass-hover`,
+ * `--app-glass-border`) are also declared here.
  *
  * This is a `MantineProvider` prop, not part of `createTheme` — it is exported
  * separately and passed alongside `theme` in `components/theme-provider`.
  */
 export const cssVariablesResolver: CSSVariablesResolver = t => ({
-  variables: {},
+  variables: aurora,
   light: {
     '--app-surface': t.white,
     '--app-control': t.colors.gray[1],
+    '--app-glass': 'color-mix(in oklab, white 72%, transparent)',
+    '--app-glass-hover': 'color-mix(in oklab, white 86%, transparent)',
+    '--app-glass-border': 'color-mix(in oklab, black 10%, transparent)',
   },
   dark: {
     '--mantine-color-body': t.colors.dark[8],
@@ -231,5 +244,8 @@ export const cssVariablesResolver: CSSVariablesResolver = t => ({
     '--mantine-color-dimmed': t.colors.dark[3],
     '--app-surface': t.colors.dark[7],
     '--app-control': t.colors.dark[6],
+    '--app-glass': 'color-mix(in oklab, white 6%, transparent)',
+    '--app-glass-hover': 'color-mix(in oklab, white 10%, transparent)',
+    '--app-glass-border': 'color-mix(in oklab, white 12%, transparent)',
   },
 });

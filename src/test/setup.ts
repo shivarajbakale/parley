@@ -2,6 +2,10 @@ import { afterAll, afterEach, beforeAll } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { server } from '../mocks/node';
+import { MotionGlobalConfig } from 'motion/react';
+
+// Tests assert on end states; an exit animation only adds flake.
+MotionGlobalConfig.skipAnimations = true;
 
 /**
  * Test setup.
