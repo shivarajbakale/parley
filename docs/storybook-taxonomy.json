@@ -3,7 +3,8 @@
   "order": [
     "Overview",
     "Shell",
-    "Pages"
+    "Pages",
+    "Parley"
   ],
   "roots": {
     "Overview": {
@@ -78,6 +79,17 @@
         "src/pages"
       ],
       "sections": null
+    },
+    "Parley": {
+      "blurb": "The surfaces a Parley user actually sees: the orb and the settings window.",
+      "depth": 3,
+      "sourceDirs": ["src/orb", "src/settings"],
+      "sections": {
+        "Orb": {
+          "blurb": "The voice-reactive orb and its phases.",
+          "members": ["OrbCanvas"]
+        }
+      }
     }
   }
 }
