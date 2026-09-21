@@ -1,12 +1,11 @@
 import { Alert, Box, Tabs } from '@mantine/core';
-import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 import type { PermissionStatus, Settings, SettingsView } from '../../electron/types';
 
 import { GeneralTab } from './GeneralTab';
 import { GestureTab } from './GestureTab';
-import { panelVariants, tabDirection } from './motion-variants';
+import { PANEL_SHIFT_PX, tabDirection } from './motion-variants';
 import classes from './settings.module.css';
 import { SetupTab } from './SetupTab';
 import { type TabId } from './tabs';
@@ -32,6 +31,11 @@ export function SettingsShell({
     setActive(next);
   };
 
+  // Panels stay mounted so a half-typed key survives a tab switch, which is why
+  // the entrance is a CSS animation: it restarts by itself each time a hidden
+  // panel is shown, where a spring started from `display: none` never ran.
+  const panelStyle = { '--panel-shift': `${PANEL_SHIFT_PX * direction}px` } as CSSProperties;
+
   return (
     <Tabs
       orientation="vertical"
@@ -49,39 +53,24 @@ export function SettingsShell({
           </Alert>
         )}
         <Tabs.Panel value="setup">
-          <motion.div
-            custom={direction}
-            variants={panelVariants}
-            initial={false}
-            animate={active === 'setup' ? 'center' : 'enter'}
-          >
+          <Box className={classes.panel} style={panelStyle}>
             <SetupTab
               needsSetup={needsSetup}
               permissions={permissions}
               hasApiKey={settings.hasApiKey}
               hasRewriteKey={settings.hasRewriteKey}
             />
-          </motion.div>
+          </Box>
         </Tabs.Panel>
         <Tabs.Panel value="gesture">
-          <motion.div
-            custom={direction}
-            variants={panelVariants}
-            initial={false}
-            animate={active === 'gesture' ? 'center' : 'enter'}
-          >
+          <Box className={classes.panel} style={panelStyle}>
             <GestureTab settings={settings} onChange={onChange} />
-          </motion.div>
+          </Box>
         </Tabs.Panel>
         <Tabs.Panel value="general">
-          <motion.div
-            custom={direction}
-            variants={panelVariants}
-            initial={false}
-            animate={active === 'general' ? 'center' : 'enter'}
-          >
+          <Box className={classes.panel} style={panelStyle}>
             <GeneralTab settings={settings} onChange={onChange} />
-          </motion.div>
+          </Box>
         </Tabs.Panel>
       </Box>
     </Tabs>
