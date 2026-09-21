@@ -89,3 +89,16 @@ previous clipboard content is back afterwards (copy a word first, paste it after
       denying capture: add an entitlements plist granting
       `com.apple.security.device.audio-input` and point `electron-builder.json5`
       at it, then re-test.
+
+## Orb and settings visuals
+
+- [ ] Hold the gesture and speak: the orb flows with the voice and its
+      outline does not pulse.
+- [ ] The orb's glow is never cut off by the window edge, over light and
+      dark wallpapers.
+- [ ] Release: the orb swirls while transcribing, flashes teal, fades. The
+      text field keeps focus throughout.
+- [ ] Settings opens with no white flash; wallpaper blurs through the glass.
+- [ ] The tab pill slides; tab content slides in the direction of travel.
+- [ ] With Reduce Motion on, the app uses fades only and the orb drifts
+      slower.
