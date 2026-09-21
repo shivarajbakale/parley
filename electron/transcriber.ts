@@ -8,6 +8,13 @@ import type { KeyTestResult } from './types';
 const BASE = 'https://api.groq.com/openai/v1';
 const MODEL = 'whisper-large-v3-turbo';
 
+/**
+ * Every request is bounded. Without a signal a hung connection never settles,
+ * so the session would sit in `transcribing` with the orb up forever.
+ */
+const TRANSCRIBE_TIMEOUT_MS = 30_000;
+const TEST_KEY_TIMEOUT_MS = 10_000;
+
 export type TranscribeErrorKind = 'no_key' | 'network' | 'auth' | 'rate_limit' | 'server';
 
 const MESSAGES: Record<TranscribeErrorKind, string> = {
@@ -45,10 +52,12 @@ export function createTranscriber(deps: {
 }): Transcriber {
   const fetchFn = deps.fetchFn ?? fetch;
 
-  async function request(url: string, init: RequestInit): Promise<Response> {
+  async function request(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
     let response: Response;
     try {
-      response = await fetchFn(url, init);
+      // A timed-out request rejects with an AbortError, which the catch below
+      // maps to `network` along with every other transport failure.
+      response = await fetchFn(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
     } catch {
       throw new TranscribeError('network');
     }
@@ -68,21 +77,36 @@ export function createTranscriber(deps: {
       form.set('response_format', 'json');
       if (vocabulary.trim()) form.set('prompt', vocabulary.trim());
 
-      const response = await request(`${BASE}/audio/transcriptions`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${key}` },
-        body: form,
-      });
-      const body = (await response.json()) as { text?: string };
+      const response = await request(
+        `${BASE}/audio/transcriptions`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${key}` },
+          body: form,
+        },
+        TRANSCRIBE_TIMEOUT_MS
+      );
+      let body: { text?: string };
+      try {
+        // A 200 that is not JSON is a Groq-side failure, not a bug to surface
+        // raw: the orb shows this message.
+        body = (await response.json()) as { text?: string };
+      } catch {
+        throw new TranscribeError('server');
+      }
       return (body.text ?? '').trim();
     },
 
     async testKey(key) {
       try {
-        await request(`${BASE}/models`, {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${key}` },
-        });
+        await request(
+          `${BASE}/models`,
+          {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${key}` },
+          },
+          TEST_KEY_TIMEOUT_MS
+        );
         return { ok: true, message: 'Key works' };
       } catch (error) {
         return { ok: false, message: (error as Error).message };

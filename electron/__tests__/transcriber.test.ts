@@ -64,6 +64,37 @@ describe('transcriber', () => {
     });
   });
 
+  it('maps an aborted fetch to network', async () => {
+    const fetchFn = vi.fn().mockRejectedValue(new DOMException('aborted', 'TimeoutError'));
+    const t = createTranscriber({ getApiKey: () => 'k', fetchFn });
+    await expect(t.transcribe(audio, { vocabulary: '' })).rejects.toMatchObject({
+      kind: 'network',
+      message: 'No connection',
+    });
+  });
+
+  it('gives the transcribe request an abort signal', async () => {
+    const fetchFn = respond(200, { text: 'hi' });
+    const t = createTranscriber({ getApiKey: () => 'k', fetchFn });
+    await t.transcribe(audio, { vocabulary: '' });
+    expect(fetchFn.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('gives the key test an abort signal', async () => {
+    const fetchFn = respond(200, { data: [] });
+    const t = createTranscriber({ getApiKey: () => null, fetchFn });
+    await t.testKey('k');
+    expect(fetchFn.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('maps a non-JSON 200 body to a server error, not a raw SyntaxError', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response('<html>oops</html>', { status: 200 }));
+    const t = createTranscriber({ getApiKey: () => 'k', fetchFn });
+    const error = await t.transcribe(audio, { vocabulary: '' }).catch((e) => e);
+    expect(error).toBeInstanceOf(TranscribeError);
+    expect(error).toMatchObject({ kind: 'server', message: 'Groq error' });
+  });
+
   it('tests a key against the models endpoint', async () => {
     const fetchFn = respond(200, { data: [] });
     const t = createTranscriber({ getApiKey: () => null, fetchFn });
