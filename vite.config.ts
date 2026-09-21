@@ -52,6 +52,15 @@ export default defineConfig(({ command }) => {
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        orb: path.resolve(__dirname, 'orb.html'),
+        settings: path.resolve(__dirname, 'settings.html'),
+      },
+    },
+  },
   server: {
     port: 5174, // Changed from default 5173 to avoid conflict with React web app
     strictPort: true, // Fail if port is already in use
