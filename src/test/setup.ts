@@ -55,6 +55,13 @@ beforeAll(() => {
     Element.prototype.releasePointerCapture = () => {};
   }
 
+  // jsdom has no WebGL or 2D canvas backend — `getContext` exists but logs a
+  // "not implemented" error and returns undefined. The settings window's mini
+  // orb (`OrbCanvas`) calls it every animation frame, so it is stubbed to
+  // return null (its documented "unsupported" value) to keep test output
+  // pristine.
+  HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
+
   // jsdom has no Font Loading API; Mantine's autosizing Textarea listens for
   // `loadingdone` on it to re-measure once web fonts settle.
   if (!document.fonts) {

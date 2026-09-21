@@ -8,6 +8,7 @@ import type { PermissionStatus, Settings, SettingsView } from '../../electron/ty
 
 import { GeneralTab } from './GeneralTab';
 import { GestureTab } from './GestureTab';
+import classes from './settings.module.css';
 import { SetupTab } from './SetupTab';
 import { TabRail } from './TabRail';
 
@@ -31,10 +32,9 @@ export function SettingsShell({
   return (
     <Tabs
       orientation="vertical"
-      variant="pills"
+      variant={'unstyled' as 'default'}
       radius="md"
-      h="100vh"
-      style={{ overflow: 'hidden' }}
+      className={classes.shell}
       value={active}
       onChange={(value) => value && setActive(value as TabId)}
     >

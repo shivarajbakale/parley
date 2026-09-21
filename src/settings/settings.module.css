@@ -1,0 +1,97 @@
+/* The settings window sits on macOS vibrancy, so the page itself is clear. */
+:global(html),
+:global(body) {
+  background: transparent;
+}
+
+.shell {
+  height: 100vh;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--mantine-color-body) 55%, transparent);
+}
+
+.rail {
+  width: 200px;
+  padding: var(--mantine-spacing-md);
+  background: var(--app-glass);
+  border-right: 1px solid var(--app-glass-border);
+  backdrop-filter: blur(24px) saturate(1.4);
+}
+
+.glass {
+  background: var(--app-glass);
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--mantine-radius-lg);
+  backdrop-filter: blur(24px) saturate(1.4);
+  transition: background 150ms ease;
+}
+
+.glass:hover {
+  background: var(--app-glass-hover);
+}
+
+.tab {
+  position: relative;
+  background: transparent;
+  color: var(--mantine-color-text);
+}
+
+.tab:hover {
+  background: var(--app-glass-hover);
+}
+
+.tabLabel {
+  position: relative;
+  z-index: 1;
+}
+
+.pill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-aurora-gradient);
+  opacity: 0.9;
+}
+
+/* Primary buttons carry the gradient, with a sheen that crosses on hover. */
+.primary {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  background: var(--app-aurora-gradient);
+}
+
+.primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in oklab, white 35%, transparent) 50%,
+    transparent 70%
+  );
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.primary:hover::after {
+  transform: translateX(120%);
+}
+
+.glow {
+  border-radius: var(--mantine-radius-md);
+  box-shadow: 0 0 0 1px var(--app-aurora-cyan), 0 0 24px -4px var(--app-aurora-violet);
+}
+
+:global(:focus-visible) {
+  outline: 2px solid var(--app-aurora-cyan);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primary::after {
+    display: none;
+  }
+}

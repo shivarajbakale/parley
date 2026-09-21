@@ -14,10 +14,9 @@ import {
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { Panel } from '@/components/panel';
-
 import type { PermissionKind, PermissionStatus } from '../../electron/types';
 
+import classes from './settings.module.css';
 import { useRequestPermission, useSetApiKey } from './use-parley';
 
 const keySchema = z.object({ apiKey: z.string().trim().min(1, 'Enter your Groq API key') });
@@ -86,7 +85,7 @@ function ApiKeySection({ hasApiKey }: { hasApiKey: boolean }) {
           {...form.register('apiKey')}
         />
         <Group gap="sm">
-          <Button type="submit" size="xs" loading={setApiKey.isPending}>
+          <Button type="submit" size="xs" className={classes.primary} loading={setApiKey.isPending}>
             Test and save
           </Button>
           {result && (
@@ -123,7 +122,7 @@ export function SetupTab({
           transcribe.
         </Text>
       </Box>
-      <Panel contentProps={{ p: 'md' }}>
+      <Box className={classes.glass} p="md">
         <Stack gap="sm">
           <PermissionRow kind="microphone" label="Microphone" granted={permissions.microphone} />
           <Divider />
@@ -133,10 +132,10 @@ export function SetupTab({
             granted={permissions.accessibility}
           />
         </Stack>
-      </Panel>
-      <Panel contentProps={{ p: 'md' }}>
+      </Box>
+      <Box className={classes.glass} p="md">
         <ApiKeySection hasApiKey={hasApiKey} />
-      </Panel>
+      </Box>
     </Stack>
   );
 }

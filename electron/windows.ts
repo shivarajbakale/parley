@@ -53,16 +53,24 @@ export function orbWindowOptions(preloadPath: string) {
   };
 }
 
-export function settingsWindowOptions(preloadPath: string) {
+export function settingsWindowOptions(
+  preloadPath: string,
+  platform: NodeJS.Platform = process.platform
+) {
+  const isMac = platform === 'darwin';
   return {
     width: 760,
     height: 560,
     useContentSize: true,
     resizable: false,
     fullscreenable: false,
+    // Shown on `ready-to-show` in main.ts, which also avoids a vibrancy flash.
     show: false,
     title: 'Parley',
-    backgroundColor: BACKGROUND_DARK,
+    // Glass is real system blur on macOS; elsewhere the window stays solid.
+    vibrancy: isMac ? ('under-window' as const) : undefined,
+    visualEffectState: isMac ? ('active' as const) : undefined,
+    backgroundColor: isMac ? '#00000000' : BACKGROUND_DARK,
     webPreferences: lockedDown(preloadPath),
   };
 }

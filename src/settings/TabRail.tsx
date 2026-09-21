@@ -1,13 +1,18 @@
-import { Box, Group, Tabs, Text, ThemeIcon, Title } from '@mantine/core';
-import { Keyboard, Mic, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { Box, Group, Tabs, Text, Title } from '@mantine/core';
+import { Keyboard, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+
+import { SILENT_BANDS } from '../orb/bands';
+import { OrbCanvas } from '../orb/OrbCanvas';
+
+import classes from './settings.module.css';
+
+const IDLE = () => ({ bands: SILENT_BANDS, phase: 'listening' as const });
 
 export function TabRail({ needsSetup }: { needsSetup: boolean }) {
   return (
-    <Tabs.List w={190} p="md" bg="var(--mantine-color-default-hover)">
+    <Tabs.List className={classes.rail}>
       <Group gap="xs" px="xs" pb="md" wrap="nowrap">
-        <ThemeIcon size="lg" radius="md" variant="light">
-          <Mic size={18} />
-        </ThemeIcon>
+        <OrbCanvas size={48} running read={IDLE} />
         <Box miw={0}>
           <Title order={5}>Parley</Title>
           <Text size="xs" c={needsSetup ? 'yellow' : 'teal'}>
@@ -15,13 +20,34 @@ export function TabRail({ needsSetup }: { needsSetup: boolean }) {
           </Text>
         </Box>
       </Group>
-      <Tabs.Tab value="setup" leftSection={<ShieldCheck size={16} />}>
+      <Tabs.Tab
+        value="setup"
+        leftSection={<ShieldCheck size={16} />}
+        className={classes.tab}
+        classNames={{ tabLabel: classes.tabLabel, tabSection: classes.tabLabel }}
+        px="sm"
+        py={8}
+      >
         Setup
       </Tabs.Tab>
-      <Tabs.Tab value="gesture" leftSection={<Keyboard size={16} />}>
+      <Tabs.Tab
+        value="gesture"
+        leftSection={<Keyboard size={16} />}
+        className={classes.tab}
+        classNames={{ tabLabel: classes.tabLabel, tabSection: classes.tabLabel }}
+        px="sm"
+        py={8}
+      >
         Gesture
       </Tabs.Tab>
-      <Tabs.Tab value="general" leftSection={<SlidersHorizontal size={16} />}>
+      <Tabs.Tab
+        value="general"
+        leftSection={<SlidersHorizontal size={16} />}
+        className={classes.tab}
+        classNames={{ tabLabel: classes.tabLabel, tabSection: classes.tabLabel }}
+        px="sm"
+        py={8}
+      >
         General
       </Tabs.Tab>
     </Tabs.List>

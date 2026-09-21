@@ -1,9 +1,8 @@
 import { Box, Divider, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core';
 
-import { Panel } from '@/components/panel';
-
 import { GESTURE_KEYS, type GestureKey, type Settings, type SettingsView, type TapCount } from '../../electron/types';
 
+import classes from './settings.module.css';
 import { SettingRow } from './SettingRow';
 
 const KEY_LABELS: Record<GestureKey, string> = {
@@ -32,7 +31,7 @@ export function GestureTab({
           Tap the key, then hold the last press to talk. Release to paste. Esc cancels.
         </Text>
       </Box>
-      <Panel contentProps={{ p: 'md' }}>
+      <Box className={classes.glass} p="md">
         <Stack gap="md">
           <SettingRow label="Gesture key" description="Modifier keys only.">
             <Select
@@ -54,7 +53,7 @@ export function GestureTab({
             />
           </SettingRow>
         </Stack>
-      </Panel>
+      </Box>
     </Stack>
   );
 }

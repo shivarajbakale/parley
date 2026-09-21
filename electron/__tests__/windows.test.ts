@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ORB_SIZE, orbBounds, orbWindowOptions, settingsWindowOptions } from '../windows';
+import { BACKGROUND_DARK } from '../window-options';
 
 describe('orb window', () => {
   it('can never take focus or catch the mouse-driven activation that would steal the paste target', () => {
@@ -39,8 +40,21 @@ describe('orb window', () => {
 
 describe('settings window', () => {
   it('is a small fixed-size window that opens hidden', () => {
-    const options = settingsWindowOptions('/app/preload.mjs');
+    const options = settingsWindowOptions('/app/preload.mjs', 'darwin');
     expect(options).toMatchObject({ width: 760, height: 560, resizable: false, show: false });
     expect(options.webPreferences).toMatchObject({ contextIsolation: true, nodeIntegration: false });
+  });
+
+  it('uses real macOS blur behind a transparent background', () => {
+    const options = settingsWindowOptions('/app/preload.mjs', 'darwin');
+    expect(options.vibrancy).toBe('under-window');
+    expect(options.visualEffectState).toBe('active');
+    expect(options.backgroundColor).toBe('#00000000');
+  });
+
+  it('keeps a solid dark background where vibrancy does not exist', () => {
+    const options = settingsWindowOptions('/app/preload.mjs', 'win32');
+    expect(options.vibrancy).toBeUndefined();
+    expect(options.backgroundColor).toBe(BACKGROUND_DARK);
   });
 });
