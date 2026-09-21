@@ -25,6 +25,22 @@ describe('rewriter', () => {
     expect(body.messages[1].content).toContain('<instruction>\nmake it shorter\n</instruction>');
   });
 
+  it('asks for a short markdown explanation and caps the reply', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(reply(' Same result if repeated. '));
+    await expect(setup(fetchFn).explain('idempotent')).resolves.toBe('Same result if repeated.');
+
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.messages[0].content).toContain('80 words');
+    expect(body.messages[1].content).toBe('<text>\nidempotent\n</text>');
+    expect(body.max_completion_tokens).toBeGreaterThan(0);
+  });
+
+  it('fails an explanation without a key, or with an empty reply', async () => {
+    await expect(setup(vi.fn(), null).explain('x')).rejects.toMatchObject({ kind: 'no_key' });
+    const fetchFn = vi.fn().mockResolvedValue(reply('<think>hm</think>'));
+    await expect(setup(fetchFn).explain('x')).rejects.toMatchObject({ kind: 'empty' });
+  });
+
   it('drops inline thinking from the reply', async () => {
     const fetchFn = vi.fn().mockResolvedValue(reply('<think>shorter, ok</think>\nHi.'));
     await expect(setup(fetchFn).rewrite('Hello', 'shorter')).resolves.toBe('Hi.');

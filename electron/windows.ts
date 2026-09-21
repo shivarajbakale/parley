@@ -1,3 +1,4 @@
+import { CARD_MIN_HEIGHT, CARD_WIDTH } from './explain-placement';
 import { BACKGROUND_DARK } from './window-options';
 
 /**
@@ -52,6 +53,26 @@ export function orbWindowOptions(preloadPath: string) {
       // The orb is hidden most of the time and must still start recording at once.
       backgroundThrottling: false,
     },
+  };
+}
+
+/** Bounds are set per show, by `placeCard`; the size here is only the first frame. */
+export function explainWindowOptions(preloadPath: string) {
+  return {
+    width: CARD_WIDTH,
+    height: CARD_MIN_HEIGHT,
+    show: false,
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    resizable: false,
+    movable: false,
+    // The selection the card explains must stay selected and focused.
+    focusable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    fullscreenable: false,
+    webPreferences: { ...lockedDown(preloadPath), backgroundThrottling: false },
   };
 }
 

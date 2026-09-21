@@ -11,13 +11,25 @@ describe('field reader', () => {
       valueKnown: true,
       value: 'hello',
       selectedText: 'he',
+      secure: false,
+      selectionBounds: { x: 10, y: 20, width: 30, height: 16 },
     });
     expect(parseFocusedField(stdout)).toEqual({
       editable: true,
       valueKnown: true,
       value: 'hello',
       selectedText: 'he',
+      secure: false,
+      selectionBounds: { x: 10, y: 20, width: 30, height: 16 },
     });
+  });
+
+  it('drops bounds the app cannot vouch for', () => {
+    const parse = (selectionBounds: unknown) =>
+      parseFocusedField(JSON.stringify({ editable: false, selectionBounds }))?.selectionBounds;
+    expect(parse({ x: 0, y: 0, width: 0, height: 0 })).toBeNull();
+    expect(parse({ x: 'a', y: 0, width: 4, height: 4 })).toBeNull();
+    expect(parse(null)).toBeNull();
   });
 
   it('treats a helper error, junk output and a missing flag as no field', () => {
@@ -35,6 +47,8 @@ describe('field reader', () => {
       valueKnown: false,
       value: 'v',
       selectedText: '',
+      secure: false,
+      selectionBounds: null,
     });
     expect(run).toHaveBeenCalledWith('/x/parley-ax', {
       timeout: expect.any(Number),

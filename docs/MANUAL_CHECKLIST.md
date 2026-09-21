@@ -133,3 +133,28 @@ Command, with the same number of presses as dictation.
       and the row says so.
 - [ ] Voice edit works in the packaged build: `parley-ax` is inside
       `Parley.app/Contents/Resources`.
+
+## Explain
+
+Needs a MiniMax key (Settings, Setup). Default explain key is Right Control.
+
+- [ ] Select a word in Notes, tap-tap-hold the explain key, release: a card
+      appears just below the selection with a loading skeleton, then a short
+      markdown answer. The selection stays highlighted and the text field keeps
+      focus.
+- [ ] Repeat in Safari, Chrome, VS Code and Terminal. Where the app hides its
+      selection, the card appears beside the pointer instead.
+- [ ] Select text at the bottom of the screen: the card flips above it. Select
+      at the right edge: the card shifts left. Try a second display.
+- [ ] A typical answer shows without a scrollbar. Select a whole paragraph of
+      code: the card grows, and only scrolls past 60% of the screen height.
+- [ ] Copy puts the answer's markdown on the clipboard. Esc, or a click outside
+      the card, dismisses it.
+- [ ] With nothing selected the card says "Select some text first" and goes away
+      after two seconds.
+- [ ] Selecting text in a password field shows nothing to explain, and the
+      clipboard is untouched.
+- [ ] With no MiniMax key the card shows "No MiniMax key".
+- [ ] The clipboard holds what it held before each of the checks above.
+- [ ] Setting the explain key to the dictation or voice edit key turns Explain
+      off and the row says so.

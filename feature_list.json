@@ -114,6 +114,21 @@
         "resources/parley-ax built universal (arm64 + x86_64) by scripts/build-ax-helper.sh and returned the focused element's role and value when run by hand."
       ],
       "notes": "Blocked on a human: needs `make dev`, a MiniMax API key and the manual checklist. The MiniMax request shape (MiniMax-M3, thinking disabled) follows platform.minimax.io docs but has never been sent with a real key."
+    },
+    {
+      "id": "explain-selection",
+      "priority": 7,
+      "area": "explain",
+      "title": "Explain the selected text in a popover",
+      "user_visible_behavior": "Select text in any app, tap-tap-hold the explain key, and a short markdown explanation appears beside the selection without taking focus.",
+      "status": "in_progress",
+      "plan": "FEATURE-PLAN.md",
+      "verification": [
+        "make check",
+        "Walk the Explain section of docs/MANUAL_CHECKLIST.md with a real MiniMax key."
+      ],
+      "evidence": [],
+      "notes": "Built in worktree explain-selection. Needs a human with make dev: the card has never been shown, and AX selection bounds have never been read from a real app."
     }
   ]
 }

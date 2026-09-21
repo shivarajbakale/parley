@@ -35,6 +35,9 @@ function sanitize(input: Partial<Settings>): Partial<Settings> {
   if (GESTURE_KEYS.includes(input.editGestureKey as never)) {
     out.editGestureKey = input.editGestureKey;
   }
+  if (GESTURE_KEYS.includes(input.explainGestureKey as never)) {
+    out.explainGestureKey = input.explainGestureKey;
+  }
   if (input.tapCount === 2 || input.tapCount === 3 || input.tapCount === 4) {
     out.tapCount = input.tapCount;
   }

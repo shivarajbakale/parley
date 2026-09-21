@@ -31,6 +31,11 @@ export interface Settings {
    * the focused field. Voice edit is off while it equals `gestureKey`.
    */
   editGestureKey: GestureKey;
+  /**
+   * Same taps, third key: explains the selected text in a popover. Off while it
+   * equals the dictate or the voice edit key.
+   */
+  explainGestureKey: GestureKey;
   /** Free text, comma separated. Sent to Whisper as `prompt`. */
   vocabulary: string;
   tickSound: boolean;
@@ -41,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gestureKey: 'AltRight',
   tapCount: 3,
   editGestureKey: 'MetaRight',
+  explainGestureKey: 'CtrlRight',
   vocabulary: '',
   tickSound: true,
   launchAtLogin: true,
@@ -86,6 +92,23 @@ export interface KeyTestResult {
   message: string;
 }
 
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** What main tells the explain popover to show. */
+export type ExplainContent =
+  | { status: 'loading' }
+  | { status: 'ready'; markdown: string }
+  | { status: 'empty' }
+  | { status: 'error'; message: string };
+
+/** Content plus the tallest the card may grow before it scrolls. */
+export type ExplainState = ExplainContent & { maxHeight: number };
+
 /** `window.parley`, exposed by `electron/preload.ts`. */
 export interface ParleyApi {
   onOrbPhase(listener: (payload: OrbPhasePayload) => void): () => void;
@@ -96,4 +119,9 @@ export interface ParleyApi {
   setRewriteKey(key: string): Promise<KeyTestResult>;
   getPermissions(): Promise<PermissionStatus>;
   requestPermission(kind: PermissionKind): Promise<PermissionStatus>;
+  onExplain(listener: (state: ExplainState) => void): () => void;
+  /** The card's rendered height, so main can size the window to fit. */
+  reportExplainHeight(height: number): void;
+  copyExplain(text: string): void;
+  dismissExplain(): void;
 }

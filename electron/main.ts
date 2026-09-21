@@ -18,6 +18,8 @@ import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 import { createAudioWatchdog } from './audio-watchdog';
 import { createEditTargets } from './edit-target';
+import { createExplain } from './explain';
+import { CARD_MIN_HEIGHT, CARD_WIDTH, maxCardHeight, placeCard } from './explain-placement';
 import { createFieldReader } from './field-reader';
 import { createGestureDetector } from './gesture-detector';
 import { createInjector } from './injector';
@@ -25,12 +27,13 @@ import { createKeyHook } from './key-hook';
 import { parseOrbAudio } from './orb-audio';
 import { getPermissions, requestPermission } from './permissions';
 import { createRewriter } from './rewriter';
+import { createSelectionReader } from './selection-reader';
 import { createSession, type Session } from './session';
 import { createSettingsStore } from './settings-store';
 import { createTranscriber } from './transcriber';
 import { trayMenuTemplate } from './tray';
-import type { KeyTestResult, PermissionKind, Settings } from './types';
-import { orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
+import type { ExplainContent, KeyTestResult, PermissionKind, Rect, Settings } from './types';
+import { explainWindowOptions, orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
 
 /**
  * How long the session may sit in `awaiting_audio` before the watchdog
@@ -72,7 +75,7 @@ const AX_HELPER = app.isPackaged
 const execFileAsync = promisify(execFile);
 
 /** Parley's own pages. `index.html` (the scaffold demo) is never loaded — see DECISIONS.md. */
-function loadPage(window: BrowserWindow, page: 'orb' | 'settings') {
+function loadPage(window: BrowserWindow, page: 'orb' | 'settings' | 'explain') {
   if (VITE_DEV_SERVER_URL) window.loadURL(`${VITE_DEV_SERVER_URL}${page}.html`);
   else window.loadFile(path.join(RENDERER_DIST, `${page}.html`));
 }
@@ -93,6 +96,7 @@ app.on('second-instance', () => openSettings());
 
 let orbWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
+let explainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let lastTranscript: string | null = null;
 let hookRunning = false;
@@ -103,6 +107,13 @@ function createOrbWindow() {
   orbWindow.setAlwaysOnTop(true, 'screen-saver');
   orbWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   loadPage(orbWindow, 'orb');
+}
+
+function createExplainWindow() {
+  explainWindow = new BrowserWindow(explainWindowOptions(PRELOAD));
+  explainWindow.setAlwaysOnTop(true, 'screen-saver');
+  explainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  loadPage(explainWindow, 'explain');
 }
 
 function openSettings() {
@@ -172,6 +183,59 @@ async function startApp() {
     injector,
   });
 
+  const selectionReader = createSelectionReader({
+    reader: createFieldReader({
+      helperPath: AX_HELPER,
+      run: async (file, options) => (await execFileAsync(file, [], options)).stdout,
+    }),
+    injector,
+  });
+
+  /** Where the card is now, so a later height report can re-place it in the same spot. */
+  let explainAnchor: Rect | null = null;
+  let explainHeight = CARD_MIN_HEIGHT;
+  let explainMaxHeight = maxCardHeight(screen.getPrimaryDisplay().workArea);
+
+  function explainDisplay() {
+    const point = explainAnchor
+      ? { x: explainAnchor.x, y: explainAnchor.y }
+      : screen.getCursorScreenPoint();
+    return screen.getDisplayNearestPoint(point);
+  }
+
+  function placeExplain() {
+    explainWindow?.setBounds(
+      placeCard({
+        anchor: explainAnchor,
+        cursor: screen.getCursorScreenPoint(),
+        workArea: explainDisplay().workArea,
+        size: { width: CARD_WIDTH, height: explainHeight },
+      })
+    );
+  }
+
+  function pushExplain(content: ExplainContent) {
+    explainWindow?.webContents.send('explain:state', { ...content, maxHeight: explainMaxHeight });
+  }
+
+  const explain = createExplain({
+    selection: selectionReader,
+    rewriter,
+    view: {
+      show: (anchor, content) => {
+        explainAnchor = anchor;
+        explainHeight = CARD_MIN_HEIGHT;
+        explainMaxHeight = maxCardHeight(explainDisplay().workArea);
+        placeExplain();
+        pushExplain(content);
+        // `showInactive`, never `show`: the selection must keep focus.
+        explainWindow?.showInactive();
+      },
+      update: pushExplain,
+      hide: () => explainWindow?.hide(),
+    },
+  });
+
   const isReady = () => {
     const permissions = getPermissions();
     return permissions.microphone && permissions.accessibility && store.hasApiKey();
@@ -190,6 +254,7 @@ async function startApp() {
   }
 
   createOrbWindow();
+  createExplainWindow();
 
   /**
    * A dropped `orb:audio` message otherwise wedges the session in
@@ -271,12 +336,24 @@ async function startApp() {
     onCancel: () => session.cancel(),
   });
   let editEnabled = false;
+  // Explain is a trigger, not a recording: it fires on release, after the key is
+  // up, because a held Control would turn the copy fallback's Cmd+C into Ctrl+Cmd+C.
+  const explainDetector = createGestureDetector({
+    key: store.get().explainGestureKey,
+    tapCount: store.get().tapCount,
+    onStart: () => {},
+    onStop: () => void explain.trigger(),
+    onCancel: () => explain.dismiss(),
+  });
+  let explainEnabled = false;
   const keyHook = createKeyHook(
     uIOhook,
     UiohookKey as unknown as Record<string, number>,
     (event) => {
       detector.handle(event);
       if (editEnabled) editDetector.handle(event);
+      if (explainEnabled) explainDetector.handle(event);
+      if (event.type === 'down' && event.key === 'Escape') explain.dismiss();
     }
   );
 
@@ -296,6 +373,10 @@ async function startApp() {
   function applySettings(settings: Settings) {
     detector.configure({ key: settings.gestureKey, tapCount: settings.tapCount });
     editDetector.configure({ key: settings.editGestureKey, tapCount: settings.tapCount });
+    explainDetector.configure({ key: settings.explainGestureKey, tapCount: settings.tapCount });
+    explainEnabled =
+      settings.explainGestureKey !== settings.gestureKey &&
+      settings.explainGestureKey !== settings.editGestureKey;
     // One key cannot mean both, and dictation is the one that keeps it.
     editEnabled = settings.editGestureKey !== settings.gestureKey;
     // Only the packaged app: in dev this would register the bare Electron
@@ -303,6 +384,34 @@ async function startApp() {
     if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
   }
   applySettings(store.get());
+
+  // Clicking anywhere outside the card dismisses it. The window never has focus,
+  // so there is no blur event to listen for.
+  uIOhook.on('mousedown', () => {
+    if (!explainWindow?.isVisible()) return;
+    const point = screen.getCursorScreenPoint();
+    const bounds = explainWindow.getBounds();
+    const inside =
+      point.x >= bounds.x &&
+      point.x <= bounds.x + bounds.width &&
+      point.y >= bounds.y &&
+      point.y <= bounds.y + bounds.height;
+    if (!inside) explain.dismiss();
+  });
+
+  const fromExplainWindow = (event: Electron.IpcMainEvent) =>
+    event.sender === explainWindow?.webContents;
+  ipcMain.on('explain:height', (event, height: unknown) => {
+    if (!fromExplainWindow(event) || typeof height !== 'number' || !Number.isFinite(height)) return;
+    explainHeight = Math.round(Math.min(Math.max(height, CARD_MIN_HEIGHT / 2), explainMaxHeight));
+    if (explainWindow?.isVisible()) placeExplain();
+  });
+  ipcMain.on('explain:copy', (event, text: unknown) => {
+    if (fromExplainWindow(event) && typeof text === 'string') clipboard.writeText(text);
+  });
+  ipcMain.on('explain:dismiss', (event) => {
+    if (fromExplainWindow(event)) explain.dismiss();
+  });
 
   ipcMain.on('orb:audio', (event, raw: unknown) => {
     // A message from anyone but the orb is silently ignored, not recovered:

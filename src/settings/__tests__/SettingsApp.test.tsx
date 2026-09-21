@@ -20,6 +20,10 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
     setRewriteKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     getPermissions: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
     requestPermission: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
+    onExplain: () => () => {},
+    reportExplainHeight: vi.fn(),
+    copyExplain: vi.fn(),
+    dismissExplain: vi.fn(),
     ...overrides,
   };
 }

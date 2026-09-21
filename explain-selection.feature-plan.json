@@ -1,0 +1,251 @@
+{
+  "feature": {
+    "id": "explain-selection",
+    "title": "Explain selection",
+    "problem": "Reading something unfamiliar in any app (a term, a snippet, a sentence) means leaving it, opening a browser or chat, pasting, and reading the answer somewhere else. Parley already sits over every app, so a third gesture can explain the current selection in a markdown popover right beside it.",
+    "nonGoals": [
+      "Follow-up questions or chat. One selection, one explanation, then dismiss.",
+      "Voice: the gesture is a trigger only, nothing is recorded.",
+      "Windows and Linux. Anchoring and selection reading use the macOS Accessibility API.",
+      "Long essays. The prompt asks for a short answer; the card is built to fit it without scrolling."
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "popover",
+      "name": "Explanation popover",
+      "route": "explain.html (own frameless window)",
+      "archetype": "centered-card",
+      "purpose": "Show the explanation next to the selection without stealing focus from the app.",
+      "primaryAction": "Copy",
+      "panels": [
+        {
+          "id": "answer",
+          "kind": "detail",
+          "title": "idempotent",
+          "badge": "Explain",
+          "subtitle": "glass card, 16 px from selection",
+          "fields": [
+            {
+              "label": "Meaning",
+              "value": "Same result if repeated"
+            },
+            {
+              "label": "Example",
+              "value": "PUT /users/1 twice"
+            },
+            {
+              "label": "Related",
+              "value": "safe, pure"
+            }
+          ],
+          "actions": [
+            "Copy",
+            "Esc"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "Card appears at once at the selection with three shimmer lines; text streams in as it arrives.",
+        "empty": "No selection found: card says 'Select some text first' and dismisses itself after 2 s.",
+        "error": "One line in the card: 'No MiniMax key', 'No connection', 'Rate limited' — same wording as voice edit.",
+        "success": "Markdown rendered (headings, lists, code, bold). Card sizes to its content, up to 60% of the display height, then and only then scrolls. Esc, click outside, or a new selection dismisses."
+      }
+    },
+    {
+      "id": "gesture-row",
+      "name": "Settings, Gesture tab",
+      "route": "settings window / Gesture",
+      "archetype": "form",
+      "purpose": "Choose which key triggers Explain, next to the dictate and edit keys.",
+      "panels": [
+        {
+          "id": "keys",
+          "kind": "detail",
+          "title": "Explain key",
+          "subtitle": "tap-tap-hold on this key",
+          "fields": [
+            {
+              "label": "Dictate",
+              "value": "Right Option"
+            },
+            {
+              "label": "Voice edit",
+              "value": "Right Command"
+            },
+            {
+              "label": "Explain",
+              "value": "Right Control"
+            }
+          ],
+          "actions": []
+        }
+      ],
+      "states": {
+        "loading": "Settings load synchronously with the tab; no separate loading state.",
+        "empty": "Explain key equal to another gesture key means Explain is off, with the same hint edit uses.",
+        "error": "No MiniMax key: row shows a hint pointing to the Setup tab.",
+        "success": "Selecting a key saves immediately, as the other rows do."
+      }
+    }
+  ],
+  "overlays": [
+    {
+      "id": "explain-card",
+      "kind": "popover",
+      "title": "Explain",
+      "body": "Markdown answer, anchored to the selection rectangle; falls back to the cursor when the app hides its selection bounds.",
+      "buttons": [
+        "Copy"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "surface": "popover",
+      "control": "Own frameless BrowserWindow (focusable:false, transparent, alwaysOnTop)",
+      "why": "must float over other apps and never take focus from the selection; Mantine Popover only lives inside our own windows",
+      "rejected": "Mantine Popover"
+    },
+    {
+      "surface": "popover",
+      "control": "react-markdown (new dependency)",
+      "why": "answer is markdown; renders to React elements with no innerHTML, so model output cannot inject markup",
+      "rejected": "dangerouslySetInnerHTML with marked"
+    },
+    {
+      "surface": "popover",
+      "control": "Skeleton",
+      "why": "answer shape is known: a few text lines",
+      "rejected": "Loader"
+    },
+    {
+      "surface": "popover",
+      "control": "ScrollArea (last resort)",
+      "why": "the card grows to fit its content and only scrolls past 60% of display height; short answers make that rare",
+      "rejected": "fixed-height card that scrolls by default"
+    },
+    {
+      "surface": "gesture-row",
+      "control": "Select",
+      "why": "eight fixed modifier keys, same as the existing rows",
+      "rejected": "Combobox"
+    },
+    {
+      "surface": "popover",
+      "control": "Auto-resizing window",
+      "why": "main resizes the window to the rendered content height (renderer reports it over IPC), so there is no inner scrollbar until the cap; the window is transparent so extra size is invisible",
+      "rejected": "fixed 320 px card"
+    },
+    {
+      "surface": "popover",
+      "control": "Brevity prompt",
+      "why": "system prompt asks for at most ~80 words: one-line meaning, then at most 3 bullets or one short example; no headings, no preamble. Fewer lines is the main way to avoid scrolling",
+      "rejected": "open-ended explanation"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Settings.explainGestureKey",
+      "fields": [
+        {
+          "name": "explainGestureKey",
+          "type": "GestureKey",
+          "note": "default CtrlRight; equal to another key = off"
+        }
+      ],
+      "relations": [
+        "reuses tapCount, so all three gestures share one tap count"
+      ]
+    },
+    {
+      "name": "SelectionSnapshot",
+      "fields": [
+        {
+          "name": "text",
+          "type": "string",
+          "note": "capped at ~8k chars before sending"
+        },
+        {
+          "name": "anchor",
+          "type": "Rect | null",
+          "note": "AX bounds of selected range, screen coordinates"
+        },
+        {
+          "name": "maxHeight",
+          "type": "number",
+          "note": "0.6 x work-area height of the anchor display; card is 420 px wide so lines wrap less"
+        }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "https://api.minimax.io/v1/chat/completions",
+      "auth": true,
+      "purpose": "Rewriter.explain(), same key, endpoint and error kinds as voice edit; streaming optional in a later step"
+    }
+  ],
+  "integration": [
+    {
+      "from": "gesture-detector.ts",
+      "to": "third detector in main.ts",
+      "note": "tap-tap-hold on the explain key fires onStart; hold release is ignored, it is a trigger only"
+    },
+    {
+      "from": "native/parley-ax.swift",
+      "to": "selection + bounds",
+      "note": "read selection text and bounds for any focused element that is not a password field; multi-line selections anchor to the whole selection rectangle"
+    },
+    {
+      "from": "injector.ts sendCopy",
+      "to": "clipboard fallback",
+      "note": "Chrome and Electron often hide AX text: copy, read, restore the clipboard, anchor at the cursor"
+    },
+    {
+      "from": "add-ipc-channel",
+      "to": "explain:show / explain:dismiss",
+      "note": "main pushes state (loading, text, error, rect) to the explain window; only that window may send dismiss"
+    },
+    {
+      "from": "key-hook Escape + mouse-down",
+      "to": "dismiss",
+      "note": "window is unfocusable, so dismissal comes from the global hook"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "electron/explain.ts",
+      "electron/explain-placement.ts",
+      "electron/selection-reader.ts",
+      "explain.html",
+      "src/explain/main.tsx",
+      "src/explain/ExplainCard.tsx",
+      "src/explain/ExplainCard.module.css",
+      "electron/__tests__/explain.test.ts",
+      "electron/__tests__/explain-placement.test.ts",
+      "electron/__tests__/selection-reader.test.ts",
+      "src/explain/__tests__/ExplainCard.test.tsx"
+    ],
+    "changed": [
+      "electron/main.ts",
+      "electron/preload.ts",
+      "electron/types.ts",
+      "electron/windows.ts",
+      "electron/settings-store.ts",
+      "electron/rewriter.ts",
+      "electron/field-reader.ts",
+      "electron/injector.ts",
+      "native/parley-ax.swift",
+      "src/settings/GestureTab.tsx",
+      "vite.config.ts",
+      "package.json"
+    ]
+  },
+  "verification": [
+    "make check",
+    "Manual: select text in Safari, Notes and VS Code; tap-tap-hold the explain key; card appears at the selection with markdown",
+    "Manual: password field selection yields nothing; no MiniMax key shows the error line"
+  ]
+}

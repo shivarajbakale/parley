@@ -17,6 +17,8 @@ const field = (patch: Partial<FocusedField> = {}): FocusedField => ({
   valueKnown: false,
   value: '',
   selectedText: '',
+  secure: false,
+  selectionBounds: null,
   ...patch,
 });
 
