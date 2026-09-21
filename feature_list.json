@@ -35,10 +35,10 @@
       "area": "main-process",
       "title": "Dictation pipeline units",
       "user_visible_behavior": "Gesture detection, Groq transcription, paste injection, settings storage and the session orchestrator exist as tested main-process units.",
-      "status": "in_progress",
+      "status": "passing",
       "plan": "none: main-process units with no UI, specified in docs/superpowers/specs/2026-09-21-parley-design.md",
       "verification": ["Run `make check` and confirm the electron/__tests__ suites pass."],
-      "evidence": [],
+      "evidence": ["make check exit 0 on 2026-09-21; electron/__tests__ suites for gesture-detector, key-hook, transcriber, injector, settings-store and session pass."],
       "notes": "Plan tasks 1 to 7."
     },
     {
@@ -47,7 +47,7 @@
       "area": "orb",
       "title": "Orb window records and animates",
       "user_visible_behavior": "A floating orb appears while the gesture key is held, reacts to the voice, and sends the recording to the main process.",
-      "status": "not_started",
+      "status": "in_progress",
       "plan": "none: canvas-only overlay window, approved as ASCII wireframes in the design spec",
       "verification": ["Run `make check`.", "Run `make dev`, perform the gesture and watch the orb states."],
       "evidence": [],
