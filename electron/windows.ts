@@ -55,8 +55,9 @@ export function orbWindowOptions(preloadPath: string) {
 
 export function settingsWindowOptions(preloadPath: string) {
   return {
-    width: 560,
-    height: 720,
+    width: 760,
+    height: 560,
+    useContentSize: true,
     resizable: false,
     fullscreenable: false,
     show: false,

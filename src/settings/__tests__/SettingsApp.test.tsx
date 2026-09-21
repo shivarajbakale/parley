@@ -40,7 +40,7 @@ describe('SettingsApp', () => {
 
   it('shows no setup banner when everything is in place', async () => {
     mount(mockApi());
-    expect(await screen.findByText('Gesture')).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Gesture' })).toBeInTheDocument();
     expect(screen.queryByText('Finish setup')).not.toBeInTheDocument();
   });
 
@@ -66,6 +66,7 @@ describe('SettingsApp', () => {
   it('saves a toggle at once', async () => {
     const api = mockApi();
     mount(api);
+    await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
     await userEvent.click(await screen.findByRole('switch', { name: 'Play a tick when recording stops' }));
     expect(api.updateSettings).toHaveBeenCalledWith({ tickSound: false });
   });
@@ -73,6 +74,7 @@ describe('SettingsApp', () => {
   it('tests and saves the API key, and shows the result', async () => {
     const api = mockApi();
     mount(api);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Setup' }));
     await userEvent.type(await screen.findByLabelText('Groq API key'), 'gsk_abc');
     await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
     await waitFor(() => expect(api.setApiKey).toHaveBeenCalledWith('gsk_abc'));
@@ -82,6 +84,7 @@ describe('SettingsApp', () => {
   it('rejects an empty key without calling main', async () => {
     const api = mockApi();
     mount(api);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Setup' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Test and save' }));
     expect(await screen.findByText('Enter your Groq API key')).toBeInTheDocument();
     expect(api.setApiKey).not.toHaveBeenCalled();
@@ -90,6 +93,7 @@ describe('SettingsApp', () => {
   it('shows an alert when saving a setting rejects', async () => {
     const api = mockApi({ updateSettings: vi.fn().mockRejectedValue(new Error('keychain locked')) });
     mount(api);
+    await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
     await userEvent.click(await screen.findByRole('switch', { name: 'Play a tick when recording stops' }));
     expect(await screen.findByText('Could not save settings')).toBeInTheDocument();
   });
@@ -107,6 +111,7 @@ describe('SettingsApp', () => {
   it('shows an alert when testing the API key rejects, without rendering the key', async () => {
     const api = mockApi({ setApiKey: vi.fn().mockRejectedValue(new Error('network down')) });
     mount(api);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Setup' }));
     await userEvent.type(await screen.findByLabelText('Groq API key'), 'gsk_secret');
     await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
     const alert = await screen.findByText('Could not test the key');

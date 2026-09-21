@@ -36,7 +36,7 @@ describe('orb window', () => {
 describe('settings window', () => {
   it('is a small fixed-size window that opens hidden', () => {
     const options = settingsWindowOptions('/app/preload.mjs');
-    expect(options).toMatchObject({ width: 560, height: 720, resizable: false, show: false });
+    expect(options).toMatchObject({ width: 760, height: 560, resizable: false, show: false });
     expect(options.webPreferences).toMatchObject({ contextIsolation: true, nodeIntegration: false });
   });
 });
