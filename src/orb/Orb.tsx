@@ -3,6 +3,7 @@ import { Stack, Text } from '@mantine/core';
 
 import type { OrbPhase } from '../../electron/types';
 
+import { createPhaseHandler } from './phase-handler';
 import { createRecorder } from './recorder';
 import { playTick } from './tick';
 import classes from './Orb.module.css';
@@ -65,27 +66,18 @@ export function Orb() {
 
   useEffect(() => {
     const recorder = createRecorder();
-
-    const unsubscribe = window.parley.onOrbPhase(async ({ phase, message: text, tick }) => {
-      phaseRef.current = phase;
-      setMessage(phase === 'error' ? (text ?? '') : '');
-      setVisible(phase !== 'cancelled');
-
-      if (phase === 'listening') {
-        await recorder.start();
-      } else if (phase === 'transcribing') {
-        const audio = await recorder.stop();
-        if (tick) playTick();
-        if (audio) window.parley.sendAudio(audio);
-      } else if (phase === 'cancelled') {
-        recorder.discard();
-      } else if (phase === 'done') {
-        // Main hides the window after the flash; start the fade just before.
-        setTimeout(() => setVisible(false), 300);
-      } else if (phase === 'error') {
-        setTimeout(() => setVisible(false), 3000);
-      }
+    const { handlePhase, dispose } = createPhaseHandler({
+      recorder,
+      sendAudio: window.parley.sendAudio,
+      playTick,
+      onPhase: (phase) => {
+        phaseRef.current = phase;
+      },
+      setVisible,
+      setMessage,
     });
+
+    const unsubscribe = window.parley.onOrbPhase(handlePhase);
 
     let frame = 0;
     const loop = (timeMs: number) => {
@@ -98,6 +90,7 @@ export function Orb() {
     return () => {
       unsubscribe();
       cancelAnimationFrame(frame);
+      dispose();
       recorder.discard();
     };
   }, []);

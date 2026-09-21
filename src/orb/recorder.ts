@@ -27,6 +27,10 @@ export function createRecorder(): Recorder {
   let samples = new Uint8Array(0);
   let chunks: Blob[] = [];
   let startedAt = 0;
+  // Bumped by stop()/discard() (and by a fresh start()) to invalidate any
+  // start() still awaiting getUserMedia, so a phase that supersedes
+  // `listening` mid-await does not get undone when that await resolves later.
+  let generation = 0;
 
   function release() {
     stream?.getTracks().forEach((track) => track.stop());
@@ -41,9 +45,18 @@ export function createRecorder(): Recorder {
   return {
     async start() {
       release();
-      stream = await navigator.mediaDevices.getUserMedia({
+      const currentGeneration = ++generation;
+      const openedStream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, sampleRate: 16000, echoCancellation: false },
       });
+      if (currentGeneration !== generation) {
+        // Superseded (stop/discard/another start) while getUserMedia was
+        // pending: nothing else was set up, so just close the mic we opened.
+        openedStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      stream = openedStream;
       audioContext = new AudioContext();
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
@@ -62,6 +75,7 @@ export function createRecorder(): Recorder {
     },
 
     stop() {
+      generation++;
       const active = mediaRecorder;
       if (!active || active.state === 'inactive') {
         release();
@@ -79,6 +93,7 @@ export function createRecorder(): Recorder {
     },
 
     discard() {
+      generation++;
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.onstop = null;
         mediaRecorder.stop();
