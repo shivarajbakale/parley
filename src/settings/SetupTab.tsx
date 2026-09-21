@@ -19,10 +19,11 @@ import type { PermissionKind, PermissionStatus } from '../../electron/types';
 
 import { Pressable, StaggerGroup, StaggerItem } from './motion';
 import classes from './settings.module.css';
-import { useRequestPermission, useSetApiKey } from './use-parley';
+import { useRequestPermission, useSetApiKey, useSetRewriteKey } from './use-parley';
 
-const keySchema = z.object({ apiKey: z.string().trim().min(1, 'Enter your Groq API key') });
-type KeyForm = z.infer<typeof keySchema>;
+const keySchema = (label: string) =>
+  z.object({ apiKey: z.string().trim().min(1, `Enter your ${label}`) });
+type KeyForm = z.infer<ReturnType<typeof keySchema>>;
 
 function PermissionRow({
   kind,
@@ -78,9 +79,27 @@ function PermissionRow({
   );
 }
 
-function ApiKeySection({ hasApiKey }: { hasApiKey: boolean }) {
-  const setApiKey = useSetApiKey();
-  const form = useForm<KeyForm>({ resolver: zodResolver(keySchema), defaultValues: { apiKey: '' } });
+function ApiKeySection({
+  label,
+  placeholder,
+  purpose,
+  submitLabel,
+  hasApiKey,
+  setApiKey,
+}: {
+  label: string;
+  placeholder: string;
+  /** What the key is for, shown until one is stored. */
+  purpose: string;
+  /** Two key forms share the tab, so each button names itself. */
+  submitLabel: string;
+  hasApiKey: boolean;
+  setApiKey: ReturnType<typeof useSetApiKey>;
+}) {
+  const form = useForm<KeyForm>({
+    resolver: zodResolver(keySchema(label)),
+    defaultValues: { apiKey: '' },
+  });
   const result = setApiKey.data;
 
   return (
@@ -91,13 +110,13 @@ function ApiKeySection({ hasApiKey }: { hasApiKey: boolean }) {
     >
       <Stack gap="xs">
         <PasswordInput
-          label="Groq API key"
+          label={label}
           description={
             hasApiKey
               ? 'A key is stored in your Keychain. Enter a new one to replace it.'
-              : 'Stored encrypted in your Keychain.'
+              : `${purpose} Stored encrypted in your Keychain.`
           }
-          placeholder="gsk_…"
+          placeholder={placeholder}
           error={form.formState.errors.apiKey?.message}
           {...form.register('apiKey')}
         />
@@ -109,7 +128,7 @@ function ApiKeySection({ hasApiKey }: { hasApiKey: boolean }) {
               className={classes.primary}
               loading={setApiKey.isPending}
             >
-              Test and save
+              {submitLabel}
             </Button>
           </Pressable>
           {result && (
@@ -132,11 +151,16 @@ export function SetupTab({
   needsSetup,
   permissions,
   hasApiKey,
+  hasRewriteKey,
 }: {
   needsSetup: boolean;
   permissions: PermissionStatus;
   hasApiKey: boolean;
+  hasRewriteKey: boolean;
 }) {
+  const setApiKey = useSetApiKey();
+  const setRewriteKey = useSetRewriteKey();
+
   return (
     <StaggerGroup>
       <Stack gap="lg">
@@ -168,7 +192,26 @@ export function SetupTab({
         </StaggerItem>
         <StaggerItem>
           <Box className={classes.glass} p="md">
-            <ApiKeySection hasApiKey={hasApiKey} />
+            <ApiKeySection
+              label="Groq API key"
+              placeholder="gsk_…"
+              purpose="Transcribes what you say."
+              submitLabel="Test and save"
+              hasApiKey={hasApiKey}
+              setApiKey={setApiKey}
+            />
+          </Box>
+        </StaggerItem>
+        <StaggerItem>
+          <Box className={classes.glass} p="md">
+            <ApiKeySection
+              label="MiniMax API key"
+              placeholder="Optional"
+              purpose="Only for voice edit, which rewrites the text in a field."
+              submitLabel="Test and save MiniMax key"
+              hasApiKey={hasRewriteKey}
+              setApiKey={setRewriteKey}
+            />
           </Box>
         </StaggerItem>
       </Stack>

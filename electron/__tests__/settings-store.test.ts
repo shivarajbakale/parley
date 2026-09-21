@@ -45,7 +45,31 @@ describe('settings store', () => {
 
     const reopened = createSettingsStore({ dir, crypto });
     expect(reopened.getApiKey()).toBe('gsk_secret');
-    expect(reopened.view()).toEqual({ ...DEFAULT_SETTINGS, hasApiKey: true });
+    expect(reopened.view()).toEqual({
+      ...DEFAULT_SETTINGS,
+      hasApiKey: true,
+      hasRewriteKey: false,
+    });
+  });
+
+  it('keeps the MiniMax key apart from the Groq key, encrypted the same way', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.setApiKey('gsk_secret');
+    store.setRewriteKey('mm_secret');
+    const raw = readFileSync(path.join(dir, 'settings.json'), 'utf8');
+    expect(raw).not.toContain('mm_secret');
+
+    const reopened = createSettingsStore({ dir, crypto });
+    expect(reopened.getApiKey()).toBe('gsk_secret');
+    expect(reopened.getRewriteKey()).toBe('mm_secret');
+    expect(reopened.view().hasRewriteKey).toBe(true);
+  });
+
+  it('stores a valid voice edit key and drops an invalid one', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.update({ editGestureKey: 'CtrlRight' });
+    store.update({ editGestureKey: 'Space' as never });
+    expect(store.get().editGestureKey).toBe('CtrlRight');
   });
 
   it('refuses to store a key when encryption is unavailable', () => {

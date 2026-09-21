@@ -102,3 +102,30 @@ previous clipboard content is back afterwards (copy a word first, paste it after
 - [ ] The tab pill slides; tab content slides in the direction of travel.
 - [ ] With Reduce Motion on, the app uses fades only and the orb drifts
       slower.
+
+## Voice edit
+
+Needs a MiniMax key saved in Setup. The voice edit key defaults to Right
+Command, with the same number of presses as dictation.
+
+- [ ] Type a sentence into Notes, leave the cursor in it with nothing
+      selected, hold the voice edit gesture and say "make it shorter". The
+      whole note is replaced by a shorter version, and Cmd+Z brings the
+      original back.
+- [ ] Select one sentence of several and say "make it more formal": only the
+      selection changes.
+- [ ] Repeat the first check in Safari, Chrome, Slack and VS Code. Where the
+      app hides the field's value the text visibly selects before it is
+      replaced; that is the keystroke fallback, not a bug.
+- [ ] With the Finder or a web page body focused (no text field), the orb
+      shows "No text field focused" and nothing is selected or pasted.
+- [ ] With the cursor in a password field, the orb shows "No text field
+      focused".
+- [ ] In an empty field the orb shows "Nothing to edit".
+- [ ] The clipboard holds what it held before each of the checks above.
+- [ ] With no MiniMax key, the voice edit gesture opens Settings and
+      dictation still works.
+- [ ] Setting the voice edit key to the dictation key turns voice edit off
+      and the row says so.
+- [ ] Voice edit works in the packaged build: `parley-ax` is inside
+      `Parley.app/Contents/Resources`.

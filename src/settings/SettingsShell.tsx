@@ -59,6 +59,7 @@ export function SettingsShell({
               needsSetup={needsSetup}
               permissions={permissions}
               hasApiKey={settings.hasApiKey}
+              hasRewriteKey={settings.hasRewriteKey}
             />
           </motion.div>
         </Tabs.Panel>

@@ -11,6 +11,8 @@
   files: ['dist', 'dist-electron'],
   asarUnpack: ['node_modules/uiohook-napi/**'],
   mac: {
+    // The Accessibility reader voice edit uses; see scripts/build-ax-helper.sh.
+    extraResources: [{ from: 'resources/parley-ax', to: 'parley-ax' }],
     target: ['dmg'],
     // No Developer ID yet: skip electron-builder's signing, scripts/adhoc-sign.cjs signs ad hoc.
     identity: null,

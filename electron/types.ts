@@ -26,6 +26,11 @@ export interface KeyEvent {
 export interface Settings {
   gestureKey: GestureKey;
   tapCount: TapCount;
+  /**
+   * Same taps, different key: the speech becomes an instruction that rewrites
+   * the focused field. Voice edit is off while it equals `gestureKey`.
+   */
+  editGestureKey: GestureKey;
   /** Free text, comma separated. Sent to Whisper as `prompt`. */
   vocabulary: string;
   tickSound: boolean;
@@ -35,10 +40,14 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   gestureKey: 'AltRight',
   tapCount: 3,
+  editGestureKey: 'MetaRight',
   vocabulary: '',
   tickSound: true,
   launchAtLogin: true,
 };
+
+/** `dictate` pastes what was said; `edit` applies it to the focused field. */
+export type SessionMode = 'dictate' | 'edit';
 
 export type OrbPhase = 'listening' | 'transcribing' | 'done' | 'error' | 'cancelled';
 
@@ -66,6 +75,8 @@ export type PermissionKind = keyof PermissionStatus;
 /** What the settings window may see. The API key itself never leaves main. */
 export interface SettingsView extends Settings {
   hasApiKey: boolean;
+  /** The MiniMax key that voice edit rewrites with. */
+  hasRewriteKey: boolean;
 }
 
 export interface KeyTestResult {
@@ -80,6 +91,7 @@ export interface ParleyApi {
   getSettings(): Promise<SettingsView>;
   updateSettings(patch: Partial<Settings>): Promise<SettingsView>;
   setApiKey(key: string): Promise<KeyTestResult>;
+  setRewriteKey(key: string): Promise<KeyTestResult>;
   getPermissions(): Promise<PermissionStatus>;
   requestPermission(kind: PermissionKind): Promise<PermissionStatus>;
 }

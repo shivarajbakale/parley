@@ -1,6 +1,6 @@
 {
   "project": "parley",
-  "last_updated": "2026-09-21",
+  "last_updated": "2026-09-22",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -37,8 +37,12 @@
       "user_visible_behavior": "Gesture detection, Groq transcription, paste injection, settings storage and the session orchestrator exist as tested main-process units.",
       "status": "passing",
       "plan": "none: main-process units with no UI, specified in docs/superpowers/specs/2026-09-21-parley-design.md",
-      "verification": ["Run `make check` and confirm the electron/__tests__ suites pass."],
-      "evidence": ["make check exit 0 on 2026-09-21; electron/__tests__ suites for gesture-detector, key-hook, transcriber, injector, settings-store and session pass."],
+      "verification": [
+        "Run `make check` and confirm the electron/__tests__ suites pass."
+      ],
+      "evidence": [
+        "make check exit 0 on 2026-09-21; electron/__tests__ suites for gesture-detector, key-hook, transcriber, injector, settings-store and session pass."
+      ],
       "notes": "Plan tasks 1 to 7."
     },
     {
@@ -49,8 +53,13 @@
       "user_visible_behavior": "A floating orb appears while the gesture key is held, reacts to the voice, and sends the recording to the main process.",
       "status": "passing",
       "plan": "none: canvas-only overlay window, approved as ASCII wireframes in the design spec",
-      "verification": ["Run `make check`.", "Run `make dev`, perform the gesture and watch the orb states."],
-      "evidence": ["make check exit 0 on 2026-09-21; electron/__tests__ suites (gesture-detector 11, key-hook 2, injector 2, windows 4, tray 3, plus settings-store, session, transcriber, window carried from parley-001) pass. Manual `make dev` verification (tray item appears, no dock icon, Accessibility grant, gesture performed, quit from tray) has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."],
+      "verification": [
+        "Run `make check`.",
+        "Run `make dev`, perform the gesture and watch the orb states."
+      ],
+      "evidence": [
+        "make check exit 0 on 2026-09-21; electron/__tests__ suites (gesture-detector 11, key-hook 2, injector 2, windows 4, tray 3, plus settings-store, session, transcriber, window carried from parley-001) pass. Manual `make dev` verification (tray item appears, no dock icon, Accessibility grant, gesture performed, quit from tray) has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."
+      ],
       "notes": "Plan tasks 8 to 10."
     },
     {
@@ -61,7 +70,10 @@
       "user_visible_behavior": "The tray opens a settings window that shows permission status, stores the Groq key and edits gesture, vocabulary, tick sound and launch at login.",
       "status": "passing",
       "plan": "none: single form window, approved as ASCII wireframes in the design spec",
-      "verification": ["Run `make check`.", "Run `make dev` and change each setting."],
+      "verification": [
+        "Run `make check`.",
+        "Run `make dev` and change each setting."
+      ],
       "evidence": [
         "make check exit 0 on 2026-09-22; src/settings/__tests__/SettingsApp.test.tsx (6 tests) pass; full unit suite 272 tests pass, story-probe suite 106 tests pass.",
         "Manual `make dev` verification (grant permissions and watch badges update, test and save a real Groq key including an invalid key, perform the gesture in Notes and confirm paste, cancel with Esc, change gesture key/tap count and confirm the new gesture, use tray 'Copy last transcript') has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."
@@ -76,12 +88,32 @@
       "user_visible_behavior": "Dictation pastes into Safari, Chrome, Slack, VS Code, Terminal and Notes.",
       "status": "in_progress",
       "plan": "none: packaging config and a manual checklist, no UI",
-      "verification": ["Walk docs/MANUAL_CHECKLIST.md."],
+      "verification": [
+        "Walk docs/MANUAL_CHECKLIST.md."
+      ],
       "evidence": [
         "make check exit 0 on 2026-09-22; full unit suite 275 tests across 37 files pass (includes src/orb/__tests__/phase-handler.test.ts, 9 tests, and electron/__tests__/audio-watchdog.test.ts, 4 tests), story-probe suite 106 tests pass, skill-lint 36 files/145 code blocks pass.",
         "docs/MANUAL_CHECKLIST.md written on 2026-09-22 covering paste targets, gesture (including changing gesture key/tap count), onboarding from a clean state (including the System Settings deep-link check on macOS 26), a real Groq key and an invalid key, errors, offline behaviour, and the tray (including quit and single-instance). No box on that checklist has been ticked yet — manual verification with `make dev` is pending and this feature stays in_progress until it is walked."
       ],
       "notes": "Plan task 12. Cannot be marked passing without a human walking docs/MANUAL_CHECKLIST.md by hand; that requires launching the app, which this session does not do."
+    },
+    {
+      "id": "parley-005",
+      "priority": 6,
+      "area": "dictation",
+      "title": "Voice edit: rewrite the focused field by speaking",
+      "user_visible_behavior": "With the cursor in a text field, the voice edit gesture turns speech into an instruction (\"make it shorter\") that rewrites the selection, or the whole field when nothing is selected, through MiniMax.",
+      "status": "blocked",
+      "plan": "none: one Select row and one key form added to existing settings tabs; the rest is main process",
+      "verification": [
+        "make check",
+        "Walk the Voice edit section of docs/MANUAL_CHECKLIST.md with a real MiniMax key."
+      ],
+      "evidence": [
+        "make check exit 0 on 2026-09-22 on branch voice-edit; unit suite 376 tests across 54 files pass, including electron/__tests__/edit-target.test.ts, field-reader.test.ts, rewriter.test.ts and the voice edit block in session.test.ts.",
+        "resources/parley-ax built universal (arm64 + x86_64) by scripts/build-ax-helper.sh and returned the focused element's role and value when run by hand."
+      ],
+      "notes": "Blocked on a human: needs `make dev`, a MiniMax API key and the manual checklist. The MiniMax request shape (MiniMax-M3, thinking disabled) follows platform.minimax.io docs but has never been sent with a real key."
     }
   ]
 }

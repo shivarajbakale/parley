@@ -31,3 +31,6 @@ storybook-render-report.json
 .ui-probe/
 tsconfig.tsbuildinfo
 tsconfig.node.tsbuildinfo
+
+# Compiled from native/parley-ax.swift by scripts/build-ax-helper.sh.
+resources/parley-ax

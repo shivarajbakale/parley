@@ -49,6 +49,24 @@ export function GestureTab({
                 />
               </SettingRow>
               <Divider />
+              <SettingRow
+                label="Voice edit key"
+                description={
+                  settings.editGestureKey === settings.gestureKey
+                    ? 'Off while it matches the gesture key.'
+                    : 'Same presses. Say how to change the text in the field.'
+                }
+              >
+                <Select
+                  aria-label="Voice edit key"
+                  w={180}
+                  allowDeselect={false}
+                  data={GESTURE_KEYS.map((key) => ({ value: key, label: KEY_LABELS[key] }))}
+                  value={settings.editGestureKey}
+                  onChange={(value) => value && onChange({ editGestureKey: value as GestureKey })}
+                />
+              </SettingRow>
+              <Divider />
               <SettingRow label="Presses" description="The last one is held.">
                 <SegmentedControl
                   w={180}

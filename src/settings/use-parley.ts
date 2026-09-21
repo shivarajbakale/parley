@@ -46,3 +46,11 @@ export function useSetApiKey() {
     onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
   });
 }
+
+export function useSetRewriteKey() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (key: string) => window.parley.setRewriteKey(key),
+    onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
+  });
+}

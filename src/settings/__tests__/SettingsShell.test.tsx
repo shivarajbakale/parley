@@ -12,11 +12,12 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
   return {
     onOrbPhase: () => () => {},
     sendAudio: vi.fn(),
-    getSettings: vi.fn().mockResolvedValue({ ...DEFAULT_SETTINGS, hasApiKey: true }),
+    getSettings: vi.fn().mockResolvedValue({ ...DEFAULT_SETTINGS, hasApiKey: true, hasRewriteKey: true }),
     updateSettings: vi
       .fn()
-      .mockImplementation(async (patch) => ({ ...DEFAULT_SETTINGS, ...patch, hasApiKey: true })),
+      .mockImplementation(async (patch) => ({ ...DEFAULT_SETTINGS, ...patch, hasApiKey: true, hasRewriteKey: true })),
     setApiKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
+    setRewriteKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     getPermissions: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
     requestPermission: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
     ...overrides,

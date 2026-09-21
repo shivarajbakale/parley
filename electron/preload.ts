@@ -26,6 +26,7 @@ const parley: ParleyApi = {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   updateSettings: (patch: Partial<Settings>) => ipcRenderer.invoke('settings:update', patch),
   setApiKey: (key: string) => ipcRenderer.invoke('settings:setApiKey', key),
+  setRewriteKey: (key: string) => ipcRenderer.invoke('settings:setRewriteKey', key),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   requestPermission: (kind: PermissionKind) => ipcRenderer.invoke('permissions:request', kind),
 };

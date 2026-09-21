@@ -17,17 +17,24 @@ export interface SettingsStore {
   getApiKey(): string | null;
   setApiKey(key: string): void;
   hasApiKey(): boolean;
+  getRewriteKey(): string | null;
+  setRewriteKey(key: string): void;
+  hasRewriteKey(): boolean;
 }
 
 interface FileShape {
   settings?: Partial<Settings>;
   apiKeyEncrypted?: string;
+  rewriteKeyEncrypted?: string;
 }
 
 /** Keep only fields with valid values. The renderer is untrusted input. */
 function sanitize(input: Partial<Settings>): Partial<Settings> {
   const out: Partial<Settings> = {};
   if (GESTURE_KEYS.includes(input.gestureKey as never)) out.gestureKey = input.gestureKey;
+  if (GESTURE_KEYS.includes(input.editGestureKey as never)) {
+    out.editGestureKey = input.editGestureKey;
+  }
   if (input.tapCount === 2 || input.tapCount === 3 || input.tapCount === 4) {
     out.tapCount = input.tapCount;
   }
@@ -49,10 +56,30 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
 
   let settings: Settings = { ...DEFAULT_SETTINGS, ...sanitize(state.settings ?? {}) };
   let apiKeyEncrypted = typeof state.apiKeyEncrypted === 'string' ? state.apiKeyEncrypted : null;
+  let rewriteKeyEncrypted =
+    typeof state.rewriteKeyEncrypted === 'string' ? state.rewriteKeyEncrypted : null;
 
   function save() {
-    const body: FileShape = { settings, ...(apiKeyEncrypted ? { apiKeyEncrypted } : {}) };
+    const body: FileShape = {
+      settings,
+      ...(apiKeyEncrypted ? { apiKeyEncrypted } : {}),
+      ...(rewriteKeyEncrypted ? { rewriteKeyEncrypted } : {}),
+    };
     writeFileSync(file, JSON.stringify(body, null, 2));
+  }
+
+  function decrypt(encrypted: string | null): string | null {
+    if (!encrypted) return null;
+    try {
+      return deps.crypto.decryptString(Buffer.from(encrypted, 'base64'));
+    } catch {
+      return null;
+    }
+  }
+
+  function encrypt(key: string): string {
+    if (!deps.crypto.isEncryptionAvailable()) throw new Error('Encryption is not available');
+    return deps.crypto.encryptString(key).toString('base64');
   }
 
   return {
@@ -62,19 +89,21 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       save();
       return settings;
     },
-    view: () => ({ ...settings, hasApiKey: apiKeyEncrypted !== null }),
+    view: () => ({
+      ...settings,
+      hasApiKey: apiKeyEncrypted !== null,
+      hasRewriteKey: rewriteKeyEncrypted !== null,
+    }),
     hasApiKey: () => apiKeyEncrypted !== null,
-    getApiKey() {
-      if (!apiKeyEncrypted) return null;
-      try {
-        return deps.crypto.decryptString(Buffer.from(apiKeyEncrypted, 'base64'));
-      } catch {
-        return null;
-      }
-    },
+    getApiKey: () => decrypt(apiKeyEncrypted),
     setApiKey(key) {
-      if (!deps.crypto.isEncryptionAvailable()) throw new Error('Encryption is not available');
-      apiKeyEncrypted = deps.crypto.encryptString(key).toString('base64');
+      apiKeyEncrypted = encrypt(key);
+      save();
+    },
+    hasRewriteKey: () => rewriteKeyEncrypted !== null,
+    getRewriteKey: () => decrypt(rewriteKeyEncrypted),
+    setRewriteKey(key) {
+      rewriteKeyEncrypted = encrypt(key);
       save();
     },
   };

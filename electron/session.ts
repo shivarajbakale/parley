@@ -1,9 +1,20 @@
+import type { EditTargets } from './edit-target';
 import type { Injector } from './injector';
+import type { Rewriter } from './rewriter';
 import type { Transcriber } from './transcriber';
-import type { OrbPhasePayload, PermissionStatus, RecordedAudio, Settings } from './types';
+import type {
+  OrbPhasePayload,
+  PermissionStatus,
+  RecordedAudio,
+  SessionMode,
+  Settings,
+} from './types';
 
 /**
  * One dictation session, from the held press to the paste.
+ *
+ * In `edit` mode the speech is an instruction, not the text: whatever is in
+ * the focused field is rewritten by it and pasted back over itself.
  *
  * Everything it touches is passed in, so the rules that matter — the busy
  * guard, the short-audio discard, "an error never touches the clipboard" — are
@@ -21,9 +32,12 @@ export type SessionState = 'idle' | 'listening' | 'awaiting_audio' | 'transcribi
 export interface SessionDeps {
   orb: { show(): void; hide(): void; setPhase(payload: OrbPhasePayload): void };
   transcriber: Pick<Transcriber, 'transcribe'>;
-  injector: Injector;
+  injector: Pick<Injector, 'paste'>;
+  rewriter: Pick<Rewriter, 'rewrite'>;
+  editTargets: EditTargets;
   getSettings(): Settings;
   hasApiKey(): boolean;
+  hasRewriteKey(): boolean;
   getPermissions(): PermissionStatus;
   /** The settings window doubles as onboarding. */
   openSettings(): void;
@@ -31,7 +45,7 @@ export interface SessionDeps {
 }
 
 export interface Session {
-  start(): void;
+  start(mode?: SessionMode): void;
   stop(): void;
   cancel(): void;
   receiveAudio(audio: RecordedAudio): Promise<void>;
@@ -40,6 +54,7 @@ export interface Session {
 
 export function createSession(deps: SessionDeps): Session {
   let state: SessionState = 'idle';
+  let mode: SessionMode = 'dictate';
   let maxTimer: ReturnType<typeof setTimeout> | undefined;
 
   function clearMaxTimer() {
@@ -67,13 +82,15 @@ export function createSession(deps: SessionDeps): Session {
   return {
     state: () => state,
 
-    start() {
+    start(requested = 'dictate') {
       if (state !== 'idle') return;
       const permissions = deps.getPermissions();
-      if (!permissions.microphone || !permissions.accessibility || !deps.hasApiKey()) {
+      const hasKeys = deps.hasApiKey() && (requested === 'dictate' || deps.hasRewriteKey());
+      if (!permissions.microphone || !permissions.accessibility || !hasKeys) {
         deps.openSettings();
         return;
       }
+      mode = requested;
       state = 'listening';
       deps.orb.show();
       deps.orb.setPhase({ phase: 'listening' });
@@ -97,15 +114,26 @@ export function createSession(deps: SessionDeps): Session {
 
       state = 'transcribing';
       try {
-        const text = await deps.transcriber.transcribe(
-          { data: audio.data, mimeType: audio.mimeType },
-          { vocabulary: deps.getSettings().vocabulary }
-        );
-        if (!text) {
+        // The field is read while Whisper works: the gesture key is up by
+        // now, so the keystroke fallback cannot collide with a held modifier.
+        const [spoken, target] = await Promise.all([
+          deps.transcriber.transcribe(
+            { data: audio.data, mimeType: audio.mimeType },
+            { vocabulary: deps.getSettings().vocabulary }
+          ),
+          mode === 'edit' ? deps.editTargets.capture() : null,
+        ]);
+        if (!spoken) {
           finish({ phase: 'cancelled' }, 0);
           return;
         }
-        await deps.injector.paste(text);
+        let text = spoken;
+        if (target) {
+          text = await deps.rewriter.rewrite(target.text, spoken);
+          await deps.editTargets.apply(target, text);
+        } else {
+          await deps.injector.paste(text);
+        }
         deps.onTranscript(text);
         finish({ phase: 'done' }, DONE_MS);
       } catch (error) {

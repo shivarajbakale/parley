@@ -4,6 +4,12 @@ Tap-tap-hold voice dictation for macOS. Tap Right Option twice, hold the third
 press, speak, release: Groq Whisper transcribes and the text is pasted at your
 cursor. Design: [docs/superpowers/specs/2026-09-21-parley-design.md](docs/superpowers/specs/2026-09-21-parley-design.md).
 
+Voice edit is the same gesture on a second key (Right Command by default):
+with the cursor in a text field, say "make it shorter" and the selection, or
+the whole field, is rewritten by MiniMax and pasted back. It needs a MiniMax
+API key and reads the field with `native/parley-ax.swift`, which `npm run dev`
+and `npm run build` compile (Xcode command line tools required).
+
 Run it with `make dev`. It needs Microphone and Accessibility permission and a
 Groq API key, all set from the tray's Settings window.
 

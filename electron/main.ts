@@ -10,16 +10,21 @@ import {
   shell,
   Tray,
 } from 'electron';
+import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 import { createAudioWatchdog } from './audio-watchdog';
+import { createEditTargets } from './edit-target';
+import { createFieldReader } from './field-reader';
 import { createGestureDetector } from './gesture-detector';
 import { createInjector } from './injector';
 import { createKeyHook } from './key-hook';
 import { parseOrbAudio } from './orb-audio';
 import { getPermissions, requestPermission } from './permissions';
+import { createRewriter } from './rewriter';
 import { createSession, type Session } from './session';
 import { createSettingsStore } from './settings-store';
 import { createTranscriber } from './transcriber';
@@ -58,6 +63,13 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST;
 
 const PRELOAD = path.join(__dirname, 'preload.mjs');
+
+/** Built by `scripts/build-ax-helper.sh`; electron-builder copies it into Resources. */
+const AX_HELPER = app.isPackaged
+  ? path.join(process.resourcesPath, 'parley-ax')
+  : path.join(process.env.APP_ROOT, 'resources', 'parley-ax');
+
+const execFileAsync = promisify(execFile);
 
 /** Parley's own pages. `index.html` (the scaffold demo) is never loaded — see DECISIONS.md. */
 function loadPage(window: BrowserWindow, page: 'orb' | 'settings') {
@@ -145,7 +157,19 @@ async function startApp() {
       });
     },
     writeText: (text) => clipboard.writeText(text),
+    readText: () => clipboard.readText(),
     sendPaste: () => uIOhook.keyTap(UiohookKey.V, [UiohookKey.Meta]),
+    sendCopy: () => uIOhook.keyTap(UiohookKey.C, [UiohookKey.Meta]),
+    sendSelectAll: () => uIOhook.keyTap(UiohookKey.A, [UiohookKey.Meta]),
+  });
+
+  const rewriter = createRewriter({ getApiKey: () => store.getRewriteKey() });
+  const editTargets = createEditTargets({
+    reader: createFieldReader({
+      helperPath: AX_HELPER,
+      run: async (file, options) => (await execFileAsync(file, [], options)).stdout,
+    }),
+    injector,
   });
 
   const isReady = () => {
@@ -209,8 +233,11 @@ async function startApp() {
     },
     transcriber,
     injector,
+    rewriter,
+    editTargets,
     getSettings: () => store.get(),
     hasApiKey: () => store.hasApiKey(),
+    hasRewriteKey: () => store.hasRewriteKey(),
     getPermissions,
     openSettings,
     onTranscript: (text) => {
@@ -234,8 +261,23 @@ async function startApp() {
     onStop: () => session.stop(),
     onCancel: () => session.cancel(),
   });
-  const keyHook = createKeyHook(uIOhook, UiohookKey as unknown as Record<string, number>, (event) =>
-    detector.handle(event)
+  // Voice edit is the same gesture on a second key. Each detector resets on
+  // any key but its own, and the session's busy guard covers the rest.
+  const editDetector = createGestureDetector({
+    key: store.get().editGestureKey,
+    tapCount: store.get().tapCount,
+    onStart: () => session.start('edit'),
+    onStop: () => session.stop(),
+    onCancel: () => session.cancel(),
+  });
+  let editEnabled = false;
+  const keyHook = createKeyHook(
+    uIOhook,
+    UiohookKey as unknown as Record<string, number>,
+    (event) => {
+      detector.handle(event);
+      if (editEnabled) editDetector.handle(event);
+    }
   );
 
   /** The hook sees nothing until Accessibility is granted, so start it only then. */
@@ -253,6 +295,9 @@ async function startApp() {
 
   function applySettings(settings: Settings) {
     detector.configure({ key: settings.gestureKey, tapCount: settings.tapCount });
+    editDetector.configure({ key: settings.editGestureKey, tapCount: settings.tapCount });
+    // One key cannot mean both, and dictation is the one that keeps it.
+    editEnabled = settings.editGestureKey !== settings.gestureKey;
     // Only the packaged app: in dev this would register the bare Electron
     // binary from node_modules as a login item.
     if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
@@ -302,6 +347,13 @@ async function startApp() {
       store.setApiKey(key.trim());
       refreshTray();
     }
+    return result;
+  });
+  ipcMain.handle('settings:setRewriteKey', async (event, key: unknown): Promise<KeyTestResult> => {
+    onlySettingsWindow(event);
+    if (typeof key !== 'string' || key.trim() === '') return { ok: false, message: 'Enter a key' };
+    const result = await rewriter.testKey(key.trim());
+    if (result.ok) store.setRewriteKey(key.trim());
     return result;
   });
   ipcMain.handle('permissions:get', (event) => {
