@@ -21,6 +21,8 @@ function setup(overrides: Partial<SessionDeps> = {}) {
       capture: vi.fn().mockResolvedValue({ text: 'Hello there, friend.', scope: 'field' }),
       apply: vi.fn().mockResolvedValue(undefined),
     },
+    selection: { read: vi.fn().mockResolvedValue({ text: 'idempotent', anchor: null }) },
+    explain: { answer: vi.fn().mockResolvedValue(undefined) },
     dictionary: { prompt: vi.fn().mockReturnValue(''), apply: vi.fn((text: string) => text) },
     getSettings: () => DEFAULT_SETTINGS,
     hasApiKey: () => true,
@@ -223,6 +225,57 @@ describe('session', () => {
 
       expect(apply).not.toHaveBeenCalled();
       expect(deps.injector.paste).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('explain', () => {
+    it('asks the spoken question about the selection and pastes nothing', async () => {
+      const { deps, session } = setup({
+        transcriber: { transcribe: vi.fn().mockResolvedValue('is this thread safe?') },
+      });
+
+      session.start('explain');
+      expect(deps.orb.setPhase).toHaveBeenLastCalledWith({
+        phase: 'listening',
+        tick: true,
+        mode: 'explain',
+      });
+      session.stop();
+      await session.receiveAudio(audio());
+
+      expect(deps.explain.answer).toHaveBeenCalledWith(
+        { text: 'idempotent', anchor: null },
+        'is this thread safe?'
+      );
+      expect(deps.injector.paste).not.toHaveBeenCalled();
+      expect(deps.orb.setPhase).toHaveBeenLastCalledWith({ phase: 'done' });
+    });
+
+    it('falls back to a plain explanation when nothing was said', async () => {
+      const { deps, session } = setup({
+        transcriber: { transcribe: vi.fn().mockResolvedValue('') },
+      });
+      session.start('explain');
+      session.stop();
+      await session.receiveAudio(audio());
+      expect(deps.explain.answer).toHaveBeenCalledWith({ text: 'idempotent', anchor: null }, undefined);
+    });
+
+    it('explains plainly on a tap too short to hold a question, without transcribing', async () => {
+      const { deps, session } = setup();
+      session.start('explain');
+      session.stop();
+      await session.receiveAudio(audio(100));
+      expect(deps.transcriber.transcribe).not.toHaveBeenCalled();
+      expect(deps.explain.answer).toHaveBeenCalledWith({ text: 'idempotent', anchor: null });
+    });
+
+    it('never reads the selection during dictation', async () => {
+      const { deps, session } = setup();
+      session.start();
+      session.stop();
+      await session.receiveAudio(audio());
+      expect(deps.selection.read).not.toHaveBeenCalled();
     });
   });
 

@@ -53,6 +53,12 @@ describe('ExplainCard', () => {
     expect(screen.getByText('go')).toBeInTheDocument();
   });
 
+  it('shows the question that was asked in place of the command name', () => {
+    show({ status: 'loading', question: 'is this thread safe?', maxHeight: 500 });
+    expect(screen.getByText('is this thread safe?')).toBeInTheDocument();
+    expect(screen.queryByText('Explain')).not.toBeInTheDocument();
+  });
+
   it('says what to do when nothing was selected', () => {
     show({ status: 'empty', maxHeight: 500 });
     expect(screen.getByText('Select some text first')).toBeInTheDocument();
@@ -65,7 +71,7 @@ describe('ExplainCard', () => {
 
   it('caps the card at the height main allows, so only past it does it scroll', () => {
     show({ status: 'loading', maxHeight: 432 });
-    expect(screen.getByText('Explain').parentElement?.parentElement).toHaveStyle({ maxHeight: '432px' });
+    expect(screen.getByRole('region', { name: 'Explanation' })).toHaveStyle({ maxHeight: '432px' });
   });
 });
 

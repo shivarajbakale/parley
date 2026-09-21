@@ -11,7 +11,8 @@
 /*
  * The card sizes to its content and only scrolls past `max-height` (set inline
  * from main, 60% of the display). It sits over arbitrary apps, so the fill is
- * near-opaque: glass this thin would let the text underneath through.
+ * near-opaque: glass this thin would let the text underneath through. The sheen
+ * and the hairline carry the "glass" instead.
  */
 .card {
   display: flex;
@@ -19,34 +20,78 @@
   box-sizing: border-box;
   width: 100%;
   overflow: hidden;
-  border: 1px solid color-mix(in oklab, var(--mantine-color-violet-4) 28%, transparent);
-  border-radius: var(--mantine-radius-lg);
-  background: color-mix(in oklab, var(--mantine-color-dark-8) 94%, var(--mantine-color-violet-9));
-  backdrop-filter: blur(24px) saturate(1.4);
-  color: var(--mantine-color-text);
-  font-size: var(--mantine-font-size-sm);
-  line-height: 1.5;
+  border: 1px solid color-mix(in oklab, white 12%, transparent);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--mantine-color-violet-6) 20%, transparent), transparent 60%),
+    color-mix(in oklab, var(--mantine-color-dark-9) 93%, var(--mantine-color-violet-9));
+  backdrop-filter: blur(28px) saturate(1.5);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 14%, transparent);
+  color: var(--mantine-color-gray-2);
+  font-size: 13.5px;
+  line-height: 1.55;
+  transform-origin: 20px 0;
+  animation: rise 260ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 8px 0 14px;
+  gap: 10px;
+  padding: 10px 10px 0 14px;
 }
 
-.label {
-  color: var(--mantine-color-violet-3);
-  font-size: var(--mantine-font-size-xs);
+.title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--mantine-color-violet-2);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.spark {
+  flex: none;
+  color: var(--mantine-color-violet-3);
+}
+
+.question {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.esc {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in oklab, white 8%, transparent);
+  color: var(--mantine-color-dimmed);
+  font-family: inherit;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
 }
 
 .body {
   min-height: 0;
-  padding: 6px 14px 14px;
+  padding: 8px 16px 16px;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .message {
@@ -56,7 +101,23 @@
 
 .error {
   margin: 0;
-  color: var(--mantine-color-red-4);
+  color: var(--mantine-color-red-3);
+}
+
+.markdown {
+  animation: reveal 320ms ease-out both;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .markdown > :first-child {
@@ -75,22 +136,30 @@
 
 .markdown ul,
 .markdown ol {
-  padding-left: 20px;
+  padding-left: 18px;
+}
+
+.markdown li + li {
+  margin-top: 3px;
+}
+
+.markdown li::marker {
+  color: var(--mantine-color-violet-4);
 }
 
 .markdown code {
   padding: 1px 5px;
-  border-radius: var(--mantine-radius-sm);
+  border-radius: 6px;
   background: color-mix(in oklab, white 10%, transparent);
   font-size: 0.92em;
 }
 
 .markdown pre {
   margin: 0 0 8px;
-  padding: 8px 10px;
+  padding: 9px 11px;
   overflow-x: auto;
-  border-radius: var(--mantine-radius-md);
-  background: color-mix(in oklab, black 35%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, black 38%, transparent);
 }
 
 .markdown pre code {
@@ -100,4 +169,21 @@
 
 .markdown strong {
   color: var(--mantine-color-white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .markdown {
+    animation: fade 120ms linear both;
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Skeleton, Stack } from '@mantine/core';
+import { ActionIcon, Skeleton, Stack, Tooltip } from '@mantine/core';
+import { Check, Copy, Sparkles } from 'lucide-react';
 import Markdown from 'react-markdown';
 
 import type { ExplainState } from '../../electron/types';
@@ -32,13 +33,46 @@ function Body({ state }: { state: ExplainState }) {
       );
     case 'ready':
       return (
-        <div className={classes.markdown}>
+        <div className={classes.markdown} key="answer">
           <Markdown components={{ a: ({ children }) => <span>{children}</span> }}>
             {state.markdown}
           </Markdown>
         </div>
       );
   }
+}
+
+/** The header names what was asked, or just the command when nothing was. */
+function Title({ state }: { state: ExplainState }) {
+  const question = 'question' in state ? state.question : undefined;
+  return (
+    <span className={classes.title} title={question}>
+      <Sparkles size={14} className={classes.spark} aria-hidden />
+      {question ? <span className={classes.question}>{question}</span> : 'Explain'}
+    </span>
+  );
+}
+
+function CopyButton({ markdown }: { markdown: string }) {
+  const [copied, setCopied] = useState(false);
+  const label = copied ? 'Copied' : 'Copy';
+  return (
+    <Tooltip label={label} position="left" withArrow={false} openDelay={200}>
+      <ActionIcon
+        variant="subtle"
+        size="sm"
+        color={copied ? 'teal' : 'gray'}
+        aria-label="Copy"
+        onClick={() => {
+          window.parley.copyExplain(markdown);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1400);
+        }}
+      >
+        {copied ? <Check size={14} /> : <Copy size={14} />}
+      </ActionIcon>
+    </Tooltip>
+  );
 }
 
 export function ExplainCard({ state }: { state: ExplainState }) {
@@ -55,18 +89,16 @@ export function ExplainCard({ state }: { state: ExplainState }) {
   }, []);
 
   return (
-    <div ref={card} className={classes.card} style={{ maxHeight: state.maxHeight }}>
+    <div
+      ref={card}
+      className={classes.card}
+      role="region"
+      aria-label="Explanation"
+      style={{ maxHeight: state.maxHeight }}
+    >
       <div className={classes.header}>
-        <span className={classes.label}>Explain</span>
-        {state.status === 'ready' && (
-          <Button
-            variant="subtle"
-            size="compact-xs"
-            onClick={() => window.parley.copyExplain(state.markdown)}
-          >
-            Copy
-          </Button>
-        )}
+        <Title state={state} />
+        {state.status === 'ready' ? <CopyButton markdown={state.markdown} /> : <kbd className={classes.esc}>esc</kbd>}
       </div>
       <div className={classes.body}>
         <Body state={state} />
@@ -75,9 +107,21 @@ export function ExplainCard({ state }: { state: ExplainState }) {
   );
 }
 
-/** Empty until main pushes the first state, so a hidden card paints nothing. */
+/**
+ * Empty until main pushes the first state, so a hidden card paints nothing.
+ * A new question remounts the card, which replays its entrance; the answer
+ * arriving for the same question updates it in place.
+ */
 export function ExplainApp() {
   const [state, setState] = useState<ExplainState | null>(null);
-  useEffect(() => window.parley.onExplain(setState), []);
-  return state ? <ExplainCard state={state} /> : null;
+  const [epoch, setEpoch] = useState(0);
+  useEffect(
+    () =>
+      window.parley.onExplain((next) => {
+        if (next.status === 'loading' || next.status === 'empty') setEpoch((n) => n + 1);
+        setState(next);
+      }),
+    []
+  );
+  return state ? <ExplainCard key={epoch} state={state} /> : null;
 }

@@ -163,17 +163,21 @@ inside the app.
 
 Needs a MiniMax key (Settings, Setup). Default explain key is Right Control.
 
-- [ ] Select a word in Notes, tap-tap-hold the explain key, release: a card
-      appears just below the selection with a loading skeleton, then a short
-      markdown answer. The selection stays highlighted and the text field keeps
-      focus.
+- [ ] Select a word in Notes, tap-tap-hold the explain key: the usual orb
+      appears above the Dock (indigo) and listens. Say "why is this named that?"
+      and release: the orb finishes, then a card fades in just below the
+      selection, headed by your question, with a loading skeleton and then a short
+      markdown answer to it. The selection stays highlighted and the text field
+      keeps focus.
+- [ ] A quick tap-tap-hold-release with no question gives a plain explanation.
+- [ ] The answers are in English.
 - [ ] Repeat in Safari, Chrome, VS Code and Terminal. Where the app hides its
       selection, the card appears beside the pointer instead.
 - [ ] Select text at the bottom of the screen: the card flips above it. Select
       at the right edge: the card shifts left. Try a second display.
 - [ ] A typical answer shows without a scrollbar. Select a whole paragraph of
       code: the card grows, and only scrolls past 60% of the screen height.
-- [ ] Copy puts the answer's markdown on the clipboard. Esc, or a click outside
+- [ ] The Copy icon puts the answer's markdown on the clipboard and shows a tick. Esc, or a click outside
       the card, dismisses it.
 - [ ] With nothing selected the card says "Select some text first" and goes away
       after two seconds.

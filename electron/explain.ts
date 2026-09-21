@@ -1,13 +1,13 @@
 import { RewriteError, type Rewriter } from './rewriter';
-import type { SelectionReader } from './selection-reader';
+import type { SelectionSnapshot } from './selection-reader';
 import type { ExplainContent, Rect } from './types';
 
 /**
- * The Explain command: read the selection, show the card at once, fill it when
- * the answer arrives. The window itself is behind `view`, so this is all
+ * The Explain command: given the selection and what the user asked about it,
+ * show the card at once and fill it when the answer arrives. The window itself is behind `view`, so this is all
  * testable without Electron.
  *
- * Each trigger supersedes the last: a slow answer for an old selection must not
+ * Each answer supersedes the last: a slow answer for an old selection must not
  * land in the card for a new one.
  */
 
@@ -22,12 +22,12 @@ export interface ExplainView {
 }
 
 export interface Explain {
-  trigger(): Promise<void>;
+  /** `snapshot` is `null` when nothing was selected; `question` is what the user said. */
+  answer(snapshot: SelectionSnapshot | null, question?: string): Promise<void>;
   dismiss(): void;
 }
 
 export function createExplain(deps: {
-  selection: SelectionReader;
   rewriter: Pick<Rewriter, 'explain'>;
   view: ExplainView;
   emptyHideMs?: number;
@@ -45,14 +45,11 @@ export function createExplain(deps: {
   return {
     dismiss,
 
-    async trigger() {
+    async answer(snapshot, question) {
       generation += 1;
       const mine = generation;
       if (emptyTimer) clearTimeout(emptyTimer);
       emptyTimer = undefined;
-
-      const snapshot = await deps.selection.read();
-      if (mine !== generation) return;
 
       if (!snapshot) {
         deps.view.show(null, { status: 'empty' });
@@ -62,10 +59,10 @@ export function createExplain(deps: {
         return;
       }
 
-      deps.view.show(snapshot.anchor, { status: 'loading' });
+      deps.view.show(snapshot.anchor, { status: 'loading', question });
       let content: ExplainContent;
       try {
-        content = { status: 'ready', markdown: await deps.rewriter.explain(snapshot.text) };
+        content = { status: 'ready', markdown: await deps.rewriter.explain(snapshot.text, question), question };
       } catch (error) {
         content = {
           status: 'error',

@@ -31,8 +31,19 @@ describe('rewriter', () => {
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
     expect(body.messages[0].content).toContain('80 words');
+    // MiniMax answers in Chinese unless told otherwise.
+    expect(body.messages[0].content).toContain('Always write in English');
     expect(body.messages[1].content).toBe('<text>\nidempotent\n</text>');
     expect(body.max_completion_tokens).toBeGreaterThan(0);
+  });
+
+  it('sends a spoken question beside the text', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(reply('Yes.'));
+    await setup(fetchFn).explain('idempotent', 'is it safe to retry?');
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.messages[1].content).toBe(
+      '<text>\nidempotent\n</text>\n<question>\nis it safe to retry?\n</question>'
+    );
   });
 
   it('fails an explanation without a key, or with an empty reply', async () => {

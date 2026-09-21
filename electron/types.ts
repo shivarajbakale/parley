@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 /** `dictate` pastes what was said; `edit` applies it to the focused field. */
-export type SessionMode = 'dictate' | 'edit';
+export type SessionMode = 'dictate' | 'edit' | 'explain';
 
 /** `notice` is the pill speaking outside a session: an offer to remember a word. */
 export type OrbPhase = 'listening' | 'transcribing' | 'done' | 'error' | 'cancelled' | 'notice';
@@ -110,8 +110,8 @@ export interface Rect {
 
 /** What main tells the explain popover to show. */
 export type ExplainContent =
-  | { status: 'loading' }
-  | { status: 'ready'; markdown: string }
+  | { status: 'loading'; question?: string }
+  | { status: 'ready'; markdown: string; question?: string }
   | { status: 'empty' }
   | { status: 'error'; message: string };
 

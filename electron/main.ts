@@ -234,7 +234,6 @@ async function startApp() {
   }
 
   const explain = createExplain({
-    selection: selectionReader,
     rewriter,
     view: {
       show: (anchor, content) => {
@@ -345,6 +344,8 @@ async function startApp() {
     injector,
     rewriter,
     editTargets,
+    selection: selectionReader,
+    explain,
     dictionary: {
       // The old free-text vocabulary setting still counts until the
       // Dictionary tab replaces it.
@@ -392,14 +393,16 @@ async function startApp() {
     onCancel: () => session.cancel(),
   });
   let editEnabled = false;
-  // Explain is a trigger, not a recording: it fires on release, after the key is
-  // up, because a held Control would turn the copy fallback's Cmd+C into Ctrl+Cmd+C.
+  // Explain is voice edit's sibling: the speech is a question about the selection.
   const explainDetector = createGestureDetector({
     key: store.get().explainGestureKey,
     tapCount: store.get().tapCount,
-    onStart: () => {},
-    onStop: () => void explain.trigger(),
-    onCancel: () => explain.dismiss(),
+    onStart: () => {
+      explain.dismiss();
+      startSession('explain');
+    },
+    onStop: () => session.stop(),
+    onCancel: () => session.cancel(),
   });
   let explainEnabled = false;
   const keyHook = createKeyHook(
