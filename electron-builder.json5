@@ -3,6 +3,7 @@
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
   appId: 'parley',
   asar: true,
+  afterPack: 'scripts/adhoc-sign.cjs',
   productName: 'Parley',
   directories: {
     output: 'release/${version}',
@@ -11,6 +12,8 @@
   asarUnpack: ['node_modules/uiohook-napi/**'],
   mac: {
     target: ['dmg'],
+    // No Developer ID yet: skip electron-builder's signing, scripts/adhoc-sign.cjs signs ad hoc.
+    identity: null,
     artifactName: '${productName}-Mac-${version}-Installer.${ext}',
     extendInfo: {
       LSUIElement: true,
