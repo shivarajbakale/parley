@@ -133,6 +133,21 @@
         "Learning from corrections on branch personal-dictionary, 2026-09-22: electron/correction-detect.ts, correction-watcher.ts, word-offer.ts, common-words.ts and the pill notice (src/orb/Notice.tsx), 40 new unit tests; type-check, lint, ui-lint, test (458 passing), ui-probe and storybook-lint each exit 0. The notice was rendered in headless Chromium over a light-to-dark background and read correctly in both its offer and accepted states. Not yet exercised in the Electron app against a real text field."
       ],
       "notes": "No Dictionary tab yet: entries come from accepting an offer or from editing dictionary.json in the userData folder. The old free-text vocabulary setting still feeds the Whisper prompt until the tab replaces and migrates it. Learning has no off switch until the tab exists. make check as a whole currently stops at plan-lint because of an untracked explain-selection.feature-plan.json that belongs to another worktree, not to this feature."
+    },
+    {
+      "id": "explain-selection",
+      "priority": 8,
+      "area": "explain",
+      "title": "Explain the selected text in a popover",
+      "user_visible_behavior": "Select text in any app, tap-tap-hold the explain key, and a short markdown explanation appears beside the selection without taking focus.",
+      "status": "in_progress",
+      "plan": "FEATURE-PLAN.md",
+      "verification": [
+        "make check",
+        "Walk the Explain section of docs/MANUAL_CHECKLIST.md with a real MiniMax key."
+      ],
+      "evidence": [],
+      "notes": "Built in worktree explain-selection. Needs a human with make dev: the card has never been shown, and AX selection bounds have never been read from a real app."
     }
   ]
 }

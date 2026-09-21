@@ -81,4 +81,17 @@ describe('injector', () => {
       'restore:old clipboard',
     ]);
   });
+
+  it('copies just the selection, never selecting anything, and gives the clipboard back', async () => {
+    const { injector, log } = setup(vi.fn(), 'picked words');
+    await expect(injector.copySelection()).resolves.toBe('picked words');
+    expect(log).toEqual([
+      'snapshot',
+      'write:',
+      'copy',
+      'delay:150',
+      'read',
+      'restore:old clipboard',
+    ]);
+  });
 });

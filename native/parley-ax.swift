@@ -1,5 +1,5 @@
 // Reads the focused UI element through the macOS Accessibility API and prints
-// one JSON object: { role, subrole, editable, valueKnown, value, selectedText }.
+// one JSON object: { role, subrole, editable, valueKnown, value, selectedText, secure, selectionBounds }.
 //
 // Read-only on purpose. Writing AXValue into a web input skips the page's own
 // input events, so Parley always writes back with a real paste instead.
@@ -33,6 +33,20 @@ func focusedElement() -> AXUIElement? {
   return nil
 }
 
+/// Where the selection sits on screen, in the same top-left coordinates Electron uses.
+func selectionBounds(_ element: AXUIElement) -> [String: Double]? {
+  guard let range = attribute(element, kAXSelectedTextRangeAttribute) else { return nil }
+  var bounds: AnyObject?
+  guard
+    AXUIElementCopyParameterizedAttributeValue(
+      element, kAXBoundsForRangeParameterizedAttribute as CFString, range, &bounds) == .success,
+    let value = bounds, CFGetTypeID(value) == AXValueGetTypeID()
+  else { return nil }
+  var rect = CGRect.zero
+  guard AXValueGetValue(value as! AXValue, .cgRect, &rect) else { return nil }
+  return ["x": rect.origin.x, "y": rect.origin.y, "width": rect.size.width, "height": rect.size.height]
+}
+
 func emit(_ object: [String: Any]) -> Never {
   let data = try! JSONSerialization.data(withJSONObject: object)
   FileHandle.standardOutput.write(data)
@@ -62,5 +76,9 @@ emit([
   "editable": editable,
   "valueKnown": value != nil,
   "value": value ?? "",
-  "selectedText": editable ? (attribute(element, kAXSelectedTextAttribute) as? String ?? "") : "",
+  // The selection is read for any element that is not a password field: Explain
+  // works on text the user cannot edit. Voice edit still gates on `editable`.
+  "selectedText": secure ? "" : (attribute(element, kAXSelectedTextAttribute) as? String ?? ""),
+  "secure": secure,
+  "selectionBounds": (secure ? nil : selectionBounds(element)) as Any? ?? NSNull(),
 ])

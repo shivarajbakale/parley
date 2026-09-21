@@ -35,6 +35,8 @@ export interface Injector {
    * focus is known to be a text field: anywhere else Cmd+A selects the page.
    */
   copyAll(): Promise<string>;
+  /** Copy whatever is selected right now and return it, without selecting anything. */
+  copySelection(): Promise<string>;
 }
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -67,6 +69,18 @@ export function createInjector<Snapshot>(deps: InjectorDeps<Snapshot>): Injector
         deps.writeText('');
         deps.sendSelectAll();
         await delay(SELECT_SETTLE_MS);
+        deps.sendCopy();
+        await delay(COPY_SETTLE_MS);
+        return deps.readText();
+      } finally {
+        deps.restore(saved);
+      }
+    },
+
+    async copySelection() {
+      const saved = deps.snapshot();
+      try {
+        deps.writeText('');
         deps.sendCopy();
         await delay(COPY_SETTLE_MS);
         return deps.readText();

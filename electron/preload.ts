@@ -6,6 +6,7 @@ import { ipcRenderer, contextBridge } from 'electron';
  */
 
 import type {
+  ExplainState,
   OrbPhasePayload,
   ParleyApi,
   PermissionKind,
@@ -29,6 +30,16 @@ const parley: ParleyApi = {
   setRewriteKey: (key: string) => ipcRenderer.invoke('settings:setRewriteKey', key),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   requestPermission: (kind: PermissionKind) => ipcRenderer.invoke('permissions:request', kind),
+  onExplain(listener) {
+    const handler = (_event: Electron.IpcRendererEvent, state: ExplainState) => listener(state);
+    ipcRenderer.on('explain:state', handler);
+    return () => {
+      ipcRenderer.off('explain:state', handler);
+    };
+  },
+  reportExplainHeight: (height: number) => ipcRenderer.send('explain:height', height),
+  copyExplain: (text: string) => ipcRenderer.send('explain:copy', text),
+  dismissExplain: () => ipcRenderer.send('explain:dismiss'),
 };
 
 contextBridge.exposeInMainWorld('parley', parley);

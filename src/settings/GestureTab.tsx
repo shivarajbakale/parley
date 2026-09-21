@@ -67,6 +67,25 @@ export function GestureTab({
                 />
               </SettingRow>
               <Divider />
+              <SettingRow
+                label="Explain key"
+                description={
+                  settings.explainGestureKey === settings.gestureKey ||
+                  settings.explainGestureKey === settings.editGestureKey
+                    ? 'Off while it matches another key.'
+                    : 'Same presses. Select text anywhere and get a short explanation beside it.'
+                }
+              >
+                <Select
+                  aria-label="Explain key"
+                  w={180}
+                  allowDeselect={false}
+                  data={GESTURE_KEYS.map((key) => ({ value: key, label: KEY_LABELS[key] }))}
+                  value={settings.explainGestureKey}
+                  onChange={(value) => value && onChange({ explainGestureKey: value as GestureKey })}
+                />
+              </SettingRow>
+              <Divider />
               <SettingRow label="Presses" description="The last one is held.">
                 <SegmentedControl
                   w={180}

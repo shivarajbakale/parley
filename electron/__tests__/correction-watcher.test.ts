@@ -8,6 +8,8 @@ const field = (value: string, rest: Partial<FocusedField> = {}): FocusedField =>
   valueKnown: true,
   value,
   selectedText: '',
+  secure: false,
+  selectionBounds: null,
   ...rest,
 });
 

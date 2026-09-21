@@ -58,6 +58,7 @@ export default defineConfig(({ command }) => {
       input: {
         main: path.resolve(__dirname, 'index.html'),
         orb: path.resolve(__dirname, 'orb.html'),
+        explain: path.resolve(__dirname, 'explain.html'),
         settings: path.resolve(__dirname, 'settings.html'),
       },
     },

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { ORB_SIZE, orbBounds, orbWindowOptions, settingsWindowOptions } from '../windows';
+import {
+  explainWindowOptions,
+  ORB_SIZE,
+  orbBounds,
+  orbWindowOptions,
+  settingsWindowOptions,
+} from '../windows';
 import { BACKGROUND_DARK } from '../window-options';
 
 describe('orb window', () => {
@@ -56,5 +62,24 @@ describe('settings window', () => {
     const options = settingsWindowOptions('/app/preload.mjs', 'win32');
     expect(options.vibrancy).toBeUndefined();
     expect(options.backgroundColor).toBe(BACKGROUND_DARK);
+  });
+});
+
+describe('explain window', () => {
+  it('can never take focus, so the selection it explains stays selected', () => {
+    const options = explainWindowOptions('/app/preload.mjs');
+    expect(options.focusable).toBe(false);
+    expect(options.transparent).toBe(true);
+    expect(options.frame).toBe(false);
+    expect(options.alwaysOnTop).toBe(true);
+    expect(options.show).toBe(false);
+  });
+
+  it('locks down the renderer', () => {
+    expect(explainWindowOptions('/app/preload.mjs').webPreferences).toMatchObject({
+      preload: '/app/preload.mjs',
+      contextIsolation: true,
+      nodeIntegration: false,
+    });
   });
 });
