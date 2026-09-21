@@ -54,24 +54,31 @@ function PermissionRow({
 }) {
   const request = useRequestPermission();
   return (
-    <Group justify="space-between">
-      <Group gap="xs">
-        <Text size="sm">{label}</Text>
-        <Badge color={granted ? 'teal' : 'red'} variant="light">
-          {granted ? 'Granted' : 'Missing'}
-        </Badge>
+    <Stack gap={4}>
+      <Group justify="space-between">
+        <Group gap="xs">
+          <Text size="sm">{label}</Text>
+          <Badge color={granted ? 'teal' : 'red'} variant="light">
+            {granted ? 'Granted' : 'Missing'}
+          </Badge>
+        </Group>
+        {!granted && (
+          <Button
+            size="xs"
+            variant="light"
+            loading={request.isPending}
+            onClick={() => request.mutate(kind)}
+          >
+            Grant {label}
+          </Button>
+        )}
       </Group>
-      {!granted && (
-        <Button
-          size="xs"
-          variant="light"
-          loading={request.isPending}
-          onClick={() => request.mutate(kind)}
-        >
-          Grant {label}
-        </Button>
+      {request.isError && (
+        <Alert color="red" variant="light">
+          Could not open System Settings
+        </Alert>
       )}
-    </Group>
+    </Stack>
   );
 }
 
@@ -108,6 +115,11 @@ function ApiKeySection({ hasApiKey }: { hasApiKey: boolean }) {
             </Text>
           )}
         </Group>
+        {setApiKey.isError && (
+          <Alert color="red" variant="light">
+            Could not test the key
+          </Alert>
+        )}
       </Stack>
     </form>
   );
@@ -142,12 +154,21 @@ export function SettingsApp() {
           </Alert>
         )}
 
+        {update.isError && (
+          <Alert color="red" variant="light">
+            Could not save settings
+          </Alert>
+        )}
+
         <Divider label="Permissions" labelPosition="left" />
         <PermissionRow kind="microphone" label="Microphone" granted={p.microphone} />
         <PermissionRow kind="accessibility" label="Accessibility" granted={p.accessibility} />
 
         <Divider label="Transcription" labelPosition="left" />
         <ApiKeySection hasApiKey={s.hasApiKey} />
+        {/* Saves on blur, not on change: it's free text typed keystroke by keystroke, so firing a
+            mutation per character (like the toggles/select below, which each change is a single
+            discrete choice) would spam IPC and thrash the settings store. */}
         <Textarea
           label="Custom vocabulary"
           description="Names and jargon Whisper should recognise, separated by commas."

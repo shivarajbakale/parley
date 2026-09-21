@@ -86,4 +86,31 @@ describe('SettingsApp', () => {
     expect(await screen.findByText('Enter your Groq API key')).toBeInTheDocument();
     expect(api.setApiKey).not.toHaveBeenCalled();
   });
+
+  it('shows an alert when saving a setting rejects', async () => {
+    const api = mockApi({ updateSettings: vi.fn().mockRejectedValue(new Error('keychain locked')) });
+    mount(api);
+    await userEvent.click(await screen.findByRole('switch', { name: 'Play a tick when recording stops' }));
+    expect(await screen.findByText('Could not save settings')).toBeInTheDocument();
+  });
+
+  it('shows an alert when requesting a permission rejects', async () => {
+    const api = mockApi({
+      getPermissions: vi.fn().mockResolvedValue({ microphone: true, accessibility: false }),
+      requestPermission: vi.fn().mockRejectedValue(new Error('denied')),
+    });
+    mount(api);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grant Accessibility' }));
+    expect(await screen.findByText('Could not open System Settings')).toBeInTheDocument();
+  });
+
+  it('shows an alert when testing the API key rejects, without rendering the key', async () => {
+    const api = mockApi({ setApiKey: vi.fn().mockRejectedValue(new Error('network down')) });
+    mount(api);
+    await userEvent.type(await screen.findByLabelText('Groq API key'), 'gsk_secret');
+    await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
+    const alert = await screen.findByText('Could not test the key');
+    expect(alert).toBeInTheDocument();
+    expect(screen.queryByText(/gsk_secret/)).not.toBeInTheDocument();
+  });
 });
