@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import type { OrbPhase } from '../../electron/types';
+import type { OrbPhase, SessionMode } from '../../electron/types';
 
 import type { Bands } from './bands';
 import { createFrame, type OrbUniforms } from './frame';
@@ -13,7 +13,7 @@ interface OrbCanvasProps {
   /** The loop runs only while true, so a hidden orb costs nothing. */
   running: boolean;
   /** Called once per frame for the current audio and phase. */
-  read: () => { bands: Bands; phase: OrbPhase };
+  read: () => { bands: Bands; phase: OrbPhase; mode?: SessionMode };
 }
 
 /** Without WebGL the orb is a plain disc in the accent colour: dull, never missing. */
@@ -95,13 +95,13 @@ export function OrbCanvas({ size, running, read }: OrbCanvasProps) {
     let handle = 0;
     let previous = performance.now();
     const loop = (now: number) => {
-      const { bands, phase } = readRef.current();
+      const { bands, phase, mode: sessionMode } = readRef.current();
       const reducedMotion = media?.matches ?? false;
       const uniforms = frameRef.current?.step({ deltaMs: now - previous, bands, phase, reducedMotion });
       previous = now;
       if (uniforms) {
         const renderer = rendererRef.current;
-        if (renderer) renderer.render(uniforms);
+        if (renderer) renderer.render(uniforms, sessionMode);
         else drawFallback(canvas, uniforms);
       }
       handle = requestAnimationFrame(loop);

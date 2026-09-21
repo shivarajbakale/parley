@@ -34,12 +34,12 @@ describe('Orb', () => {
     expect(await screen.findByText('No API key')).toBeInTheDocument();
   });
 
-  it('draws the orb on a 240 px canvas', () => {
+  it('draws the pill on a canvas sized for the capsule and its glow', () => {
     const { container } = render(
       <ThemeProvider defaultTheme="dark" storageKey="test-color-scheme">
         <Orb />
       </ThemeProvider>
     );
-    expect(container.querySelector('canvas')!.style.width).toBe('240px');
+    expect(container.querySelector('canvas')!.style.width).toBe('196px');
   });
 });

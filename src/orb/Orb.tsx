@@ -4,20 +4,19 @@ import { motion } from 'motion/react';
 
 import { SPRING } from '@/lib/motion';
 
-import type { OrbPhase } from '../../electron/types';
+import type { OrbPhase, SessionMode } from '../../electron/types';
 
 import { SILENT_BANDS } from './bands';
-import { OrbCanvas } from './OrbCanvas';
+import { Pill } from './Pill';
 import { createPhaseHandler } from './phase-handler';
 import { createRecorder, type Recorder } from './recorder';
-import { playTick } from './tick';
+import { playSound } from './sounds';
 import classes from './Orb.module.css';
-
-const ORB_CANVAS_SIZE = 240;
 
 export function Orb() {
   const recorderRef = useRef<Recorder | null>(null);
   const phaseRef = useRef<OrbPhase>('cancelled');
+  const modeRef = useRef<SessionMode>('dictate');
   const [visible, setVisible] = useState(false);
   const [message, setMessage] = useState('');
   // Keeps the canvas loop alive through the exit animation: `visible` turning
@@ -37,9 +36,12 @@ export function Orb() {
     const { handlePhase, dispose } = createPhaseHandler({
       recorder,
       sendAudio: window.parley.sendAudio,
-      playTick,
+      playSound,
       onPhase: (phase) => {
         phaseRef.current = phase;
+      },
+      onMode: (mode) => {
+        modeRef.current = mode;
       },
       setVisible,
       setMessage,
@@ -55,25 +57,30 @@ export function Orb() {
   }, []);
 
   const read = useCallback(
-    () => ({ bands: recorderRef.current?.bands() ?? SILENT_BANDS, phase: phaseRef.current }),
+    () => ({
+      bands: recorderRef.current?.bands() ?? SILENT_BANDS,
+      phase: phaseRef.current,
+      mode: modeRef.current,
+    }),
     []
   );
 
   return (
-    <Stack className={classes.root} align="center" justify="center" gap={0}>
+    <Stack className={classes.root} align="center" justify="flex-end" gap={0}>
+      <Text size="xs" c="red.4" fw={500} h={16}>
+        {message}
+      </Text>
       <motion.div
         initial={false}
-        animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 0.85 }}
+        // Only the fade lives here; the pill opens and folds itself on the canvas.
+        animate={{ opacity: visible ? 1 : 0 }}
         transition={SPRING}
         onAnimationComplete={() => {
           if (!visible) setExiting(false);
         }}
       >
-        <OrbCanvas size={ORB_CANVAS_SIZE} running={visible || exiting} read={read} />
+        <Pill running={visible || exiting} shown={visible} read={read} />
       </motion.div>
-      <Text size="xs" c="red.4" fw={500} h={16}>
-        {message}
-      </Text>
     </Stack>
   );
 }

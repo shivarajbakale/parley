@@ -23,7 +23,7 @@ export function GeneralTab({
             <Stack gap="md">
               <Switch
                 labelPosition="left"
-                label="Play a tick when recording stops"
+                label="Play sounds when recording starts and stops"
                 checked={settings.tickSound}
                 onChange={(event) => onChange({ tickSound: event.currentTarget.checked })}
                 styles={{ body: { justifyContent: 'space-between' } }}

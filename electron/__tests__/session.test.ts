@@ -41,7 +41,7 @@ describe('session', () => {
 
     session.start();
     expect(deps.orb.show).toHaveBeenCalled();
-    expect(deps.orb.setPhase).toHaveBeenLastCalledWith({ phase: 'listening' });
+    expect(deps.orb.setPhase).toHaveBeenLastCalledWith({ phase: 'listening', tick: true });
 
     session.stop();
     expect(deps.orb.setPhase).toHaveBeenLastCalledWith({ phase: 'transcribing', tick: true });
@@ -162,6 +162,11 @@ describe('session', () => {
       });
 
       session.start('edit');
+      expect(deps.orb.setPhase).toHaveBeenLastCalledWith({
+        phase: 'listening',
+        tick: true,
+        mode: 'edit',
+      });
       session.stop();
       await session.receiveAudio(audio());
 

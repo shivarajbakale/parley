@@ -1,6 +1,12 @@
-import type { OrbPhase, OrbPhasePayload, RecordedAudio } from '../../electron/types';
+import type {
+  OrbPhase,
+  OrbPhasePayload,
+  RecordedAudio,
+  SessionMode,
+} from '../../electron/types';
 
 import type { Recorder } from './recorder';
+import type { SoundName } from './sounds';
 
 /**
  * Sent on `transcribing` when there is no real recording (start failed, or
@@ -23,8 +29,10 @@ const HIDE_DELAY_ERROR_MS = 3000;
 export interface PhaseHandlerDeps {
   recorder: Recorder;
   sendAudio: (audio: RecordedAudio) => void;
-  playTick: () => void;
+  playSound: (sound: SoundName, mode: SessionMode) => void;
   onPhase: (phase: OrbPhase) => void;
+  /** Called as a session starts, so the orb wears that session's hue to the end. */
+  onMode: (mode: SessionMode) => void;
   setVisible: (visible: boolean) => void;
   setMessage: (message: string) => void;
 }
@@ -41,7 +49,11 @@ export interface PhaseHandler {
  * fake `sendAudio`, with no real media APIs involved.
  */
 export function createPhaseHandler(deps: PhaseHandlerDeps): PhaseHandler {
-  const { recorder, sendAudio, playTick, onPhase, setVisible, setMessage } = deps;
+  const { recorder, sendAudio, playSound, onPhase, onMode, setVisible, setMessage } = deps;
+  // Both arrive with `listening` and hold until the next one: the later
+  // phases of a session do not repeat them.
+  let sessionMode: SessionMode = 'dictate';
+  let sounds = false;
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
   function clearHideTimer() {
@@ -55,14 +67,20 @@ export function createPhaseHandler(deps: PhaseHandlerDeps): PhaseHandler {
     hideTimer = setTimeout(() => setVisible(false), delayMs);
   }
 
-  async function handlePhase({ phase, message, tick }: OrbPhasePayload) {
+  async function handlePhase({ phase, message, tick, mode }: OrbPhasePayload) {
     // A new phase always supersedes any pending hide from a previous done/error.
     clearHideTimer();
     onPhase(phase);
+    if (phase === 'listening') {
+      sessionMode = mode ?? 'dictate';
+      sounds = tick ?? false;
+      onMode(sessionMode);
+    }
     setMessage(phase === 'error' ? (message ?? '') : '');
     setVisible(phase !== 'cancelled');
 
     if (phase === 'listening') {
+      if (sounds) playSound('start', sessionMode);
       try {
         await recorder.start();
       } catch {
@@ -75,13 +93,14 @@ export function createPhaseHandler(deps: PhaseHandlerDeps): PhaseHandler {
       } catch {
         audio = null;
       }
-      if (tick) playTick();
+      if (tick) playSound('stop', sessionMode);
       // Exactly one sendAudio per transcribing, real or empty: main is
       // blocked in `awaiting_audio` until this call happens.
       sendAudio(audio ?? EMPTY_AUDIO);
     } else if (phase === 'cancelled') {
       recorder.discard();
     } else if (phase === 'done') {
+      if (sounds) playSound('done', sessionMode);
       // Main hides the window after the flash; start the fade just before.
       scheduleHide(HIDE_DELAY_DONE_MS);
     } else if (phase === 'error') {

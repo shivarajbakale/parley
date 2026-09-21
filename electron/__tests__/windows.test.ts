@@ -24,15 +24,15 @@ describe('orb window', () => {
     });
   });
 
-  it('is 260 px square so the orb glow has room to fade out', () => {
-    expect(ORB_SIZE).toEqual({ width: 260, height: 260 });
+  it('is 260 by 110 px: the pill, its glow and bounce, and a line of error text', () => {
+    expect(ORB_SIZE).toEqual({ width: 260, height: 110 });
   });
 
-  it('sits bottom center of the work area, 16 px above its bottom edge', () => {
+  it('sits bottom center of the work area, 4 px above its bottom edge', () => {
     const bounds = orbBounds({ x: 100, y: 25, width: 1000, height: 800 });
     expect(bounds).toEqual({
       x: 100 + (1000 - ORB_SIZE.width) / 2,
-      y: 25 + 800 - ORB_SIZE.height - 16,
+      y: 25 + 800 - ORB_SIZE.height - 4,
       ...ORB_SIZE,
     });
   });

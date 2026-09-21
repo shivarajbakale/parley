@@ -49,6 +49,10 @@ export function createEditTargets(deps: {
       if (field.selectedText.trim()) return checked({ text: field.selectedText, scope: 'selection' });
       if (field.value.trim()) return checked({ text: field.value, scope: 'field' });
 
+      // Select-all in a field that is known to be empty lands on whatever is
+      // around it: the page, the chat log, the scrollback.
+      if (field.valueKnown) throw new EditTargetError('Nothing to edit');
+
       const copied = await deps.injector.copyAll();
       if (!copied.trim()) throw new EditTargetError('Nothing to edit');
       return checked({ text: copied, scope: 'field' });

@@ -8,10 +8,16 @@ describe('field reader', () => {
       role: 'AXTextArea',
       subrole: '',
       editable: true,
+      valueKnown: true,
       value: 'hello',
       selectedText: 'he',
     });
-    expect(parseFocusedField(stdout)).toEqual({ editable: true, value: 'hello', selectedText: 'he' });
+    expect(parseFocusedField(stdout)).toEqual({
+      editable: true,
+      valueKnown: true,
+      value: 'hello',
+      selectedText: 'he',
+    });
   });
 
   it('treats a helper error, junk output and a missing flag as no field', () => {
@@ -24,7 +30,12 @@ describe('field reader', () => {
   it('runs the helper with a timeout and an output cap', async () => {
     const run = vi.fn().mockResolvedValue('{"editable":true,"value":"v","selectedText":""}');
     const reader = createFieldReader({ helperPath: '/x/parley-ax', run });
-    await expect(reader.read()).resolves.toEqual({ editable: true, value: 'v', selectedText: '' });
+    await expect(reader.read()).resolves.toEqual({
+      editable: true,
+      valueKnown: false,
+      value: 'v',
+      selectedText: '',
+    });
     expect(run).toHaveBeenCalledWith('/x/parley-ax', {
       timeout: expect.any(Number),
       maxBuffer: expect.any(Number),

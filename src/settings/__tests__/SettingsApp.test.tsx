@@ -68,7 +68,7 @@ describe('SettingsApp', () => {
     const api = mockApi();
     mount(api);
     await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
-    await userEvent.click(await screen.findByRole('switch', { name: 'Play a tick when recording stops' }));
+    await userEvent.click(await screen.findByRole('switch', { name: 'Play sounds when recording starts and stops' }));
     expect(api.updateSettings).toHaveBeenCalledWith({ tickSound: false });
   });
 
@@ -95,7 +95,7 @@ describe('SettingsApp', () => {
     const api = mockApi({ updateSettings: vi.fn().mockRejectedValue(new Error('keychain locked')) });
     mount(api);
     await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
-    await userEvent.click(await screen.findByRole('switch', { name: 'Play a tick when recording stops' }));
+    await userEvent.click(await screen.findByRole('switch', { name: 'Play sounds when recording starts and stops' }));
     expect(await screen.findByText('Could not save settings')).toBeInTheDocument();
   });
 

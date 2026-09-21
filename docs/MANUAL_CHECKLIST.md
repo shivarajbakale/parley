@@ -92,15 +92,19 @@ previous clipboard content is back afterwards (copy a word first, paste it after
 
 ## Orb and settings visuals
 
-- [ ] Hold the gesture and speak: the orb flows with the voice and its
-      outline does not pulse.
-- [ ] The orb's glow is never cut off by the window edge, over light and
-      dark wallpapers.
-- [ ] Release: the orb swirls while transcribing, flashes teal, fades. The
-      text field keeps focus throughout.
+- [ ] Hold the gesture: the pill grows from a dot above the Dock with a
+      small bounce, and its bars follow the voice.
+- [ ] The pill reads as tinted glass, not black, and its glow is never cut
+      off by the window edge, over light and dark wallpapers.
+- [ ] Release: a crest sweeps the bars while transcribing, the pill flashes
+      teal and folds back to a dot. The text field keeps focus throughout.
+- [ ] Dictation is indigo; voice edit is lilac; an error is red with its
+      message above the pill.
+- [ ] With sounds on: a rising glass pair on start, the same pair falling on
+      release, a soft chord on done. Voice edit plays them higher.
 - [ ] Settings opens with no white flash; wallpaper blurs through the glass.
 - [ ] The tab pill slides; tab content slides in the direction of travel.
-- [ ] With Reduce Motion on, the app uses fades only and the orb drifts
+- [ ] With Reduce Motion on, the app uses fades only and the bars drift
       slower.
 
 ## Voice edit

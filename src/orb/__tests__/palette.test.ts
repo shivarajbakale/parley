@@ -20,7 +20,12 @@ describe('buildPalette', () => {
       seen.push(token);
       return [255, 0, 128];
     });
-    expect(seen).toEqual([...PALETTE_TOKENS.aurora, PALETTE_TOKENS.done, PALETTE_TOKENS.error]);
+    expect(seen).toEqual([
+      ...PALETTE_TOKENS.aurora,
+      PALETTE_TOKENS.done,
+      PALETTE_TOKENS.error,
+      ...PALETTE_TOKENS.lilac,
+    ]);
     expect(palette.aurora).toHaveLength(3);
     expect(palette.done[0]).toBeCloseTo(1, 6);
     expect(palette.done[1]).toBe(0);

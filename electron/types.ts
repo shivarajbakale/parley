@@ -55,8 +55,10 @@ export interface OrbPhasePayload {
   phase: OrbPhase;
   /** Only with `error`. */
   message?: string;
-  /** Only with `transcribing`: play the stop tick. */
+  /** With `listening` and `transcribing`: sounds are on, so play this phase's. */
   tick?: boolean;
+  /** Only with `listening`, and only for a voice edit: the orb changes hue. */
+  mode?: SessionMode;
 }
 
 export interface RecordedAudio {

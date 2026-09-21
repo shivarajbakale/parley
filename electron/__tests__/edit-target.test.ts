@@ -14,6 +14,7 @@ function setup(field: FocusedField | null, copied = '') {
 
 const field = (patch: Partial<FocusedField> = {}): FocusedField => ({
   editable: true,
+  valueKnown: false,
   value: '',
   selectedText: '',
   ...patch,
@@ -46,6 +47,12 @@ describe('edit targets', () => {
       await expect(targets.capture()).rejects.toThrow('No text field focused');
       expect(injector.copyAll).not.toHaveBeenCalled();
     }
+  });
+
+  it('never selects all in a field the app says is empty', async () => {
+    const { targets, injector } = setup(field({ valueKnown: true }), 'the page around it');
+    await expect(targets.capture()).rejects.toThrow('Nothing to edit');
+    expect(injector.copyAll).not.toHaveBeenCalled();
   });
 
   it('refuses an empty field', async () => {

@@ -1,13 +1,17 @@
 import type { OrbUniforms } from './frame';
+import type { SessionMode } from '../../electron/types';
+
 import type { OrbPalette } from './palette';
 
 /**
  * The orb, drawn by one fragment shader on one fullscreen triangle pair.
  *
- * Voice energy is shown as light and flow, not size: `uLow` pushes the colour
- * lobes apart, `uHigh` brightens the rim and specular, and the radius moves at
- * most 6 percent. Output is premultiplied alpha, which is what a transparent
- * Electron window composites correctly.
+ * The silhouette is a flame, not a disc: rising noise pushes the outline out,
+ * hardest at the top, so tongues lick upward and the base stays round. Voice
+ * feeds the fire: `uLow` makes the tongues taller and pushes the colour lobes
+ * apart, `uHigh` adds flicker and brightens the rim and specular. Output is
+ * premultiplied alpha, which is what a transparent Electron window composites
+ * correctly.
  */
 
 const VERTEX = `
@@ -72,16 +76,38 @@ vec4 look(float phase, vec2 uv) {
   float high = uHigh * listening;
 
   float edge = length(uv);
-  float radius = 0.62 * (1.0 + 0.06 * low);
+  // Smaller and lower than the canvas centre: the room above is the flame's.
+  float radius = 0.38 * (1.0 + 0.05 * low);
+  vec2 seat = uv + vec2(0.0, 0.35);
 
   // Transcribing: the field winds inward, tighter toward the centre.
-  vec2 p = rotate(transcribing * (uFlow * 0.8 + (1.0 - edge) * 2.5)) * uv;
+  vec2 p = rotate(transcribing * (uFlow * 0.8 + (1.0 - edge) * 2.5)) * seat;
   vec2 q = p / radius;
+
+  // The flame outline. Sampled in unrotated space so the tongues always rise,
+  // even while the inside swirls. Noise scrolls down, so its features move up.
+  vec2 s = seat / radius;
+  float upness = pow(smoothstep(-0.2, 1.0, s.y / max(length(s), 0.001)), 1.5);
+  float lick = 0.75 * snoise(vec2(s.x * 1.5, s.y * 1.1 - uFlow * 0.8))
+    + 0.25 * snoise(vec2(s.x * 3.0 + 3.1, s.y * 2.2 - uFlow * 1.3));
+  // Only ever outward, and sharpened, so tongues come to a point instead of
+  // the outline wobbling in and out like a blob.
+  float tongue = pow(clamp(lick * 0.5 + 0.5, 0.0, 1.0), 1.6);
+  float motion = 1.0 - 0.7 * uCalm;
+  float energy = 0.18 + low * 0.25 + high * 0.04;
+  float outline = 1.0
+    + motion * upness * (0.06 + low * 0.06 + energy * tongue)
+    + motion * 0.03 * lick;
+  // Everything below measures against the outline, so the colour, the
+  // lighting and the glow stretch into the tongues instead of cutting a
+  // circle through them.
+  q /= outline;
   float r = length(q);
 
+  // The colour field drifts upward with the fire.
   vec2 warp = vec2(
-    snoise(q * 1.3 + vec2(uFlow, 0.0)),
-    snoise(q * 1.3 + vec2(7.3, uFlow))
+    snoise(q * 1.3 + vec2(uFlow, -uFlow * 0.5)),
+    snoise(q * 1.3 + vec2(7.3, -uFlow * 0.7))
   );
   vec2 w = q + warp * 0.35 * (1.0 + low * 1.2);
 
@@ -108,12 +134,15 @@ vec4 look(float phase, vec2 uv) {
   colour = colour * diffuse
     + vec3(specular) * (0.35 + high * 0.9)
     + rimTint * fresnel * (0.5 + high * 1.2);
-  colour += high * (1.0 - uCalm) * 0.15 * snoise(q * 9.0 + uFlow * 3.0);
+  // Flicker scales the light that is there. Added instead, the same grain
+  // swamps the dark parts of a linear-light field and reads as black specks.
+  colour *= 1.0 + high * (1.0 - uCalm) * 0.15 * snoise(q * 4.0 + vec2(0.0, -uFlow * 1.2));
   colour *= 1.0 - 0.25 * transcribing;
   // Error: one slow pulse.
   colour *= 1.0 - failed * 0.25 * (0.5 + 0.5 * sin(uFlow * 4.0));
 
-  float body = 1.0 - smoothstep(0.96, 1.0, r);
+  // Crisp at the base, feathered where the tongues thin out.
+  float body = 1.0 - smoothstep(mix(0.96, 0.8, upness * motion), 1.0, r);
   float halo = exp(-max(r - 1.0, 0.0) * 5.0) * (0.25 + low * 0.35 + done * 0.3) * (1.0 - body);
   // Reaches zero before the canvas edge, so the window never clips the glow.
   float fade = 1.0 - smoothstep(0.85, 1.0, edge);
@@ -131,7 +160,8 @@ void main() {
 }`;
 
 export interface OrbRenderer {
-  render(uniforms: OrbUniforms): void;
+  /** `mode` picks the hue: indigo for dictation, lilac for a voice edit. */
+  render(uniforms: OrbUniforms, mode?: SessionMode): void;
   dispose(): void;
 }
 
@@ -184,7 +214,13 @@ export function createOrbRenderer(
   gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
   const location = (name: string) => gl.getUniformLocation(program, name);
-  gl.uniform3fv(location('uAurora[0]'), new Float32Array(palette.aurora.flat()));
+  const auroraLocation = location('uAurora[0]');
+  const hues: Record<SessionMode, Float32Array> = {
+    dictate: new Float32Array(palette.aurora.flat()),
+    edit: new Float32Array(palette.lilac.flat()),
+  };
+  let worn: SessionMode = 'dictate';
+  gl.uniform3fv(auroraLocation, hues[worn]);
   gl.uniform3fv(location('uDone'), new Float32Array(palette.done));
   gl.uniform3fv(location('uError'), new Float32Array(palette.error));
 
@@ -201,7 +237,11 @@ export function createOrbRenderer(
   gl.clearColor(0, 0, 0, 0);
 
   return {
-    render(uniforms) {
+    render(uniforms, mode = 'dictate') {
+      if (mode !== worn) {
+        worn = mode;
+        gl.uniform3fv(auroraLocation, hues[worn]);
+      }
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform1f(scalars.uFlow, uniforms.flow);

@@ -93,7 +93,11 @@ export function createSession(deps: SessionDeps): Session {
       mode = requested;
       state = 'listening';
       deps.orb.show();
-      deps.orb.setPhase({ phase: 'listening' });
+      deps.orb.setPhase({
+        phase: 'listening',
+        tick: deps.getSettings().tickSound,
+        ...(mode === 'edit' ? { mode } : {}),
+      });
       maxTimer = setTimeout(stop, MAX_RECORDING_MS);
     },
 

@@ -1,5 +1,5 @@
 // Reads the focused UI element through the macOS Accessibility API and prints
-// one JSON object: { role, subrole, editable, value, selectedText }.
+// one JSON object: { role, subrole, editable, valueKnown, value, selectedText }.
 //
 // Read-only on purpose. Writing AXValue into a web input skips the page's own
 // input events, so Parley always writes back with a real paste instead.
@@ -52,10 +52,15 @@ AXUIElementIsAttributeSettable(element, kAXValueAttribute as CFString, &settable
 let secure = subrole == "AXSecureTextField"
 let editable = !secure && (textRoles.contains(role) || settable.boolValue)
 
+// An empty string is an answer ("the field is empty"); no string at all means
+// the app would not say, and only then is the keystroke fallback worth its risk.
+let value = editable ? attribute(element, kAXValueAttribute) as? String : nil
+
 emit([
   "role": role,
   "subrole": subrole,
   "editable": editable,
-  "value": editable ? (attribute(element, kAXValueAttribute) as? String ?? "") : "",
+  "valueKnown": value != nil,
+  "value": value ?? "",
   "selectedText": editable ? (attribute(element, kAXSelectedTextAttribute) as? String ?? "") : "",
 ])

@@ -15,8 +15,10 @@ export interface Rect {
   height: number;
 }
 
-export const ORB_SIZE = { width: 260, height: 260 };
-const ORB_BOTTOM_MARGIN = 16;
+/** The waveform pill, its glow, and one line of error text above it. */
+export const ORB_SIZE = { width: 260, height: 110 };
+/** The pill's glow already pads it by 16 px, so the capsule sits about 20 px up. */
+const ORB_BOTTOM_MARGIN = 4;
 
 export function orbBounds(workArea: Rect): Rect {
   return {

@@ -18,19 +18,21 @@ function fakeRecorder(overrides: Partial<Recorder> = {}): Recorder {
 
 function harness(recorder: Recorder) {
   const sendAudio = vi.fn();
-  const playTick = vi.fn();
+  const playSound = vi.fn();
   const onPhase = vi.fn();
+  const onMode = vi.fn();
   const setVisible = vi.fn();
   const setMessage = vi.fn();
   const handler = createPhaseHandler({
     recorder,
     sendAudio,
-    playTick,
+    playSound,
     onPhase,
+    onMode,
     setVisible,
     setMessage,
   });
-  return { handler, sendAudio, playTick, onPhase, setVisible, setMessage };
+  return { handler, sendAudio, playSound, onPhase, onMode, setVisible, setMessage };
 }
 
 describe('createPhaseHandler', () => {
@@ -84,11 +86,32 @@ describe('createPhaseHandler', () => {
 
   it('plays the tick only when requested, independent of audio presence', async () => {
     const recorder = fakeRecorder({ stop: vi.fn().mockResolvedValue(null) });
-    const { handler, playTick } = harness(recorder);
+    const { handler, playSound } = harness(recorder);
 
     await handler.handlePhase({ phase: 'transcribing', tick: true });
 
-    expect(playTick).toHaveBeenCalledTimes(1);
+    expect(playSound).toHaveBeenCalledTimes(1);
+    expect(playSound).toHaveBeenCalledWith('stop', 'dictate');
+  });
+
+  it('plays start, stop and done in the voice of the session that began', async () => {
+    const { handler, playSound } = harness(fakeRecorder());
+    await handler.handlePhase({ phase: 'listening', tick: true, mode: 'edit' });
+    await handler.handlePhase({ phase: 'transcribing', tick: true });
+    await handler.handlePhase({ phase: 'done' });
+    expect(playSound.mock.calls).toEqual([
+      ['start', 'edit'],
+      ['stop', 'edit'],
+      ['done', 'edit'],
+    ]);
+  });
+
+  it('stays silent for a whole session when sounds are off', async () => {
+    const { handler, playSound } = harness(fakeRecorder());
+    await handler.handlePhase({ phase: 'listening', tick: false });
+    await handler.handlePhase({ phase: 'transcribing', tick: false });
+    await handler.handlePhase({ phase: 'done' });
+    expect(playSound).not.toHaveBeenCalled();
   });
 
   it('a later listening cancels a pending done-hide timer (finding 3)', async () => {
@@ -139,5 +162,19 @@ describe('createPhaseHandler', () => {
     vi.advanceTimersByTime(1000);
 
     expect(setVisible).not.toHaveBeenCalled();
+  });
+
+  it('takes the hue from the session that is starting, and only then', async () => {
+    const { handler, onMode } = harness(fakeRecorder());
+    await handler.handlePhase({ phase: 'listening', mode: 'edit' });
+    expect(onMode).toHaveBeenLastCalledWith('edit');
+
+    // Later phases carry no mode, and must not knock the orb back to indigo.
+    await handler.handlePhase({ phase: 'transcribing' });
+    await handler.handlePhase({ phase: 'done' });
+    expect(onMode).toHaveBeenCalledTimes(1);
+
+    await handler.handlePhase({ phase: 'listening' });
+    expect(onMode).toHaveBeenLastCalledWith('dictate');
   });
 });

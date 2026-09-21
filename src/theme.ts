@@ -201,6 +201,11 @@ const aurora = {
   '--app-aurora-deep': 'oklch(0.42 0.2 280)',
   '--app-aurora-core': 'oklch(0.6 0.22 287)',
   '--app-aurora-glow': 'oklch(0.8 0.12 295)',
+  // Voice edit's orb: lilac into violet, the colour people read as "AI". Pinker
+  // and lighter than dictation's indigo, so the two are told apart at a glance.
+  '--app-lilac-deep': 'oklch(0.5 0.2 300)',
+  '--app-lilac-core': 'oklch(0.72 0.16 306)',
+  '--app-lilac-glow': 'oklch(0.88 0.08 312)',
   '--app-aurora-gradient':
     'linear-gradient(120deg, var(--app-aurora-deep), var(--app-aurora-core))',
 };
