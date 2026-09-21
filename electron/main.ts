@@ -18,12 +18,13 @@ import { createAudioWatchdog } from './audio-watchdog';
 import { createGestureDetector } from './gesture-detector';
 import { createInjector } from './injector';
 import { createKeyHook } from './key-hook';
+import { parseOrbAudio } from './orb-audio';
 import { getPermissions, requestPermission } from './permissions';
 import { createSession, type Session } from './session';
 import { createSettingsStore } from './settings-store';
 import { createTranscriber } from './transcriber';
 import { trayMenuTemplate } from './tray';
-import type { KeyTestResult, PermissionKind, RecordedAudio, Settings } from './types';
+import type { KeyTestResult, PermissionKind, Settings } from './types';
 import { orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
 
 /**
@@ -258,16 +259,19 @@ async function startApp() {
   }
   applySettings(store.get());
 
-  ipcMain.on('orb:audio', (event, audio: RecordedAudio) => {
+  ipcMain.on('orb:audio', (event, raw: unknown) => {
     // A message from anyone but the orb is silently ignored, not recovered:
     // it never armed the watchdog, so there is nothing to unstick.
     if (event.sender !== orbWindow?.webContents) return;
-    if (!(audio?.data instanceof ArrayBuffer) || typeof audio.durationMs !== 'number') {
+    const audio = parseOrbAudio(raw);
+    if (!audio) {
+      // Never the payload itself — it is audio of whatever the user said.
+      console.warn('orb:audio rejected', 'malformed, oversized or negative-duration payload');
       recoverStuckSession();
       return;
     }
     audioWatchdog.clear();
-    void session.receiveAudio({ data: audio.data, mimeType: 'audio/webm', durationMs: audio.durationMs });
+    void session.receiveAudio(audio);
   });
 
   /**
