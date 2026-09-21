@@ -6,7 +6,7 @@ import type { PermissionStatus, Settings, SettingsView } from '../../electron/ty
 
 import { GeneralTab } from './GeneralTab';
 import { GestureTab } from './GestureTab';
-import { panelVariants, tabDirection } from './motion';
+import { panelVariants, tabDirection } from './motion-variants';
 import classes from './settings.module.css';
 import { SetupTab } from './SetupTab';
 import { type TabId } from './tabs';

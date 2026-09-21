@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { StaggerGroup, StaggerItem, tabDirection } from '../motion';
+import { StaggerGroup, StaggerItem } from '../motion';
+import { tabDirection } from '../motion-variants';
 
 describe('tabDirection', () => {
   it('is 1 moving down the rail and -1 moving up', () => {

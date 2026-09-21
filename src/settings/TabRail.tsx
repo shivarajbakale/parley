@@ -54,7 +54,6 @@ export function TabRail({ needsSetup, active }: { needsSetup: boolean; active: T
         value="setup"
         leftSection={<ShieldCheck size={16} />}
         className={classes.tab}
-        classNames={{ tabLabel: classes.tabLabel, tabSection: classes.tabLabel }}
         px="sm"
         py={8}
       >
@@ -67,7 +66,6 @@ export function TabRail({ needsSetup, active }: { needsSetup: boolean; active: T
         value="gesture"
         leftSection={<Keyboard size={16} />}
         className={classes.tab}
-        classNames={{ tabLabel: classes.tabLabel, tabSection: classes.tabLabel }}
         px="sm"
         py={8}
       >
@@ -80,7 +78,6 @@ export function TabRail({ needsSetup, active }: { needsSetup: boolean; active: T
         value="general"
         leftSection={<SlidersHorizontal size={16} />}
         className={classes.tab}
-        classNames={{ tabLabel: classes.tabLabel, tabSection: classes.tabLabel }}
         px="sm"
         py={8}
       >

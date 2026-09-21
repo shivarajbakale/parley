@@ -32,6 +32,7 @@
 
 .tab {
   position: relative;
+  isolation: isolate;
   background: transparent;
   color: var(--mantine-color-text);
 }
@@ -40,15 +41,11 @@
   background: var(--app-glass-hover);
 }
 
-.tabLabel {
-  position: relative;
-  z-index: 1;
-}
-
 .pill {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
+  pointer-events: none;
   border-radius: var(--mantine-radius-md);
   background: var(--app-aurora-gradient);
   opacity: 0.9;
