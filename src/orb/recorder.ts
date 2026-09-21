@@ -10,6 +10,13 @@ import { levelFromSamples } from './level';
 
 const MIME_TYPE = 'audio/webm;codecs=opus';
 
+/**
+ * A `MediaRecorder` that errors or never fires `onstop` would leave `stop()`
+ * pending forever — and with it the microphone open and the session wedged in
+ * `awaiting_audio`. After this long, give up and report no recording.
+ */
+export const STOP_TIMEOUT_MS = 2000;
+
 export interface Recorder {
   start(): Promise<void>;
   /** Resolves with the recording, or null if nothing was being recorded. */
@@ -83,10 +90,23 @@ export function createRecorder(): Recorder {
       }
       const durationMs = performance.now() - startedAt;
       return new Promise((resolve) => {
-        active.onstop = async () => {
-          const data = await new Blob(chunks, { type: MIME_TYPE }).arrayBuffer();
+        let settled = false;
+        const settle = (audio: RecordedAudio | null) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
           release();
-          resolve({ data, mimeType: 'audio/webm', durationMs });
+          resolve(audio);
+        };
+        const timer = setTimeout(() => settle(null), STOP_TIMEOUT_MS);
+        active.onerror = () => settle(null);
+        active.onstop = async () => {
+          try {
+            const data = await new Blob(chunks, { type: MIME_TYPE }).arrayBuffer();
+            settle({ data, mimeType: 'audio/webm', durationMs });
+          } catch {
+            settle(null);
+          }
         };
         active.stop();
       });

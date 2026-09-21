@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createRecorder } from '../recorder';
+import { createRecorder, STOP_TIMEOUT_MS } from '../recorder';
 
 /** A MediaStreamTrack fake that just records whether it was stopped. */
 function fakeTrack() {
@@ -27,14 +27,23 @@ class FakeAudioContext {
 }
 
 class FakeMediaRecorder {
+  /** When false, `stop()` goes quiet — the wedged recorder this guards against. */
+  static firesOnStop = true;
+  static last: FakeMediaRecorder | null = null;
+
   state: 'inactive' | 'recording' = 'recording';
   ondataavailable: ((event: { data: Blob }) => void) | null = null;
   onstop: (() => void) | null = null;
+  onerror: (() => void) | null = null;
   start = vi.fn();
   stop = vi.fn(() => {
     this.state = 'inactive';
-    this.onstop?.();
+    if (FakeMediaRecorder.firesOnStop) this.onstop?.();
   });
+
+  constructor() {
+    FakeMediaRecorder.last = this;
+  }
 }
 
 describe('createRecorder race safety (finding 1)', () => {
@@ -45,6 +54,8 @@ describe('createRecorder race safety (finding 1)', () => {
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
     vi.stubGlobal('AudioContext', FakeAudioContext);
     vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
+    FakeMediaRecorder.firesOnStop = true;
+    FakeMediaRecorder.last = null;
   });
 
   afterEach(() => {
@@ -104,5 +115,86 @@ describe('createRecorder race safety (finding 1)', () => {
 
     expect(() => recorder.level()).not.toThrow();
     recorder.discard();
+  });
+});
+
+/** jsdom's Blob has no `arrayBuffer()`, and the normal stop path awaits one. */
+class FakeBlob {
+  constructor(
+    _parts: unknown[],
+    readonly options?: { type?: string }
+  ) {}
+  arrayBuffer() {
+    return Promise.resolve(new ArrayBuffer(3));
+  }
+}
+
+describe('createRecorder failure paths', () => {
+  let getUserMedia: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal('Blob', FakeBlob);
+    getUserMedia = vi.fn();
+    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
+    FakeMediaRecorder.firesOnStop = true;
+    FakeMediaRecorder.last = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('resolves null and closes the mic when onstop never fires', async () => {
+    const tracks = [fakeTrack()];
+    getUserMedia.mockResolvedValue(fakeStream(tracks));
+    FakeMediaRecorder.firesOnStop = false;
+
+    const recorder = createRecorder();
+    await recorder.start();
+    const stopped = recorder.stop();
+
+    vi.advanceTimersByTime(STOP_TIMEOUT_MS);
+
+    expect(await stopped).toBeNull();
+    expect(tracks[0].stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves null and closes the mic when the recorder errors', async () => {
+    const tracks = [fakeTrack()];
+    getUserMedia.mockResolvedValue(fakeStream(tracks));
+    FakeMediaRecorder.firesOnStop = false;
+
+    const recorder = createRecorder();
+    await recorder.start();
+    const active = FakeMediaRecorder.last!;
+    const stopped = recorder.stop();
+
+    active.onerror?.();
+
+    expect(await stopped).toBeNull();
+    expect(tracks[0].stop).toHaveBeenCalledTimes(1);
+
+    // The fallback timer was cleared, so nothing runs a second release.
+    vi.advanceTimersByTime(STOP_TIMEOUT_MS * 2);
+    expect(tracks[0].stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the fallback timer on the normal path', async () => {
+    const tracks = [fakeTrack()];
+    getUserMedia.mockResolvedValue(fakeStream(tracks));
+
+    const recorder = createRecorder();
+    await recorder.start();
+    const result = await recorder.stop();
+
+    expect(result).toMatchObject({ mimeType: 'audio/webm' });
+    expect(tracks[0].stop).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(STOP_TIMEOUT_MS * 2);
+    expect(tracks[0].stop).toHaveBeenCalledTimes(1);
   });
 });
