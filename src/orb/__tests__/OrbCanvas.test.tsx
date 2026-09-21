@@ -40,4 +40,23 @@ describe('OrbCanvas', () => {
     render(<OrbCanvas size={240} running={false} read={read} />);
     expect(raf).not.toHaveBeenCalled();
   });
+
+  it('creates the renderer once, not on every running toggle', () => {
+    const { rerender } = render(<OrbCanvas size={240} running={false} read={read} />);
+    rerender(<OrbCanvas size={240} running read={read} />);
+    rerender(<OrbCanvas size={240} running={false} read={read} />);
+    rerender(<OrbCanvas size={240} running read={read} />);
+    // Palette resolution also calls getContext('2d', ...) on its own scratch
+    // canvases, so only the 'webgl' calls (the orb's own canvas) are counted.
+    const webglCalls = getContext.mock.calls.filter(([type]) => type === 'webgl');
+    expect(webglCalls).toHaveLength(1);
+  });
+
+  it('cancels the animation frame when running goes false', () => {
+    const caf = vi.spyOn(window, 'cancelAnimationFrame');
+    const { rerender } = render(<OrbCanvas size={240} running read={read} />);
+    caf.mockClear();
+    rerender(<OrbCanvas size={240} running={false} read={read} />);
+    expect(caf).toHaveBeenCalled();
+  });
 });

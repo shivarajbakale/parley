@@ -21,7 +21,7 @@ void main() {
 const FRAGMENT = `
 precision highp float;
 varying vec2 vUv;
-uniform float uFlow, uLow, uMid, uHigh, uFrom, uTo, uMix, uCalm;
+uniform float uFlow, uLow, uHigh, uFrom, uTo, uMix, uCalm;
 uniform vec3 uAurora[3];
 uniform vec3 uDone;
 uniform vec3 uError;
@@ -113,10 +113,10 @@ vec4 look(float phase, vec2 uv) {
   // Error: one slow pulse.
   colour *= 1.0 - failed * 0.25 * (0.5 + 0.5 * sin(uFlow * 4.0));
 
-  float body = smoothstep(1.0, 0.96, r);
+  float body = 1.0 - smoothstep(0.96, 1.0, r);
   float halo = exp(-max(r - 1.0, 0.0) * 5.0) * (0.25 + low * 0.35 + done * 0.3) * (1.0 - body);
   // Reaches zero before the canvas edge, so the window never clips the glow.
-  float fade = smoothstep(1.0, 0.85, edge);
+  float fade = 1.0 - smoothstep(0.85, 1.0, edge);
 
   float alpha = clamp(body + halo, 0.0, 1.0) * fade;
   vec3 lit = mix(rimTint, colour, body);
@@ -183,7 +183,6 @@ export function createOrbRenderer(
   const scalars = {
     uFlow: location('uFlow'),
     uLow: location('uLow'),
-    uMid: location('uMid'),
     uHigh: location('uHigh'),
     uFrom: location('uFrom'),
     uTo: location('uTo'),
@@ -199,7 +198,6 @@ export function createOrbRenderer(
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform1f(scalars.uFlow, uniforms.flow);
       gl.uniform1f(scalars.uLow, uniforms.low);
-      gl.uniform1f(scalars.uMid, uniforms.mid);
       gl.uniform1f(scalars.uHigh, uniforms.high);
       gl.uniform1f(scalars.uFrom, uniforms.from);
       gl.uniform1f(scalars.uTo, uniforms.to);
@@ -212,7 +210,6 @@ export function createOrbRenderer(
       gl.deleteProgram(program);
       gl.deleteShader(vertex);
       gl.deleteShader(fragment);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
     },
   };
 }

@@ -4,7 +4,7 @@ import type { OrbPhase } from '../../electron/types';
 
 import type { Bands } from './bands';
 import { createFrame, type OrbUniforms } from './frame';
-import { createOrbRenderer } from './orb-shader';
+import { createOrbRenderer, type OrbRenderer } from './orb-shader';
 import { buildPalette, readTokenBytes } from './palette';
 
 interface OrbCanvasProps {
@@ -35,30 +35,52 @@ export function OrbCanvas({ size, running, read }: OrbCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const readRef = useRef(read);
   readRef.current = read;
+  const rendererRef = useRef<OrbRenderer | null>(null);
+  const frameRef = useRef<ReturnType<typeof createFrame> | null>(null);
 
+  // Effect A: the renderer and its GL program are mount-scoped, not tied to
+  // `running`. A canvas has exactly one WebGL context for its lifetime, so
+  // creating and disposing this per running-toggle (or under StrictMode's
+  // double-invoked effect) would exhaust it after the first cycle.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    rendererRef.current = createOrbRenderer(canvas, buildPalette(readTokenBytes));
+    frameRef.current = createFrame('cancelled');
+
+    return () => {
+      rendererRef.current?.dispose();
+      rendererRef.current = null;
+      frameRef.current = null;
+    };
+  }, []);
+
+  // Effect B: the render loop itself, started and stopped by `running`.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !running) return;
 
-    const renderer = createOrbRenderer(canvas, buildPalette(readTokenBytes));
-    const frame = createFrame('cancelled');
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
     let handle = 0;
     let previous = performance.now();
     const loop = (now: number) => {
       const { bands, phase } = readRef.current();
-      const uniforms = frame.step({ deltaMs: now - previous, bands, phase, reducedMotion });
+      const reducedMotion = media?.matches ?? false;
+      const uniforms = frameRef.current?.step({ deltaMs: now - previous, bands, phase, reducedMotion });
       previous = now;
-      if (renderer) renderer.render(uniforms);
-      else drawFallback(canvas, uniforms);
+      if (uniforms) {
+        const renderer = rendererRef.current;
+        if (renderer) renderer.render(uniforms);
+        else drawFallback(canvas, uniforms);
+      }
       handle = requestAnimationFrame(loop);
     };
     handle = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(handle);
-      renderer?.dispose();
     };
   }, [running]);
 
