@@ -5,8 +5,8 @@
 - Repository root: this repo (parley).
 - Standard startup path: `./init.sh`.
 - Standard verification path: `make check`.
-- Current highest-priority unfinished feature: see the first non-`passing` entry
-  in `feature_list.json`.
+- Current highest-priority unfinished feature: parley-001. Plan: docs/superpowers/plans/2026-09-21-parley-v1.md.
+- Blueprint approved by the user on 2026-09-21 (design spec).
 - Current blocker: none.
 
 ## Session Log

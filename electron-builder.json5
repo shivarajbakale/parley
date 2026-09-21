@@ -3,14 +3,19 @@
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
   appId: 'parley',
   asar: true,
-  productName: 'My Electron App',
+  productName: 'Parley',
   directories: {
     output: 'release/${version}',
   },
   files: ['dist', 'dist-electron'],
+  asarUnpack: ['node_modules/uiohook-napi/**'],
   mac: {
     target: ['dmg'],
     artifactName: '${productName}-Mac-${version}-Installer.${ext}',
+    extendInfo: {
+      LSUIElement: true,
+      NSMicrophoneUsageDescription: 'Parley records your voice while you hold the dictation key.',
+    },
   },
   win: {
     target: [

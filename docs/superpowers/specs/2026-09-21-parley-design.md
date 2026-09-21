@@ -86,7 +86,8 @@ Main process, one file each under `electron/`:
 Renderer:
 
 - `orb/` — orb window entry: canvas animation driven by mic amplitude,
-  `MediaRecorder`/`AudioWorklet` capture producing 16 kHz mono audio, stop
+  `MediaRecorder` capture of a 16 kHz mono track, encoded as WebM/Opus (Groq
+  accepts it, and 10 minutes stays far below the 25 MB cap), stop
   sound.
 - `settings/` — settings and onboarding UI, built with the scaffold's Mantine
   design system.
@@ -146,7 +147,9 @@ window.
 - No internet, Groq error or invalid key: orb shows a red state and a short
   message for 3 s. Nothing is pasted, the clipboard is untouched.
 - Missing Microphone or Accessibility permission: gesture opens onboarding
-  with a button that deep-links to the right System Settings pane.
+  with a button that deep-links to the right System Settings pane. Without
+  Accessibility the key hook cannot see keys at all, so onboarding also opens
+  at launch whenever a permission or the API key is missing.
 - No API key configured: gesture opens the settings window.
 - Empty transcript (silence): nothing pasted, orb fades out.
 - A second gesture during transcription is ignored until the session ends.

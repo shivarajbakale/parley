@@ -24,7 +24,7 @@ export default defineConfig(({ command }) => {
             // Watch main process files (dev only)
             watch: electronWatch,
             rollupOptions: {
-              external: ['electron'],
+              external: ['electron', 'uiohook-napi'],
             },
           },
         },

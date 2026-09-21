@@ -4,28 +4,32 @@ At-a-glance design for this Electron desktop app (Vite + React + TypeScript). Th
 until it is approved, do not create `feature_list.json` entries or write feature
 code. Keep it to roughly one screen of scroll.
 
-- **Approved:** [ ] approved
-- **One-liner:** _what this product does, in one sentence_
+- **Approved:** [x] approved
+- **One-liner:** Tap-tap-hold voice dictation: Groq Whisper speech-to-text pasted at the cursor.
 
 ## Scope
 
-- In scope:
-- Explicitly out of scope:
+- In scope: everything under "In v1" in
+  [the design spec](docs/superpowers/specs/2026-09-21-parley-design.md).
+- Explicitly out of scope: everything under "Out of v1" in the same spec.
 
 ## Surfaces / Screens / Endpoints
 
 | Name | Purpose | Notes |
 | ---- | ------- | ----- |
-|      |         |       |
+| Orb window | Listening, transcribing, done and error feedback | Transparent, never focusable, hidden when idle |
+| Settings window | Settings and first-run onboarding | Opened from the tray |
+| Tray menu | Status, Copy last transcript, Settings, Quit | No dock icon |
+| Groq transcription | `POST /openai/v1/audio/transcriptions` | Called from the main process |
 
 ## Data Model
 
-- Core entities:
-- Relationships:
+- Core entities: `Settings` (gesture key, tap count, vocabulary, tick sound, launch at login), encrypted API key, last transcript (memory only).
+- Relationships: none.
 
 ## Open Questions
 
--
+- None. The design was approved in brainstorming on 2026-09-21.
 
 ---
 
