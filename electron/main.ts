@@ -391,6 +391,7 @@ async function startApp() {
     injector,
     rewriter,
     editTargets,
+    selection: selectionReader,
     explain,
     dictionary: {
       // The old free-text vocabulary setting still counts until the

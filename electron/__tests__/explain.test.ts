@@ -173,4 +173,38 @@ describe('explain', () => {
       expect(selection.read).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('a prefetched snapshot', () => {
+    it('is used as-is, with no second Accessibility read', async () => {
+      const { explain, view, rewriter, selection } = setup({});
+      await explain.ask('what is y?', { text: 'y', anchor });
+      expect(selection.read).not.toHaveBeenCalled();
+      expect(view.show).toHaveBeenCalledWith(anchor, {
+        status: 'thread',
+        turns: [{ question: 'what is y?', status: 'loading' }],
+      });
+      expect(rewriter.explain).toHaveBeenCalledWith('y', [
+        { question: 'what is y?', answer: undefined },
+      ]);
+    });
+
+    it('an explicit null still gives the "nothing selected" card, without reading', async () => {
+      vi.useFakeTimers();
+      const { explain, view, selection } = setup({});
+      await explain.ask(undefined, null);
+      expect(selection.read).not.toHaveBeenCalled();
+      expect(view.show).toHaveBeenCalledWith(null, { status: 'empty' });
+    });
+
+    it('is ignored for a follow-up: the thread keeps its own selection', async () => {
+      const { explain, rewriter, selection } = setup({});
+      await explain.ask('what is x?');
+      await explain.ask('what about y?', { text: 'y', anchor });
+      expect(selection.read).toHaveBeenCalledOnce();
+      expect(rewriter.explain).toHaveBeenLastCalledWith('x', [
+        { question: 'what is x?', answer: 'It means x.' },
+        { question: 'what about y?', answer: undefined },
+      ]);
+    });
+  });
 });

@@ -180,6 +180,10 @@ Needs a MiniMax key (Settings, Setup). Default explain key is Right Control.
       keeps focus.
 - [ ] A quick tap-tap-hold-release with no question gives a plain explanation.
 - [ ] The answers are in English.
+- [ ] Select a line of code with an unusual identifier (`useMemo`, `dedupeRecords`)
+      and ask a question naming it out loud ("what does dedupeRecords do here?").
+      The transcript spells it the way it is spelled in the code, not a
+      phonetic guess.
 - [ ] With the card still open, perform the gesture again and ask a follow-up
       ("what about the second point?"). A new turn appears below the first,
       marked as a reply, and the card scrolls to keep it in view — the first

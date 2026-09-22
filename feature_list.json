@@ -139,7 +139,7 @@
       "priority": 8,
       "area": "explain",
       "title": "Explain the selected text in a popover",
-      "user_visible_behavior": "Select text in any app, tap-tap-hold the explain key and say a question about it on the usual orb, and a short markdown answer appears beside the selection without taking focus. The gesture again while the card is open asks a follow-up in the same thread.",
+      "user_visible_behavior": "Select text in any app, tap-tap-hold the explain key and say a question about it on the usual orb, and a short markdown answer appears beside the selection without taking focus. The gesture again while the card is open asks a follow-up in the same thread. Whisper is primed with the selected words themselves, so a question that names something in the selection is heard spelled correctly.",
       "status": "in_progress",
       "plan": "FEATURE-PLAN.md",
       "verification": [

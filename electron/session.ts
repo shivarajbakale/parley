@@ -1,6 +1,8 @@
 import type { EditTargets } from './edit-target';
 import type { Injector } from './injector';
 import type { Rewriter } from './rewriter';
+import { selectionVocabulary } from './selection-vocabulary';
+import type { SelectionSnapshot } from './selection-reader';
 import type { Transcriber } from './transcriber';
 import type {
   OrbPhasePayload,
@@ -15,7 +17,10 @@ import type {
  *
  * In `explain` mode the speech is a question about the selected text; the
  * answer opens in the card beside the selection, so nothing is pasted. Saying
- * nothing, or only tapping, asks for a plain explanation.
+ * nothing, or only tapping, asks for a plain explanation. The selection is
+ * read the moment the gesture starts, in parallel with the recording, both so
+ * the words in it can prime Whisper's spelling of the question and so the
+ * card opens on the same read instead of a second, possibly stale one.
  *
  * In `edit` mode the speech is an instruction, not the text: whatever is in
  * the focused field is rewritten by it and pasted back over itself.
@@ -39,9 +44,11 @@ export interface SessionDeps {
   injector: Pick<Injector, 'paste'>;
   rewriter: Pick<Rewriter, 'rewrite'>;
   editTargets: EditTargets;
-  /** Explain mode: what was said, or nothing for a plain explain. Owns its own
-   * selection read, and knows itself whether this continues an open thread. */
-  explain: { ask(question?: string): Promise<void> };
+  /** Explain mode: what is selected right now, read at the moment the gesture
+   * starts. Only ever used to prime Whisper and to hand the card its anchor;
+   * `explain.ask` decides on its own whether a thread is already open. */
+  selection: { read(): Promise<SelectionSnapshot | null> };
+  explain: { ask(question?: string, snapshot?: SelectionSnapshot | null): Promise<void> };
   /** The personal dictionary: words for Whisper going in, spelling fixes coming out. */
   dictionary: { prompt(): string; apply(text: string): string };
   getSettings(): Settings;
@@ -67,6 +74,9 @@ export function createSession(deps: SessionDeps): Session {
   let state: SessionState = 'idle';
   let mode: SessionMode = 'dictate';
   let maxTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Kicked off the instant an explain gesture starts, so it has the whole
+   * recording to resolve before anything needs it. */
+  let explainSelection: Promise<SelectionSnapshot | null> | null = null;
 
   function clearMaxTimer() {
     if (maxTimer) clearTimeout(maxTimer);
@@ -102,6 +112,7 @@ export function createSession(deps: SessionDeps): Session {
         return;
       }
       mode = requested;
+      explainSelection = mode === 'explain' ? deps.selection.read() : null;
       state = 'listening';
       deps.orb.show();
       deps.orb.setPhase({
@@ -122,12 +133,36 @@ export function createSession(deps: SessionDeps): Session {
 
     async receiveAudio(audio) {
       if (state !== 'awaiting_audio') return;
-      if (audio.durationMs < MIN_AUDIO_MS) {
-        if (mode === 'explain') {
+      if (mode === 'explain') {
+        // Whichever branch: the read that started at the gesture is what the
+        // card is anchored to and answered from, never a second, later one.
+        const snapshot = await explainSelection;
+        if (audio.durationMs < MIN_AUDIO_MS) {
           finish({ phase: 'done' }, 0);
-          void deps.explain.ask();
+          void deps.explain.ask(undefined, snapshot);
           return;
         }
+        state = 'transcribing';
+        try {
+          const heard = await deps.transcriber.transcribe(
+            { data: audio.data, mimeType: audio.mimeType },
+            {
+              vocabulary: [deps.dictionary.prompt(), selectionVocabulary(snapshot?.text ?? '')]
+                .filter(Boolean)
+                .join(', '),
+            }
+          );
+          const spoken = heard && deps.dictionary.apply(heard);
+          finish({ phase: 'done' }, 0);
+          void deps.explain.ask(spoken || undefined, snapshot);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Something went wrong';
+          finish({ phase: 'error', message }, ERROR_MS);
+        }
+        return;
+      }
+
+      if (audio.durationMs < MIN_AUDIO_MS) {
         finish({ phase: 'cancelled' }, 0);
         return;
       }
@@ -145,11 +180,6 @@ export function createSession(deps: SessionDeps): Session {
         ]);
         // An instruction gets the same fixes: "sound like Shivaraj" names a person too.
         const spoken = heard && deps.dictionary.apply(heard);
-        if (mode === 'explain') {
-          finish({ phase: 'done' }, 0);
-          void deps.explain.ask(spoken || undefined);
-          return;
-        }
         if (!spoken) {
           finish({ phase: 'cancelled' }, 0);
           return;

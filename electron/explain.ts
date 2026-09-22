@@ -1,5 +1,5 @@
 import { RewriteError, type Rewriter } from './rewriter';
-import type { SelectionReader } from './selection-reader';
+import type { SelectionReader, SelectionSnapshot } from './selection-reader';
 import type { ExplainContent, ExplainTurn, Rect } from './types';
 
 /**
@@ -11,6 +11,12 @@ import type { ExplainContent, ExplainTurn, Rect } from './types';
  * selection, same thread, the new question appended and answered with the
  * earlier turns as context. `dismiss()` is what starts a fresh thread next
  * time — closing the card and asking again always reads the selection anew.
+ *
+ * `snapshot` lets the caller hand over a selection it already read — session
+ * starts reading it the moment the gesture begins, in parallel with the
+ * recording, both to prime Whisper's spelling of what is asked and so this
+ * does not pay for a second Accessibility round trip. Omit it to have this
+ * module read the selection itself.
  */
 
 /** How long the card's exit animation runs before its window hides. */
@@ -28,7 +34,7 @@ export interface ExplainView {
 
 export interface Explain {
   /** `question` is what the user said; nothing said means a plain explain. */
-  ask(question?: string): Promise<void>;
+  ask(question?: string, snapshot?: SelectionSnapshot | null): Promise<void>;
   dismiss(): void;
 }
 
@@ -54,7 +60,7 @@ export function createExplain(deps: {
   return {
     dismiss,
 
-    async ask(question) {
+    async ask(question, prefetched) {
       generation += 1;
       const mine = generation;
       if (emptyTimer) clearTimeout(emptyTimer);
@@ -66,7 +72,7 @@ export function createExplain(deps: {
         text = thread.text;
         thread.turns.push({ question, status: 'loading' });
       } else {
-        const snapshot = await deps.selection.read();
+        const snapshot = prefetched !== undefined ? prefetched : await deps.selection.read();
         if (mine !== generation) return;
         if (!snapshot) {
           deps.view.show(null, { status: 'empty' });

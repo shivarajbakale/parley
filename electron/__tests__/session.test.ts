@@ -21,6 +21,7 @@ function setup(overrides: Partial<SessionDeps> = {}) {
       capture: vi.fn().mockResolvedValue({ text: 'Hello there, friend.', scope: 'field' }),
       apply: vi.fn().mockResolvedValue(undefined),
     },
+    selection: { read: vi.fn().mockResolvedValue({ text: 'const x = useMemo(() => 1)', anchor: null }) },
     explain: { ask: vi.fn().mockResolvedValue(undefined) },
     dictionary: { prompt: vi.fn().mockReturnValue(''), apply: vi.fn((text: string) => text) },
     getSettings: () => DEFAULT_SETTINGS,
@@ -228,7 +229,7 @@ describe('session', () => {
   });
 
   describe('explain', () => {
-    it('asks the spoken question and pastes nothing', async () => {
+    it('asks the spoken question, with the selection as its anchor, and pastes nothing', async () => {
       const { deps, session } = setup({
         transcriber: { transcribe: vi.fn().mockResolvedValue('is this thread safe?') },
       });
@@ -239,12 +240,27 @@ describe('session', () => {
         tick: true,
         mode: 'explain',
       });
+      // The selection is read the instant the gesture starts, not after speech.
+      expect(deps.selection.read).toHaveBeenCalledOnce();
       session.stop();
       await session.receiveAudio(audio());
 
-      expect(deps.explain.ask).toHaveBeenCalledWith('is this thread safe?');
+      expect(deps.explain.ask).toHaveBeenCalledWith('is this thread safe?', {
+        text: 'const x = useMemo(() => 1)',
+        anchor: null,
+      });
       expect(deps.injector.paste).not.toHaveBeenCalled();
       expect(deps.orb.setPhase).toHaveBeenLastCalledWith({ phase: 'done' });
+    });
+
+    it("primes Whisper with the selection's own words, so it hears them spelled right", async () => {
+      const { deps, session } = setup();
+      session.start('explain');
+      session.stop();
+      await session.receiveAudio(audio());
+      expect(deps.transcriber.transcribe).toHaveBeenCalledWith(expect.anything(), {
+        vocabulary: expect.stringContaining('useMemo'),
+      });
     });
 
     it('falls back to a plain explanation when nothing was said', async () => {
@@ -254,7 +270,10 @@ describe('session', () => {
       session.start('explain');
       session.stop();
       await session.receiveAudio(audio());
-      expect(deps.explain.ask).toHaveBeenCalledWith(undefined);
+      expect(deps.explain.ask).toHaveBeenCalledWith(undefined, {
+        text: 'const x = useMemo(() => 1)',
+        anchor: null,
+      });
     });
 
     it('explains plainly on a tap too short to hold a question, without transcribing', async () => {
@@ -263,14 +282,29 @@ describe('session', () => {
       session.stop();
       await session.receiveAudio(audio(100));
       expect(deps.transcriber.transcribe).not.toHaveBeenCalled();
-      expect(deps.explain.ask).toHaveBeenCalledWith();
+      expect(deps.explain.ask).toHaveBeenCalledWith(undefined, {
+        text: 'const x = useMemo(() => 1)',
+        anchor: null,
+      });
     });
 
-    it('never touches explain during plain dictation', async () => {
+    it('never touches explain or reads the selection during plain dictation', async () => {
       const { deps, session } = setup();
       session.start();
       session.stop();
       await session.receiveAudio(audio());
+      expect(deps.explain.ask).not.toHaveBeenCalled();
+      expect(deps.selection.read).not.toHaveBeenCalled();
+    });
+
+    it('turns a Groq failure into the orb error state, same as dictation', async () => {
+      const { deps, session } = setup({
+        transcriber: { transcribe: vi.fn().mockRejectedValue(new TranscribeError('rate_limit')) },
+      });
+      session.start('explain');
+      session.stop();
+      await session.receiveAudio(audio());
+      expect(deps.orb.setPhase).toHaveBeenLastCalledWith({ phase: 'error', message: 'Rate limited' });
       expect(deps.explain.ask).not.toHaveBeenCalled();
     });
   });
