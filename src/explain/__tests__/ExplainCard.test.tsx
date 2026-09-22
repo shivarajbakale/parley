@@ -29,19 +29,23 @@ beforeEach(() => {
 
 describe('ExplainCard', () => {
   it('shows a loading skeleton with no copy button', () => {
-    show({ status: 'loading', maxHeight: 500 });
+    show({ status: 'thread', turns: [{ status: 'loading' }], maxHeight: 500 });
     expect(screen.getByRole('status', { name: 'Explaining' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument();
   });
 
   it('closes from its own button, since it never takes the keyboard', async () => {
-    show({ status: 'loading', maxHeight: 500 });
+    show({ status: 'thread', turns: [{ status: 'loading' }], maxHeight: 500 });
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(api.dismissExplain).toHaveBeenCalledOnce();
   });
 
   it('renders the markdown answer and copies its source', async () => {
-    show({ status: 'ready', markdown: 'It **means** x.\n\n- one\n- two', maxHeight: 500 });
+    show({
+      status: 'thread',
+      turns: [{ status: 'ready', markdown: 'It **means** x.\n\n- one\n- two' }],
+      maxHeight: 500,
+    });
     expect(screen.getByText('means').tagName).toBe('STRONG');
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
 
@@ -51,8 +55,8 @@ describe('ExplainCard', () => {
 
   it('never turns model output into markup or a link', () => {
     show({
-      status: 'ready',
-      markdown: '<img src=x onerror=steal()> [go](https://evil.example)',
+      status: 'thread',
+      turns: [{ status: 'ready', markdown: '<img src=x onerror=steal()> [go](https://evil.example)' }],
       maxHeight: 500,
     });
     expect(document.querySelector('img')).toBeNull();
@@ -60,10 +64,31 @@ describe('ExplainCard', () => {
     expect(screen.getByText('go')).toBeInTheDocument();
   });
 
-  it('shows the question that was asked in place of the command name', () => {
-    show({ status: 'loading', question: 'is this thread safe?', maxHeight: 500 });
-    expect(screen.getByText('is this thread safe?')).toBeInTheDocument();
-    expect(screen.queryByText('Explain')).not.toBeInTheDocument();
+  it('shows the question above its own answer, and marks a later turn as a follow-up', () => {
+    show({
+      status: 'thread',
+      turns: [
+        { question: 'what is this?', status: 'ready', markdown: 'A thing.' },
+        { question: 'and why?', status: 'loading' },
+      ],
+      maxHeight: 500,
+    });
+    expect(screen.getByText('what is this?')).toBeInTheDocument();
+    expect(screen.getByText('and why?')).toBeInTheDocument();
+    expect(screen.getAllByRole('status', { name: 'Explaining' })).toHaveLength(1);
+  });
+
+  it('copies the latest ready answer, not an earlier one', async () => {
+    show({
+      status: 'thread',
+      turns: [
+        { question: 'a', status: 'ready', markdown: 'First.' },
+        { question: 'b', status: 'ready', markdown: 'Second.' },
+      ],
+      maxHeight: 500,
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(api.copyExplain).toHaveBeenCalledWith('Second.');
   });
 
   it('says what to do when nothing was selected', () => {
@@ -72,12 +97,12 @@ describe('ExplainCard', () => {
   });
 
   it('shows an error as an alert', () => {
-    show({ status: 'error', message: 'No MiniMax key', maxHeight: 500 });
+    show({ status: 'thread', turns: [{ status: 'error', message: 'No MiniMax key' }], maxHeight: 500 });
     expect(screen.getByRole('alert')).toHaveTextContent('No MiniMax key');
   });
 
   it('caps the card at the height main allows, so only past it does it scroll', () => {
-    show({ status: 'loading', maxHeight: 432 });
+    show({ status: 'thread', turns: [{ status: 'loading' }], maxHeight: 432 });
     expect(screen.getByRole('region', { name: 'Explanation' })).toHaveStyle({ maxHeight: '432px' });
   });
 });
@@ -92,7 +117,33 @@ describe('ExplainApp', () => {
     render(themed(<ExplainApp />));
     expect(screen.queryByText('Explain')).not.toBeInTheDocument();
 
-    await act(async () => push({ status: 'empty', maxHeight: 500 }));
+    await act(async () => push({ status: 'empty', maxHeight: 500, opening: true }));
     expect(screen.getByText('Select some text first')).toBeInTheDocument();
+  });
+
+  it('keeps the card mounted for a follow-up turn instead of remounting it', async () => {
+    let push: (state: ExplainState) => void = () => {};
+    api.onExplain.mockImplementation((listener) => {
+      push = listener;
+      return () => {};
+    });
+    render(themed(<ExplainApp />));
+
+    await act(async () =>
+      push({ status: 'thread', turns: [{ question: 'a', status: 'ready', markdown: 'First.' }], maxHeight: 500, opening: true })
+    );
+    const card = screen.getByRole('region', { name: 'Explanation' });
+
+    await act(async () =>
+      push({
+        status: 'thread',
+        turns: [
+          { question: 'a', status: 'ready', markdown: 'First.' },
+          { question: 'b', status: 'loading' },
+        ],
+        maxHeight: 500,
+      })
+    );
+    expect(screen.getByRole('region', { name: 'Explanation' })).toBe(card);
   });
 });

@@ -87,10 +87,21 @@ function stripThinking(content: string): string {
   return content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 }
 
+/** One round of the explain thread: every earlier turn carries its `answer`,
+ * the pending turn does not. `question` is unset for a plain explain. */
+export interface ExplainTurnInput {
+  question?: string;
+  answer?: string;
+}
+
 export interface Rewriter {
   rewrite(text: string, instruction: string): Promise<string>;
-  /** A short markdown explanation of `text`, or the answer to a spoken `question` about it. */
-  explain(text: string, question?: string): Promise<string>;
+  /**
+   * A short markdown explanation of `text`, or the answer to `turns`' last,
+   * unanswered question. Earlier turns are the same thread's history, so a
+   * follow-up ("what about the second one?") keeps the same context.
+   */
+  explain(text: string, turns: ExplainTurnInput[]): Promise<string>;
   testKey(key: string): Promise<KeyTestResult>;
 }
 
@@ -195,7 +206,7 @@ export function createRewriter(deps: {
       return result;
     },
 
-    async explain(text, question) {
+    async explain(text, turns) {
       const key = deps.getApiKey();
       if (!key) throw new RewriteError('no_key');
 
@@ -204,13 +215,21 @@ export function createRewriter(deps: {
           role: 'system',
           content: deps.webSearch ? `${EXPLAIN_PROMPT} ${EXPLAIN_TOOL_HINT}` : EXPLAIN_PROMPT,
         },
-        {
-          role: 'user',
-          content: question
-            ? `<text>\n${text}\n</text>\n<question>\n${question}\n</question>`
-            : `<text>\n${text}\n</text>`,
-        },
       ];
+      // Only the first turn carries the text: every later question is a
+      // follow-up on it, not a fresh selection.
+      turns.forEach((turn, i) => {
+        const content =
+          i === 0
+            ? turn.question
+              ? `<text>\n${text}\n</text>\n<question>\n${turn.question}\n</question>`
+              : `<text>\n${text}\n</text>`
+            : (turn.question ?? '');
+        messages.push({ role: 'user', content });
+        if (turn.answer !== undefined) {
+          messages.push({ role: 'assistant', content: turn.answer, tool_calls: [] });
+        }
+      });
       let result = '';
       for (let round = 0; ; round += 1) {
         // The last round offers no tool, so the loop always ends in an answer.

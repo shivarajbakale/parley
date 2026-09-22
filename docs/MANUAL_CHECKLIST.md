@@ -180,6 +180,17 @@ Needs a MiniMax key (Settings, Setup). Default explain key is Right Control.
       keeps focus.
 - [ ] A quick tap-tap-hold-release with no question gives a plain explanation.
 - [ ] The answers are in English.
+- [ ] With the card still open, perform the gesture again and ask a follow-up
+      ("what about the second point?"). A new turn appears below the first,
+      marked as a reply, and the card scrolls to keep it in view — the first
+      answer is not replaced. The answer takes the earlier turn into account.
+- [ ] A third follow-up keeps growing the same thread past the 60% cap, and it
+      scrolls; the earlier turns are still there above it.
+- [ ] While the card is open, selecting different text and performing the
+      gesture still follows up on the original selection, not the new one —
+      dismiss the card first to explain the new selection instead.
+- [ ] Esc, the X button, or a click outside closes the whole thread, not just
+      the latest turn; the next gesture starts a new one.
 - [ ] Select a recent product or obscure name and ask "what is this?": the answer
       takes a couple of seconds longer, uses current facts and ends with a site
       name in parentheses. Selecting a common word or code does not search.

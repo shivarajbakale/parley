@@ -237,16 +237,17 @@ async function startApp() {
   let explainHideTimer: ReturnType<typeof setTimeout> | undefined;
   let explainLeaving = false;
 
-  function pushExplain(content: ExplainContent, closing = false) {
+  function pushExplain(content: ExplainContent, extra: { opening?: boolean; closing?: boolean } = {}) {
     lastExplain = content;
     explainWindow?.webContents.send('explain:state', {
       ...content,
       maxHeight: explainMaxHeight,
-      ...(closing ? { closing } : {}),
+      ...extra,
     });
   }
 
   const explain = createExplain({
+    selection: selectionReader,
     rewriter,
     view: {
       show: (anchor, content) => {
@@ -256,16 +257,16 @@ async function startApp() {
         explainHeight = CARD_MIN_HEIGHT;
         explainMaxHeight = maxCardHeight(explainDisplay().workArea);
         placeExplain();
-        pushExplain(content);
+        pushExplain(content, { opening: true });
         // `showInactive`, never `show`: the selection must keep focus.
         explainWindow?.showInactive();
       },
-      update: pushExplain,
+      update: (content) => pushExplain(content),
       // Let the card melt away before the window goes.
       hide: () => {
         if (!explainWindow?.isVisible() || explainLeaving) return;
         explainLeaving = true;
-        pushExplain(lastExplain, true);
+        pushExplain(lastExplain, { closing: true });
         explainHideTimer = setTimeout(() => {
           explainLeaving = false;
           explainWindow?.hide();
@@ -390,7 +391,6 @@ async function startApp() {
     injector,
     rewriter,
     editTargets,
-    selection: selectionReader,
     explain,
     dictionary: {
       // The old free-text vocabulary setting still counts until the
@@ -443,10 +443,9 @@ async function startApp() {
   const explainDetector = createGestureDetector({
     key: store.get().explainGestureKey,
     tapCount: store.get().tapCount,
-    onStart: () => {
-      explain.dismiss();
-      startSession('explain');
-    },
+    // No dismiss here: a gesture while the card is open is a follow-up on
+    // the same thread, decided inside explain.ask() itself.
+    onStart: () => startSession('explain'),
     onStop: () => session.stop(),
     onCancel: () => session.cancel(),
   });

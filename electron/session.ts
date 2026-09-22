@@ -1,6 +1,5 @@
 import type { EditTargets } from './edit-target';
 import type { Injector } from './injector';
-import type { SelectionSnapshot } from './selection-reader';
 import type { Rewriter } from './rewriter';
 import type { Transcriber } from './transcriber';
 import type {
@@ -40,9 +39,9 @@ export interface SessionDeps {
   injector: Pick<Injector, 'paste'>;
   rewriter: Pick<Rewriter, 'rewrite'>;
   editTargets: EditTargets;
-  /** Explain mode: what is selected now, and where the answer goes. */
-  selection: { read(): Promise<SelectionSnapshot | null> };
-  explain: { answer(snapshot: SelectionSnapshot | null, question?: string): Promise<void> };
+  /** Explain mode: what was said, or nothing for a plain explain. Owns its own
+   * selection read, and knows itself whether this continues an open thread. */
+  explain: { ask(question?: string): Promise<void> };
   /** The personal dictionary: words for Whisper going in, spelling fixes coming out. */
   dictionary: { prompt(): string; apply(text: string): string };
   getSettings(): Settings;
@@ -126,7 +125,7 @@ export function createSession(deps: SessionDeps): Session {
       if (audio.durationMs < MIN_AUDIO_MS) {
         if (mode === 'explain') {
           finish({ phase: 'done' }, 0);
-          void deps.explain.answer(await deps.selection.read());
+          void deps.explain.ask();
           return;
         }
         finish({ phase: 'cancelled' }, 0);
@@ -137,19 +136,18 @@ export function createSession(deps: SessionDeps): Session {
       try {
         // The field is read while Whisper works: the gesture key is up by
         // now, so the keystroke fallback cannot collide with a held modifier.
-        const [heard, target, selected] = await Promise.all([
+        const [heard, target] = await Promise.all([
           deps.transcriber.transcribe(
             { data: audio.data, mimeType: audio.mimeType },
             { vocabulary: deps.dictionary.prompt() }
           ),
           mode === 'edit' ? deps.editTargets.capture() : null,
-          mode === 'explain' ? deps.selection.read() : null,
         ]);
         // An instruction gets the same fixes: "sound like Shivaraj" names a person too.
         const spoken = heard && deps.dictionary.apply(heard);
         if (mode === 'explain') {
           finish({ phase: 'done' }, 0);
-          void deps.explain.answer(selected, spoken || undefined);
+          void deps.explain.ask(spoken || undefined);
           return;
         }
         if (!spoken) {

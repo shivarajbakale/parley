@@ -108,16 +108,28 @@ export interface Rect {
   height: number;
 }
 
-/** What main tells the explain popover to show. */
-export type ExplainContent =
-  | { status: 'loading'; question?: string }
-  | { status: 'ready'; markdown: string; question?: string }
-  | { status: 'empty' }
-  | { status: 'error'; message: string };
+/** One question-and-answer round in the card. The first turn's `question` is
+ * optional: a plain explain with nothing said. A later turn is a follow-up
+ * asked on the same selection, same thread, same context. */
+export type ExplainTurn =
+  | { question?: string; status: 'loading' }
+  | { question?: string; status: 'ready'; markdown: string }
+  | { question?: string; status: 'error'; message: string };
 
-/** Content plus the tallest the card may grow before it scrolls. */
-/** `closing` plays the exit animation; the window hides once it has finished. */
-export type ExplainState = ExplainContent & { maxHeight: number; closing?: boolean };
+/** What main tells the explain popover to show. */
+export type ExplainContent = { status: 'empty' } | { status: 'thread'; turns: ExplainTurn[] };
+
+/**
+ * `opening` marks a fresh thread (play the entrance animation, scroll to top);
+ * without it, a `thread` update is a follow-up turn appended to what is
+ * already open (no remount, just scroll to the new turn). `closing` plays the
+ * exit animation; the window hides once it has finished.
+ */
+export type ExplainState = ExplainContent & {
+  maxHeight: number;
+  opening?: boolean;
+  closing?: boolean;
+};
 
 /** `window.parley`, exposed by `electron/preload.ts`. */
 export interface ParleyApi {

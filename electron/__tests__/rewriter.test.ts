@@ -27,7 +27,7 @@ describe('rewriter', () => {
 
   it('asks for a short markdown explanation and caps the reply', async () => {
     const fetchFn = vi.fn().mockResolvedValue(reply(' Same result if repeated. '));
-    await expect(setup(fetchFn).explain('idempotent')).resolves.toBe('Same result if repeated.');
+    await expect(setup(fetchFn).explain('idempotent', [{}])).resolves.toBe('Same result if repeated.');
 
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
     expect(body.messages[0].content).toContain('80 words');
@@ -39,11 +39,25 @@ describe('rewriter', () => {
 
   it('sends a spoken question beside the text', async () => {
     const fetchFn = vi.fn().mockResolvedValue(reply('Yes.'));
-    await setup(fetchFn).explain('idempotent', 'is it safe to retry?');
+    await setup(fetchFn).explain('idempotent', [{ question: 'is it safe to retry?' }]);
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
     expect(body.messages[1].content).toBe(
       '<text>\nidempotent\n</text>\n<question>\nis it safe to retry?\n</question>'
     );
+  });
+
+  it('sends earlier turns as real conversation history, for a follow-up', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(reply('Also fine.'));
+    await setup(fetchFn).explain('idempotent', [
+      { question: 'is it safe to retry?', answer: 'Yes.' },
+      { question: 'what about concurrently?' },
+    ]);
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.messages.slice(1)).toEqual([
+      { role: 'user', content: '<text>\nidempotent\n</text>\n<question>\nis it safe to retry?\n</question>' },
+      { role: 'assistant', content: 'Yes.', tool_calls: [] },
+      { role: 'user', content: 'what about concurrently?' },
+    ]);
   });
 
   describe('explain with web search', () => {
@@ -77,7 +91,7 @@ describe('rewriter', () => {
         .mockResolvedValueOnce(reply('It is an app. (e.com)'));
       const rewriter = createRewriter({ getApiKey: () => 'k', fetchFn, webSearch });
 
-      await expect(rewriter.explain('Parley')).resolves.toBe('It is an app. (e.com)');
+      await expect(rewriter.explain('Parley', [{}])).resolves.toBe('It is an app. (e.com)');
       expect(webSearch).toHaveBeenCalledWith('parley app');
       const first = JSON.parse(fetchFn.mock.calls[0][1].body);
       expect(first.tools[0].function.name).toBe('web_search');
@@ -97,7 +111,7 @@ describe('rewriter', () => {
         .mockResolvedValueOnce(reply('From memory.'));
       const rewriter = createRewriter({ getApiKey: () => 'k', fetchFn, webSearch });
 
-      await expect(rewriter.explain('x')).resolves.toBe('From memory.');
+      await expect(rewriter.explain('x', [{}])).resolves.toBe('From memory.');
       const bodies = fetchFn.mock.calls.map(call => JSON.parse(call[1].body));
       expect(bodies[1].messages.at(-1).content).toContain('search failed');
       expect(bodies[2].tools).toBeUndefined();
@@ -111,9 +125,9 @@ describe('rewriter', () => {
   });
 
   it('fails an explanation without a key, or with an empty reply', async () => {
-    await expect(setup(vi.fn(), null).explain('x')).rejects.toMatchObject({ kind: 'no_key' });
+    await expect(setup(vi.fn(), null).explain('x', [{}])).rejects.toMatchObject({ kind: 'no_key' });
     const fetchFn = vi.fn().mockResolvedValue(reply('<think>hm</think>'));
-    await expect(setup(fetchFn).explain('x')).rejects.toMatchObject({ kind: 'empty' });
+    await expect(setup(fetchFn).explain('x', [{}])).rejects.toMatchObject({ kind: 'empty' });
   });
 
   it('drops inline thinking from the reply', async () => {
