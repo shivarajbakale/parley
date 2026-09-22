@@ -20,13 +20,8 @@
       "title": "Repo boots from a clean clone",
       "user_visible_behavior": "Running ./init.sh on a fresh clone installs dependencies and runs verification to completion.",
       "status": "passing",
-      "verification": [
-        "Run `./init.sh` from the repo root.",
-        "Confirm the script exits 0."
-      ],
-      "evidence": [
-        "Baseline. Every new feature starts from this passing state."
-      ],
+      "verification": ["Run `./init.sh` from the repo root.", "Confirm the script exits 0."],
+      "evidence": ["Baseline. Every new feature starts from this passing state."],
       "notes": "Baseline."
     },
     {
@@ -37,9 +32,7 @@
       "user_visible_behavior": "Gesture detection, Groq transcription, paste injection, settings storage and the session orchestrator exist as tested main-process units.",
       "status": "passing",
       "plan": "none: main-process units with no UI, specified in docs/superpowers/specs/2026-09-21-parley-design.md",
-      "verification": [
-        "Run `make check` and confirm the electron/__tests__ suites pass."
-      ],
+      "verification": ["Run `make check` and confirm the electron/__tests__ suites pass."],
       "evidence": [
         "make check exit 0 on 2026-09-21; electron/__tests__ suites for gesture-detector, key-hook, transcriber, injector, settings-store and session pass."
       ],
@@ -70,10 +63,7 @@
       "user_visible_behavior": "The tray opens a settings window that shows permission status, stores the Groq key and edits gesture, vocabulary, tick sound and launch at login.",
       "status": "passing",
       "plan": "none: single form window, approved as ASCII wireframes in the design spec",
-      "verification": [
-        "Run `make check`.",
-        "Run `make dev` and change each setting."
-      ],
+      "verification": ["Run `make check`.", "Run `make dev` and change each setting."],
       "evidence": [
         "make check exit 0 on 2026-09-22; src/settings/__tests__/SettingsApp.test.tsx (6 tests) pass; full unit suite 272 tests pass, story-probe suite 106 tests pass.",
         "Manual `make dev` verification (grant permissions and watch badges update, test and save a real Groq key including an invalid key, perform the gesture in Notes and confirm paste, cancel with Esc, change gesture key/tap count and confirm the new gesture, use tray 'Copy last transcript') has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."
@@ -88,9 +78,7 @@
       "user_visible_behavior": "Dictation pastes into Safari, Chrome, Slack, VS Code, Terminal and Notes.",
       "status": "blocked",
       "plan": "none: packaging config and a manual checklist, no UI",
-      "verification": [
-        "Walk docs/MANUAL_CHECKLIST.md."
-      ],
+      "verification": ["Walk docs/MANUAL_CHECKLIST.md."],
       "evidence": [
         "make check exit 0 on 2026-09-22; full unit suite 275 tests across 37 files pass (includes src/orb/__tests__/phase-handler.test.ts, 9 tests, and electron/__tests__/audio-watchdog.test.ts, 4 tests), story-probe suite 106 tests pass, skill-lint 36 files/145 code blocks pass.",
         "docs/MANUAL_CHECKLIST.md written on 2026-09-22 covering paste targets, gesture (including changing gesture key/tap count), onboarding from a clean state (including the System Settings deep-link check on macOS 26), a real Groq key and an invalid key, errors, offline behaviour, and the tray (including quit and single-instance). No box on that checklist has been ticked yet — manual verification with `make dev` is pending and this feature stays in_progress until it is walked."
@@ -148,6 +136,25 @@
       ],
       "evidence": [],
       "notes": "Built in worktree explain-selection. Needs a human with make dev: the card has never been shown, and AX selection bounds have never been read from a real app."
+    },
+    {
+      "id": "parley-007",
+      "priority": 9,
+      "area": "onboarding",
+      "title": "Guided onboarding: product tour + setup wizard",
+      "user_visible_behavior": "First launch shows a 4-slide animated product tour (literal mini-UI scenes), then a 6-step setup wizard (mic, accessibility, Groq key, MiniMax optional, hotkeys, practice), then lands on Settings ready to use.",
+      "status": "in_progress",
+      "plan": "parley-007.feature-plan.json",
+      "verification": [
+        "make check",
+        "Walk tour → wizard → settings from a clean userData without touching tabs.",
+        "Quit mid-wizard and confirm it resumes at the saved step; Replay tour never auto-shows."
+      ],
+      "evidence": [
+        "2026-09-22 automated: tsc clean; eslint 0 warnings; ui-lint 0 violations; plan-lint 0 violations (2 plans valid); capability-lint 0; storybook-lint 25 files OK; full unit suite green incl. 25 new onboarding tests; ui-probe 121/121 in Chromium with Tour + Wizard stories at 0 failing; doc-lint 0.",
+        "2026-09-22 caveat: one make check run hung in ui-probe (frozen CPU, no output 30+ min); killed and re-ran the probe standalone green. Flake, not a code hang — same tree passed in under 4 min."
+      ],
+      "notes": "Design + plan approved 2026-09-22. Manual walk (13 boxes in MANUAL_CHECKLIST.md) still needs a human with make dev, so this stays in_progress. Shipped in 0.3.0 on automated verification + owner waiver."
     }
   ]
 }

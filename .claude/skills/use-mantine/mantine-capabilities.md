@@ -15,7 +15,7 @@ Verified against **@mantine/core 9.6.0** on **2026-09-04**.
   built out of the right parts. `Instead:` names the component next door and
   the question that separates the two.
 - **`Ours:` is a reference slice, not a citation.** Open it and copy the shape.
-  A row that reads *(not wired…)* is a component this repo documents but does
+  A row that reads _(not wired…)_ is a component this repo documents but does
   not yet use — the pattern is decided, the code is not written. Most of
   `@mantine/core` is in that state here on purpose: the decision is written
   before the first call site, not after it.
@@ -98,8 +98,8 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `ActionIcon` for any other icon action. `Modal`, `Drawer` and
   `Notification` render their own; adding a second one gives the keyboard two
   ways out and the screen reader two names for the same thing.
-- **Ours:** *(not wired — every dismissable surface here is a Mantine one that
-  ships its own)*
+- **Ours:** _(not wired — every dismissable surface here is a Mantine one that
+  ships its own)_
 - **Gotcha:** It has no accessible name — set `aria-label`. `iconSize` is
   ignored the moment you pass a custom `icon`.
 
@@ -109,7 +109,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   key, an invoice id, a share link.
 - **Instead:** a `Button` with your own clipboard call only when the copied
   state has to outlive the control; this one resets on a timer.
-- **Ours:** *(not wired — no surface here shows a copyable secret yet)*
+- **Ours:** _(not wired — no surface here shows a copyable secret yet)_
 - **Gotcha:** Its child is a render function (`{({ copied, copy }) => …}`), not
   an element. `timeout` defaults to 500ms, which reads as a flicker rather than
   a confirmation — 1000–2000 is the honest range, and the label has to change,
@@ -121,7 +121,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   avatar", "Import CSV".
 - **Instead:** `FileInput` when the file belongs to a form and the chosen
   filename has to stay on screen beside the other values.
-- **Ours:** *(not wired — nothing here uploads yet)*
+- **Ours:** _(not wired — nothing here uploads yet)_
 - **Gotcha:** Its child is a render function whose props you spread onto your
   own `Button`. A file input cannot be controlled, so clearing a selection needs
   `resetRef` — without it, picking the same file twice fires nothing at all.
@@ -132,7 +132,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   bulk bar that rises over a table.
 - **Instead:** a row's own `Menu` when the action applies to one record; a
   toolbar above the table when the actions are always available.
-- **Ours:** *(not wired — nothing here selects rows in bulk yet)*
+- **Ours:** _(not wired — nothing here selects rows in bulk yet)_
 - **Gotcha:** It is `Affix` + `Transition` + `Paper` in a portal, so it leaves
   the page's stacking context and needs `aria-label` naming what the actions
   apply to. It does not close on Escape unless you set `closeOnEscape`, and it
@@ -185,7 +185,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   page.
 - **Instead:** `Stack` for a column of components, `DataList` for one record's
   fields, `Table` for many records. A list of destinations is `NavLink` rows.
-- **Ours:** *(not wired — no prose surface here yet)*
+- **Ours:** `src/settings/wizard/steps.tsx` (wizard guide lists)
 - **Gotcha:** `List.Item` is required; a bare `<li>` loses the spacing and the
   icon slot. `icon` on the `List` is the default for every item and `icon` on an
   item overrides it — replacing the bullet does not stop it being a `<ul>`, so
@@ -197,19 +197,19 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   a customer's message.
 - **Instead:** `Alert` when the app is the one talking; `Paper` when the box is
   only a box.
-- **Ours:** *(not wired — nothing here quotes anyone)*
+- **Ours:** _(not wired — nothing here quotes anyone)_
 - **Gotcha:** `cite` is the attribution line, not a URL. Leave `color` alone
   unless the quote carries a status — a coloured quote reads as a state the
   reader then looks for a meaning for.
 
 #### `Mark` · `Highlight` — @mantine/core
 
-- **Use when:** Showing *why* a result matched — the search term inside the row
+- **Use when:** Showing _why_ a result matched — the search term inside the row
   it returned.
 - **Instead:** `Text fw={600}`, never: emphasis and "this is your match" are
   different claims, and `<mark>` is the one the browser and the screen reader
   already understand.
-- **Ours:** *(not wired — no list here marks the substring it matched on)*
+- **Ours:** _(not wired — no list here marks the substring it matched on)_
 - **Gotcha:** `Highlight` matches case- and accent-insensitively across the
   whole string and marks every occurrence; `wholeWord` stops "the" lighting up
   "theme", and an empty highlight string is ignored rather than matching
@@ -221,7 +221,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   article, markdown that arrived from an API.
 - **Instead:** `Text` and `Title` for anything you compose yourself. Mantine
   ships no global typography styles on purpose; this is the opt-in, not a reset.
-- **Ours:** *(not wired — every string here is composed, not injected)*
+- **Ours:** _(not wired — every string here is composed, not injected)_
 - **Gotcha:** It styles its descendants, so it wraps the injected HTML and
   nothing else — wrap a page in it and it restyles every component inside.
   It paints content; it does not sanitise it.
@@ -245,7 +245,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** A quantity the user types or steps — seats, a limit, a price.
 - **Instead:** `TextInput type="number"`, never: it returns a string, accepts
   `1e5` and `--3`, and its native spinner cannot be styled or removed.
-- **Ours:** *(not wired — no field in this app is numeric yet)*
+- **Ours:** _(not wired — no field in this app is numeric yet)_
 - **Gotcha:** `onChange` gives `number | string` — the string is what an
   in-progress entry like `"-"` or `""` looks like, so a handler that assumes a
   number writes `NaN` into form state. Pair `min`/`max` with
@@ -265,7 +265,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 
 - **Use when:** A short fixed-length code — OTP, an invite code.
 - **Instead:** `TextInput` when the length varies or the value is copied in.
-- **Ours:** *(not wired — this app has no code-entry step)*
+- **Ours:** _(not wired — this app has no code-entry step)_
 - **Gotcha:** It renders one input per cell, so it has no single label — give
   it `aria-label`, and set `oneTimeCode` so the OS offers the SMS code.
 
@@ -275,7 +275,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `Radio.Group` below five when the options deserve description,
   `Autocomplete`/`Combobox` above ten or when the user knows the name and typing
   beats scanning, `SegmentedControl` when the choice re-renders a view.
-- **Ours:** *(not wired — the one enum field here is a `SegmentedControl`)*
+- **Ours:** _(not wired — the one enum field here is a `SegmentedControl`)_
 - **Gotcha:** `data` values are **strings only** — a numeric id must be
   stringified going in and parsed coming out. `searchable` is a prop, not a
   different component. And **mounting one under jsdom costs ~25 seconds**:
@@ -338,7 +338,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Gotcha:** `data` values are strings, and the control does not scroll — past
   five segments it squeezes rather than wraps. Two things about it are theme
   decisions this app has already made, both in `src/theme.ts`: a label neither
-  wraps nor widens the control, so the *last* thing in a label is what
+  wraps nor widens the control, so the _last_ thing in a label is what
   disappears (and in a filter row the last thing is the count); and the track's
   own colour in dark mode is Mantine's `dark[8]`, which this theme spends on
   the page itself — left alone, the control comes out exactly the colour of its
@@ -351,7 +351,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** A date or a date range in a form.
 - **Instead:** `TextInput` with a mask never; `DateTimePicker` when the time
   matters; `TimeInput` for a time alone.
-- **Ours:** *(not wired — no screen here takes a date)*
+- **Ours:** _(not wired — no screen here takes a date)_
 - **Gotcha:** Since Mantine 8 the value is a **`'YYYY-MM-DD'` string**, not a
   `Date` — a `new Date()` handed to `value` is a type error and a runtime
   surprise. The package needs `dayjs`, which is a dependency here already.
@@ -363,7 +363,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `Select searchable` when the value **must** be one of the options:
   Autocomplete does not enforce them, and it is not a searchable select however
   much it looks like one. `TagsInput` when there is more than one value.
-- **Ours:** *(not wired — every choice here is from a known set)*
+- **Ours:** _(not wired — every choice here is from a known set)_
 - **Gotcha:** The value is a string and anything typed is legal, so the
   validation is yours. It has no "nothing found" state by design — an unmatched
   string is a valid answer here, not an error.
@@ -373,7 +373,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** Several values from a fixed list — roles, labels, recipients.
 - **Instead:** `TagsInput` when the user may invent a value; `Checkbox.Group`
   under about six options, where seeing them all beats opening a dropdown.
-- **Ours:** *(not wired — no field here takes more than one value yet)*
+- **Ours:** _(not wired — no field here takes more than one value yet)_
 - **Gotcha:** The value is `string[]`, so numeric ids are stringified going in
   and parsed coming out. It carries a `Combobox`, which means it inherits
   `Select`'s jsdom cost — a page that mounts one is a page whose jsdom tests you
@@ -386,7 +386,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   to invite.
 - **Instead:** `MultiSelect` the moment the set is fixed. A tag the backend has
   never heard of is a support ticket.
-- **Ours:** *(not wired — nothing here accepts invented values)*
+- **Ours:** _(not wired — nothing here accepts invented values)_
 - **Gotcha:** Values are strings, committed on Enter or on a suggestion click —
   `acceptValueOnBlur` decides whether a half-typed tag survives losing focus, and
   `splitChars` turns a pasted comma list into tags. Duplicates are dropped
@@ -398,7 +398,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   list on a phone, a field the OS should be able to autofill.
 - **Instead:** `Select` as soon as the list wants search, rich options, a clear
   button or an empty state.
-- **Ours:** *(not wired — the pickers here are `Select` and `SegmentedControl`)*
+- **Ours:** _(not wired — the pickers here are `Select` and `SegmentedControl`)_
 - **Gotcha:** It is a real `<select>`: options cannot be styled, and passing
   `children` (raw `<option>`s) makes `data` ignored entirely. A placeholder has
   to be a real option, so make it disabled or it becomes a submittable value.
@@ -408,7 +408,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** Filters the user toggles in place — the status row above a list.
 - **Instead:** `SegmentedControl` when exactly one can be on and it switches the
   view; `Checkbox` when the value is submitted with a form.
-- **Ours:** *(not wired — the filters here are a `SegmentedControl`)*
+- **Ours:** _(not wired — the filters here are a `SegmentedControl`)_
 - **Gotcha:** `Chip.Group` owns the value and whether `multiple` is allowed; a
   lone `Chip` is an uncontrolled checkbox wearing a label. Wrapping one in a
   `Tooltip` needs `refProp="rootRef"` on the tooltip, because the chip's root is
@@ -422,8 +422,8 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `Select`, `MultiSelect` and `Autocomplete` first. They are this
   component with the decisions already made; hand-rolling one is how the ARIA
   gets lost.
-- **Ours:** *(not wired — `src/components/command-palette.tsx` is the one custom
-  picker here and it is built on Spotlight)*
+- **Ours:** _(not wired — `src/components/command-palette.tsx` is the one custom
+  picker here and it is built on Spotlight)_
 - **Gotcha:** `useCombobox()` returns the store and it has to be passed to
   `store` — nothing opens on its own. You own the filtering, the empty state and
   calling `updateSelectedOptionIndex` whenever the option list changes; skip that
@@ -435,7 +435,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   control in a toolbar.
 - **Instead:** `Menu` when the items are actions rather than a value; `Select`
   when there is a field for the answer to live in.
-- **Ours:** *(not wired — the toolbars here choose with `SegmentedControl`)*
+- **Ours:** _(not wired — the toolbars here choose with `SegmentedControl`)_
 - **Gotcha:** `ComboboxPopover.Target` clones a single child that must accept a
   ref. The trigger still has to say what is selected: a button reading "Group by"
   alone hides the current value from everyone who cannot open it.
@@ -446,7 +446,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   a category, a folder, an org unit.
 - **Instead:** `Select` when a flat list would do, which it usually would;
   `Cascader` when drilling column by column reads better than expanding in place.
-- **Ours:** *(not wired — nothing here is hierarchical)*
+- **Ours:** _(not wired — nothing here is hierarchical)_
 - **Gotcha:** Same data rules as `Tree`: a memoized array whose every node has a
   unique `value`. `checkStrictly` decides whether checking a parent takes its
   children with it, and in `single`/`multiple` mode only leaves can be selected.
@@ -457,7 +457,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   region, then country, then city.
 - **Instead:** `TreeSelect` when the shape matters more than the path; two
   `Select`s when there are exactly two levels.
-- **Ours:** *(not wired — nothing here is hierarchical)*
+- **Ours:** _(not wired — nothing here is hierarchical)_
 - **Gotcha:** The value is the **ordered path**, not a leaf id. Only leaves are
   selectable by default — clicking a parent just opens the next column — and the
   columns need horizontal room, which is what decides whether it fits the surface
@@ -470,7 +470,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `MultiSelect` / `TagsInput`, which are this pair with the logic
   already in them. `Badge` when the token cannot be removed — a pill implies an
   X, and one that does nothing is a broken promise.
-- **Ours:** *(not wired — no custom token field here)*
+- **Ours:** _(not wired — no custom token field here)_
 - **Gotcha:** `PillsInput` renders its children and nothing else: no filtering,
   no keyboard, no state. `PillsInput.Field` is the real input and takes the
   label; without a `label` it needs `aria-label`.
@@ -479,9 +479,8 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 
 - **Use when:** An approximate value on a range whose ends mean something — an
   opacity, a threshold with a live preview.
-- **Instead:** `NumberInput` whenever the exact number matters. Nobody drags to
-  37.
-- **Ours:** *(not wired — no setting here is continuous)*
+- **Instead:** `NumberInput` whenever the exact number matters. Nobody drags to 37.
+- **Ours:** _(not wired — no setting here is continuous)_
 - **Gotcha:** The label appears only while dragging unless `labelAlwaysOn`,
   which leaves the value invisible on touch. Marks are placed by value rather
   than width, and `restrictToMarks` snaps to them. Anything expensive belongs in
@@ -492,7 +491,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** Capturing or showing a star score.
 - **Instead:** `Progress` or a plain number when the figure is computed rather
   than given — stars on a metric are decoration.
-- **Ours:** *(not wired — nothing here is rated)*
+- **Ours:** _(not wired — nothing here is rated)_
 - **Gotcha:** `readOnly` is what stops a displayed rating looking clickable, and
   `fractions` is what lets 4.5 render as 4.5 instead of snapping. In an
   uncontrolled form it needs `name`, or the value never reaches `FormData`.
@@ -504,7 +503,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** a fixed row of `ColorSwatch` buttons whenever the palette belongs
   to the product. Free colour choice is how an app ends up with white text on
   yellow.
-- **Ours:** *(not wired — colour here comes from the theme)*
+- **Ours:** _(not wired — colour here comes from the theme)_
 - **Gotcha:** The value is a string in the `format` you asked for, and the alpha
   slider only appears for `hexa`, `rgba` and `hsla`. Persist on `onChangeEnd`;
   `onChange` fires through the whole drag. Whatever they pick still has to pass
@@ -515,7 +514,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** The value is a direction — a gradient angle, a rotation.
 - **Instead:** `NumberInput` with a degree suffix when the number is typed more
   often than dragged.
-- **Ours:** *(not wired — nothing here has an angle)*
+- **Ours:** _(not wired — nothing here has an angle)_
 - **Gotcha:** It is 0–360 with no label of its own: set `aria-label`, and use
   `formatLabel` to say the unit out loud. `restrictToMarks` snaps to the marks
   you define.
@@ -527,7 +526,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `FileButton` when picking is a standalone action; a real drop zone
   when dragging is the primary gesture (`@mantine/dropzone` is not installed
   here — adding it is a decision, not a detail).
-- **Ours:** *(not wired — nothing here uploads yet)*
+- **Ours:** _(not wired — nothing here uploads yet)_
 - **Gotcha:** The value is a `File` (or `File[]` with `multiple`), never a path,
   so it does not round-trip through form state as a string. A custom
   `rightSection` displaces the clear button. `accept` is a hint to the picker,
@@ -538,7 +537,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** The user edits real JSON — a webhook payload, a config blob.
 - **Instead:** `Textarea` when the text merely looks structured; a real editor
   when it is code with more than a screen of it.
-- **Ours:** *(not wired — nothing here takes raw JSON)*
+- **Ours:** _(not wired — nothing here takes raw JSON)_
 - **Gotcha:** `validationError` is what makes bad JSON visible and `formatOnBlur`
   rewrites what they typed — do not also reformat in state, or the caret jumps
   mid-edit. A custom `deserialize` **must throw** on invalid input; returning
@@ -551,7 +550,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `TextInput` with validation when the format varies by locale or
   by record. A mask that fights a paste costs more than the error message it
   saved.
-- **Ours:** *(not wired — no field here has a fixed shape)*
+- **Ours:** _(not wired — no field here has a fixed shape)_
 - **Gotcha:** In the pattern `9` is a digit and `a` a letter, and `?` marks
   everything after it optional. The mask has to be a stable reference — define it
   outside render, or the input remounts on every keystroke and the caret jumps
@@ -563,7 +562,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   address inside a checkout.
 - **Instead:** a `Title` above a `Stack` when the grouping is only visual. A
   fieldset is a claim about the form's structure, not a box.
-- **Ours:** *(not wired — the forms here are single groups)*
+- **Ours:** _(not wired — the forms here are single groups)_
 - **Gotcha:** `disabled` disables every control inside it in one prop, which is
   the cheapest honest way to freeze a form while it submits.
   `variant="unstyled"` keeps the semantics without the border.
@@ -637,7 +636,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** Marking the thing it wraps as having something new — an unread
   count on a bell, a presence dot on an avatar.
 - **Instead:** `Badge` when the status is beside the object rather than on it.
-- **Ours:** *(not wired — the topbar bell is a plain `ActionIcon` while nothing counts)*
+- **Ours:** _(not wired — the topbar bell is a plain `ActionIcon` while nothing counts)_
 - **Gotcha:** It positions over its child, so the child needs a size. Hide it
   with `disabled`, not by conditionally rendering the wrapper — that remounts
   the child.
@@ -648,7 +647,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   readable underneath.
 - **Instead:** `Skeleton` while the first data loads — there is nothing to cover
   yet; `loading` on the `Button` when only the action is busy.
-- **Ours:** *(not wired — the forms here disable their submit instead)*
+- **Ours:** _(not wired — the forms here disable their submit instead)_
 - **Gotcha:** It needs a positioned parent, and it disables nothing: everything
   underneath is still focusable and clickable from the keyboard, so pair it with
   a disabled `Fieldset` or the form's own disabled state.
@@ -660,19 +659,19 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `notify.*` from `src/lib/notify.ts` for real transient feedback.
   This component is the paint; the queue, the timer and the stacking are the
   `@mantine/notifications` package's.
-- **Ours:** *(not wired — the toasts here go through the store)*
+- **Ours:** _(not wired — the toasts here go through the store)_
 - **Gotcha:** `withCloseButton` renders a button with no name; pass
   `closeButtonProps={{ 'aria-label': 'Dismiss' }}`. Rendered inline it announces
   nothing — the region around it needs `role="status"`.
 
 #### `RingProgress` · `SemiCircleProgress` — @mantine/core
 
-- **Use when:** One completion figure *is* the content of a tile — a quota, a
+- **Use when:** One completion figure _is_ the content of a tile — a quota, a
   score, a health number.
 - **Instead:** `Progress` in a row of metrics. Bars share a baseline and can be
   compared down a column; rings cannot, and a ring per row is a chart nobody can
   read.
-- **Ours:** *(not wired — the dashboard's tiles carry sparklines and bars)*
+- **Ours:** `src/settings/wizard/steps.tsx` (the gesture practice hold ring)
 - **Gotcha:** `sections` are percentages that must total 100 or less, and the
   label is a node you supply — an unlabelled ring is decoration. Both need an
   explicit `size` and `thickness`; neither fills its parent.
@@ -719,7 +718,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   tooltips do not exist for touch, and they do not survive scanning.
   `Popover` the moment anything inside is interactive.
 - **Ours:** `src/components/nav-main.tsx` (the collapsed rail)
-- **Gotcha:** The child must forward a ref, and the tooltip is *not* the
+- **Gotcha:** The child must forward a ref, and the tooltip is _not_ the
   accessible name — the control still needs `aria-label`.
 
 #### `Popover` — @mantine/core
@@ -729,8 +728,8 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `Modal` when the user must finish or dismiss before continuing;
   `Tooltip` when the content is a few passive words; `HoverCard` when it is a
   passive preview.
-- **Ours:** *(not wired — the shell's surfaces are menus and modals; compose
-  `Popover.Target` + `Popover.Dropdown` and set `trapFocus`)*
+- **Ours:** _(not wired — the shell's surfaces are menus and modals; compose
+  `Popover.Target` + `Popover.Dropdown` and set `trapFocus`)_
 - **Gotcha:** Hover-triggered surfaces cannot hold interactive content: the
   pointer has to travel there, and the surface closes on the way.
 
@@ -739,7 +738,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** A rich, passive, entirely optional preview — a user card, a link
   preview.
 - **Instead:** `Tooltip` for a few words, `Popover` for anything clickable.
-- **Ours:** *(not wired — no surface here previews an entity yet)*
+- **Ours:** _(not wired — no surface here previews an entity yet)_
 - **Gotcha:** It has no touch equivalent, so nothing inside it may be the only
   route to a fact or an action.
 
@@ -776,7 +775,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   overlay and no dismiss on outside click.
 - **Instead:** `Modal` when the task interrupts, `Drawer` when it is a side
   panel, a notification when it is transient.
-- **Ours:** *(not wired — and deliberately)*
+- **Ours:** _(not wired — and deliberately)_
 - **Gotcha:** Mantine's own documentation says it is not accessible and most
   screen readers will not announce it. It has an entry here so the next reader
   stops at this row rather than discovering that after shipping it.
@@ -787,7 +786,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   frame with controls on top.
 - **Instead:** `LoadingOverlay` when the reason is loading; `Modal`, which brings
   its own.
-- **Ours:** *(not wired — the only dimmed surfaces here are modals)*
+- **Ours:** _(not wired — the only dimmed surfaces here are modals)_
 - **Gotcha:** `backgroundOpacity` changes the background colour, not CSS
   `opacity`, so children stay at full strength — that is the point of it. `blur`
   rides on `backdrop-filter`, which not every browser supports, so it can never
@@ -799,7 +798,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   back-to-top button.
 - **Instead:** the shell's header or footer for anything permanent. An affix is
   an exception to the layout, not a layout.
-- **Ours:** *(not wired — the shell owns every fixed edge here)*
+- **Ours:** _(not wired — the shell owns every fixed edge here)_
 - **Gotcha:** It renders in a portal at a fixed position, so it floats over
   content and, on a phone, over the thing being read. Keep it clear of the
   primary action and give whatever is inside a real accessible name.
@@ -810,7 +809,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   player, a debug console.
 - **Instead:** `Drawer` or a route, nearly always. A window the app has to place
   is a window it also has to remember, restore, and keep on screen.
-- **Ours:** *(not wired — nothing here floats)*
+- **Ours:** _(not wired — nothing here floats)_
 - **Gotcha:** Set `constrainToViewport` or it can be dragged somewhere it cannot
   be dragged back from. Position takes exactly two of the four offsets (`top`
   plus `left`, say), and the resize callbacks fire for pointer resizing only —
@@ -822,7 +821,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   floating layer inside an `overflow: hidden` box.
 - **Instead:** nothing, for Mantine's own overlays: `Modal`, `Drawer`, `Menu`,
   `Popover` and `Tooltip` portal themselves already.
-- **Ours:** *(not wired — every overlay here brings its own)*
+- **Ours:** _(not wired — every overlay here brings its own)_
 - **Gotcha:** Its children mount only after the app is on the DOM, so a test
   asserting on the first render sees an empty container. Focus order follows the
   DOM, not the screen — portalled content that is not a dialog can strand the
@@ -878,7 +877,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   record inside a project inside a workspace.
 - **Instead:** a single back link when there is exactly one level above.
   Breadcrumbs on a two-level app are furniture.
-- **Ours:** *(not wired — the detail routes here are one level below their list)*
+- **Ours:** _(not wired — the detail routes here are one level below their list)_
 - **Gotcha:** It only inserts separators; the items are yours, so they carry
   `component={Link}` and the last one is plain text rather than a link to the
   page you are already on. The `<nav aria-label="Breadcrumb">` around it is
@@ -889,8 +888,8 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** A long list is served in pages and the page belongs in the URL.
 - **Instead:** the table's own pager where one already exists; infinite scroll
   only when the list has no end and nobody needs to come back to a position.
-- **Ours:** *(not wired — `src/components/data-table.tsx` renders every row it
-  is given)*
+- **Ours:** _(not wired — `src/components/data-table.tsx` renders every row it
+  is given)_
 - **Gotcha:** `value` is 1-based, so a 0-based page index from a table library
   has to be shifted on the way in and out. The controls are buttons unless you
   make them links through the compound parts — and only links survive a
@@ -902,7 +901,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   wizard whose steps cannot be done out of order.
 - **Instead:** `Tabs` when the sections are peers; separate routes when a step
   must survive a reload or be linkable.
-- **Ours:** *(not wired — no flow here has more than one step)*
+- **Ours:** `src/settings/wizard/WizardShell.tsx` (the setup wizard rail)
 - **Gotcha:** `Stepper.Step` must be a direct child — wrapping one in your own
   component breaks the ordering the component relies on. Icon-only steps need
   `aria-label` or `title`, and `allowNextStepsSelect={false}` is what stops
@@ -914,7 +913,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   arrow keys walk the whole bar.
 - **Instead:** `Menu` for a single trigger, a row of buttons for fewer than three
   menus. In a browser app this is nearly always the wrong idiom.
-- **Ours:** *(not wired — the chrome here is a sidebar and a topbar)*
+- **Ours:** _(not wired — the chrome here is a sidebar and a topbar)_
 - **Gotcha:** Only one menu is open at a time and moving sideways opens the
   sibling immediately — that behaviour is what makes it a menubar rather than a
   row of menus. Checkbox and radio items do not close it. The root already
@@ -926,7 +925,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   terms of service.
 - **Instead:** `NavLink` rows for application navigation. This one tracks
   headings in the viewport, not routes.
-- **Ours:** *(not wired — no page here is long-form)*
+- **Ours:** _(not wired — no page here is long-form)_
 - **Gotcha:** It reads the headings once, so content that arrives later needs
   `reinitialize`. The link and its label come out of `getControlProps` — an empty
   outline almost always means the selector matched nothing.
@@ -1060,7 +1059,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** Peer items that genuinely do not fit, and missing one costs
   nothing — screenshots, testimonials.
 - **Instead:** a grid, nearly always: nothing hidden, everything scannable.
-- **Ours:** *(not wired — nothing here is a peer set worth hiding)*
+- **Ours:** `src/settings/tour/Tour.tsx` (the onboarding tour, no autoplay)
 - **Gotcha:** Embla underneath, and its options go through `emblaOptions` (the
   v7 top-level props are gone). Controls need labels, and autoplay must stop on
   hover, focus and `prefers-reduced-motion`.
@@ -1072,7 +1071,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `Tabs` when the sections are peers and switching is instant; a
   route when a section is really a page. Never hide something the user needs in
   order to finish.
-- **Ours:** *(not wired — nothing here collapses yet)*
+- **Ours:** _(not wired — nothing here collapses yet)_
 - **Gotcha:** Set `order` (`h2`–`h6`): the control renders as a heading and the
   library will not pick the level for you, so the page outline is your
   responsibility. `multiple` allows more than one open panel;
@@ -1084,7 +1083,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   details" row inside a card.
 - **Instead:** `Accordion` for a set of them; `Spoiler` when the point is
   truncating overflow rather than disclosing a section.
-- **Ours:** *(not wired — the sidebar's nested `NavLink`s collapse themselves)*
+- **Ours:** _(not wired — the sidebar's nested `NavLink`s collapse themselves)_
 - **Gotcha:** It animates height, so a child with its own height transition
   fights it. The trigger is yours, which means `aria-expanded` and
   `aria-controls` are yours — the component adds neither.
@@ -1095,7 +1094,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   rest — a description, a log entry, a support message.
 - **Instead:** `Collapse` when the content starts closed; a `lineClamp` on `Text`
   when there is nothing to expand into.
-- **Ours:** *(not wired — no copy here overflows by design)*
+- **Ours:** _(not wired — no copy here overflows by design)_
 - **Gotcha:** `hideLabel` and `showLabel` are required — they are the toggle's
   accessible name in each state. Content shorter than `maxHeight` renders with no
   control at all, which is correct behaviour and also why a two-line story of it
@@ -1107,7 +1106,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   trail, a delivery status, an activity feed.
 - **Instead:** `Table` when the reader compares rows rather than follows them;
   `List` when the order is not chronological.
-- **Ours:** *(not wired — the activity here is a table)*
+- **Ours:** _(not wired — the activity here is a table)_
 - **Gotcha:** `Timeline.Item` must be a direct child; the connecting line is
   drawn from their order. `active` is an index and everything before it is
   painted as done, so an off-by-one here is a claim about what has happened.
@@ -1118,7 +1117,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   nested categories, an org chart.
 - **Instead:** `NavLink` with nested children for navigation; `Table` when the
   nesting is one level deep and the columns are the point.
-- **Ours:** *(not wired — nothing here is hierarchical)*
+- **Ours:** _(not wired — nothing here is hierarchical)_
 - **Gotcha:** `data` must be a **memoized** array of nodes with unique `value`s —
   a fresh array on every render collapses the tree on every keystroke.
   `useTree()` owns expanded and checked state, and `checkStrictly` decides
@@ -1130,7 +1129,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   file's preview.
 - **Instead:** `Avatar` for a person or a workspace, `ThemeIcon` for a glyph, CSS
   for decoration that carries no meaning.
-- **Ours:** *(not wired — the only images here are avatars)*
+- **Ours:** _(not wired — the only images here are avatars)_
 - **Gotcha:** `Image` is a thin `img` wrapper that fills its parent's width, so
   it needs `h` plus `fit` or a tall photo sets the row height. Content images
   need `alt`; decorative ones need `alt=""` rather than no attribute at all.
@@ -1143,7 +1142,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   embed, a map, a 16:9 thumbnail.
 - **Instead:** a fixed `h` when the height really is fixed. A ratio box around
   text is how a card starts clipping sentences.
-- **Ours:** *(not wired — no media surface here yet)*
+- **Ours:** _(not wired — no media surface here yet)_
 - **Gotcha:** It takes the width it is given, so inside a flex row it needs a `w`
   or a `flex` — otherwise it collapses and the media disappears completely.
 
@@ -1153,7 +1152,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   else — a price in a cell, a count in a tile.
 - **Instead:** `RollingNumber` for the one figure a page animates;
   `Intl.NumberFormat` when the string is going somewhere other than the screen.
-- **Ours:** *(not wired — the figures here are formatted where they are read)*
+- **Ours:** _(not wired — the figures here are formatted where they are read)_
 - **Gotcha:** It renders text, not a box, so it belongs inside the `Text` that
   owns the size and weight. `thousandSeparator` and `decimalScale` are what
   decide whether a column of numbers lines up under itself.
@@ -1164,7 +1163,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   a trail of avatars that becomes "+3".
 - **Instead:** `Scroller` when the user should be able to reach every item;
   wrapping when growing taller is acceptable.
-- **Ours:** *(not wired — no row here overflows yet)*
+- **Ours:** _(not wired — no row here overflows yet)_
 - **Gotcha:** It measures before it can know what fits, so it renders once and
   then settles. Whatever it collapses must stay reachable from the keyboard, and
   anything essential must exist somewhere that is not behind the "+3".
@@ -1175,7 +1174,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   needed to finish a task.
 - **Instead:** a static grid, nearly always. Moving text is slow to read and, for
   some readers, unreadable.
-- **Ours:** *(not wired — nothing here scrolls itself)*
+- **Ours:** _(not wired — nothing here scrolls itself)_
 - **Gotcha:** It animates forever, and `respectReducedMotion` on the provider
   does not reach it — read `prefers-reduced-motion` yourself and render the row
   static when it is set. Set `pauseOnHover` either way.
@@ -1234,7 +1233,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   overlay that is not a `Modal` or a `Drawer`.
 - **Instead:** `Modal`, `Drawer`, and `Popover trapFocus`, which trap already. A
   second trap around one of them fights the first.
-- **Ours:** *(not wired — every trapping surface here is a Mantine one)*
+- **Ours:** _(not wired — every trapping surface here is a Mantine one)_
 - **Gotcha:** The child must accept a ref and contain something focusable, or the
   trap silently does nothing at all. `data-autofocus` names the element focused
   first; `FocusTrap.InitialFocus` is the escape hatch for when nothing inside
@@ -1244,9 +1243,9 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 
 - **Use when:** A screen reader needs words the design does not show — what an
   icon-only column means, the preamble to a live region.
-- **Instead:** `aria-label` on the control itself when the words *are* its name.
+- **Instead:** `aria-label` on the control itself when the words _are_ its name.
   Hidden text is for context, not for naming.
-- **Ours:** *(not wired — the icon-only controls here carry `aria-label`)*
+- **Ours:** `src/settings/tour/Tour.tsx` (the tour's `h1`, since slides are `h2`)
 - **Gotcha:** `display: none` and the `hidden` attribute remove content from the
   accessibility tree; this keeps it in. Everything inside is announced, so it is
   not a place to park text nobody should hear.
@@ -1258,7 +1257,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Instead:** `Collapse` when the change is a height, and the overlay
   components — `Modal`, `Drawer`, `Menu`, `Popover`, `Tooltip` — which run this
   one internally and take a `transitionProps` object instead.
-- **Ours:** *(not wired — every animated surface here is a Mantine overlay)*
+- **Ours:** _(not wired — every animated surface here is a Mantine overlay)_
 - **Gotcha:** `mounted` drives it and the child unmounts on exit unless
   `keepMounted`. Duration and easing belong to the theme's transition props, not
   to numbers typed at each call site, and reduced motion is a provider setting
@@ -1270,7 +1269,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   and `SegmentedControl` have.
 - **Instead:** those two components. The indicator is the hard part of them, not
   a replacement for them.
-- **Ours:** *(not wired — the segmented controls here are Mantine's)*
+- **Ours:** _(not wired — the segmented controls here are Mantine's)_
 - **Gotcha:** The `parent` element must have `position: relative` or the
   indicator lands somewhere else entirely, and it ships with no visible styles at
   all — those are yours. Its `transform`, `width` and `height` cannot be
@@ -1281,7 +1280,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** Columns have different widths or offsets and must reflow by
   breakpoint — a two-thirds form beside a one-third summary.
 - **Instead:** `SimpleGrid` when every cell is equal.
-- **Ours:** *(not wired — the grids here are equal-width `SimpleGrid`s)*
+- **Ours:** _(not wired — the grids here are equal-width `SimpleGrid`s)_
 - **Gotcha:** `Grid.Col`'s `span` is out of 12 unless you change `columns`, and
   responsive spans are objects — `span={{ base: 12, md: 6 }}`. A bare `span={6}`
   is half the width on a phone too, which is how a form ends up in two columns on
@@ -1304,7 +1303,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   a settings pane, a marketing section.
 - **Instead:** the shell's own padding for application pages. A container inside
   a container is where the gutters double.
-- **Ours:** *(not wired — `src/components/page-shell.tsx` owns the page width)*
+- **Ours:** _(not wired — `src/components/page-shell.tsx` owns the page width)_
 - **Gotcha:** `size` is a fixed `max-width`, not a responsive one, and `fluid`
   drops it entirely. `strategy="grid"` changes the model — no inline padding, and
   columns instead of a `max-width` — so do not mix the two strategies in one
@@ -1315,7 +1314,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
 - **Use when:** Separating raw HTML that has no margin props of its own.
 - **Instead:** `mt` / `mb` on the component, or the parent's `gap`. Spacing
   belongs to the container, not to an empty element wedged between siblings.
-- **Ours:** *(not wired — spacing here is `Stack` and `Group` gaps)*
+- **Ours:** _(not wired — spacing here is `Stack` and `Group` gaps)_
 - **Gotcha:** It is a `div` with a height. In a flex or grid parent it becomes a
   child the layout has to place, which is how an extra gap appears where nobody
   wrote one.
@@ -1326,7 +1325,7 @@ against, and `npm run ui-lint` fails the build on a utility class anywhere in
   matters — a wide tab strip, a rail of cards.
 - **Instead:** `ScrollArea` for a vertical region, `OverflowList` when the tail
   may collapse, wrapping when the row is allowed to grow taller.
-- **Ours:** *(not wired — nothing here scrolls sideways)*
+- **Ours:** _(not wired — nothing here scrolls sideways)_
 - **Gotcha:** The chevron controls appear only while the content overflows, so a
   story with three items shows none. Keep it inside a bounded box: a window that
   scrolls sideways on its own axis is a layout bug, not a feature.

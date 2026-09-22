@@ -6,6 +6,25 @@ silently undo.
 
 ---
 
+## 2026-09-22: Versioned settings envelope for onboarding state
+
+- **What:** `settings.json` gained `schemaVersion` (envelope-only: the
+  renderer can neither read nor write it) starting at 1, plus three sanitized
+  settings — `tourSeen`, `wizardStep` (steps 0–5, Done at 6),
+  `onboardingComplete`. v0 files migrate by gaining v1 defaults; the migration
+  is idempotent and persists on the next save.
+- **Why:** First run is now a persisted stage machine (tour → wizard →
+  settings) that must survive quits mid-flow; stuffing that into unversioned
+  settings would leave every future shape change guessing.
+- **Rejected alternatives:** Unversioned fields (no way to evolve the shape
+  later); renderer localStorage (invisible to main, wiped on cache clear,
+  untestable from the store).
+- **Constraint:** New settings fields stay renderer-sanitized; envelope fields
+  never enter `Settings`. `migrate()` stays idempotent — old files and first
+  launches both flow through it.
+
+---
+
 ## 2026-09-22: No generic `ipcRenderer` bridge in the preload
 
 - **What:** Removed the scaffold's `contextBridge.exposeInMainWorld('ipcRenderer', …)`

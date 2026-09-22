@@ -1,0 +1,548 @@
+{
+  "feature": {
+    "id": "parley-007",
+    "title": "Guided onboarding: product tour + setup wizard",
+    "problem": "First launch drops the user into a Setup tab that stacks both permissions and both API keys on one scrolling page, while hotkeys hide on a separate Gesture tab nothing points to. Nothing says what order to do things in, what is required versus optional (MiniMax), or when setup is done — so users stall with a half-configured menu-bar app they cannot try. This feature replaces first-run with a 4-slide animated product tour (literal mini-UI scenes), then a 6-step setup wizard (mic, accessibility, Groq key, MiniMax optional, hotkeys, practice), then lands on the normal Settings with a Ready moment. No new IPC channels: every step rides the existing settings/permissions/key bridge. Frame note: the settings window is not PageShell, so the desktop shell sidebar below stands in for the window edge, the B-rules are illustrative rather than probe-enforced, and during tour/wizard the tab rail is replaced (tour: nothing; wizard: step rail).",
+    "nonGoals": [
+      "Autoplay on the tour — manual advance only, so nothing moves unless the user asked.",
+      "A Dictionary tab, snippets, or add-by-voice — parley-006 owns those.",
+      "Windows/Linux onboarding differences — macOS-first; other platforms get honest degrading copy.",
+      "Tour analytics or telemetry — completion is local state only.",
+      "Resizing the 760x560 window — tour and wizard stack inside it."
+    ]
+  },
+  "app": "Parley",
+  "nav": ["Setup", "Gesture", "General"],
+  "surfaces": [
+    {
+      "id": "tour-1",
+      "name": "Tour · Hold to talk",
+      "route": "settings.html · tour 1/4",
+      "archetype": "centered-card",
+      "purpose": "Slide 1 sells the aha moment: hold, speak, release, text appears.",
+      "primaryAction": "Next",
+      "panels": [
+        {
+          "id": "slide",
+          "kind": "card",
+          "title": "Hold to talk, release to paste",
+          "badge": "1 of 4",
+          "subtitle": "The whole product in ten seconds",
+          "rows": [
+            ["[Right Option] held …"],
+            ["◉ ▂▄▆█▆▄▂ listening"],
+            ["“Meeting moved to three” ▌"]
+          ],
+          "footer": "● ○ ○ ○",
+          "actions": ["Skip", "Next"]
+        }
+      ],
+      "states": {
+        "loading": "First paint: glass card with a one-beat shimmer, then the 6 s dictation loop starts (keycap press, waveform, typing).",
+        "empty": "A slide whose illustration failed still shows headline, copy, dots and Next — the tour never strands.",
+        "error": "No error state: the tour is static content with no async work.",
+        "success": "Loop runs (pauses offscreen; static end-frame under reduced motion). Next advances, Skip jumps to the wizard."
+      }
+    },
+    {
+      "id": "tour-2",
+      "name": "Tour · Say how to change it",
+      "route": "settings.html · tour 2/4",
+      "archetype": "centered-card",
+      "purpose": "Slide 2 shows voice edit: speech becomes an instruction that rewrites the field.",
+      "primaryAction": "Next",
+      "panels": [
+        {
+          "id": "slide",
+          "kind": "card",
+          "title": "Say how to change it",
+          "badge": "2 of 4",
+          "subtitle": "Voice edit rewrites the field",
+          "rows": [
+            ["“make it shorter”"],
+            ["“The meeting that was planned…”"],
+            ["→ “Meeting moved.” ✓"]
+          ],
+          "footer": "○ ● ○ ○",
+          "actions": ["Back", "Next"]
+        }
+      ],
+      "states": {
+        "loading": "Slide crossfades in; the before/after loop starts on arrival.",
+        "empty": "Same guarantee as slide 1: copy and controls survive an illustration failure.",
+        "error": "No error state: static content.",
+        "success": "Strike-through dissolves into the teal rewrite on a loop; Back returns, Next advances."
+      }
+    },
+    {
+      "id": "tour-3",
+      "name": "Tour · Ask about anything",
+      "route": "settings.html · tour 3/4",
+      "archetype": "centered-card",
+      "purpose": "Slide 3 shows Explain: select text anywhere, get an answer beside it.",
+      "primaryAction": "Next",
+      "panels": [
+        {
+          "id": "slide",
+          "kind": "card",
+          "title": "Ask about anything",
+          "badge": "3 of 4",
+          "subtitle": "Explain answers beside the text",
+          "rows": [
+            ["selected: “…idempotent…”"],
+            ["card blooms beside it"],
+            ["skeleton → markdown lines"]
+          ],
+          "footer": "○ ○ ● ○",
+          "actions": ["Back", "Next"]
+        }
+      ],
+      "states": {
+        "loading": "Slide crossfades in; the card-bloom loop starts on arrival.",
+        "empty": "Same guarantee: copy and controls survive an illustration failure.",
+        "error": "No error state: static content.",
+        "success": "Highlight pulses, mini card blooms with skeleton resolving to lines; Back/Next work."
+      }
+    },
+    {
+      "id": "tour-4",
+      "name": "Tour · Yours alone",
+      "route": "settings.html · tour 4/4",
+      "archetype": "centered-card",
+      "purpose": "Slide 4 earns trust before asking for permissions and keys.",
+      "primaryAction": "Set up Parley",
+      "panels": [
+        {
+          "id": "slide",
+          "kind": "card",
+          "title": "Yours alone",
+          "badge": "4 of 4",
+          "subtitle": "Private by design · ~2 min setup next",
+          "rows": [
+            ["keys → encrypted at rest"],
+            ["mic live only while held"],
+            ["transcripts never stored"]
+          ],
+          "footer": "○ ○ ○ ●",
+          "actions": ["Back", "Set up Parley"]
+        }
+      ],
+      "states": {
+        "loading": "Slide crossfades in; the lock shimmer plays once, not looped.",
+        "empty": "Same guarantee: copy and controls survive an illustration failure.",
+        "error": "No error state: static content.",
+        "success": "Trust rows + time estimate land; CTA enters the wizard at step 1."
+      }
+    },
+    {
+      "id": "wizard-mic",
+      "name": "Setup wizard",
+      "route": "settings.html · wizard 1/6",
+      "archetype": "list-detail",
+      "purpose": "The step rail persists across all six steps; the mic pane proves “it hears me” with a live orb. Later steps reuse this rail and are drawn pane-only.",
+      "primaryAction": "Continue →",
+      "panels": [
+        {
+          "id": "rail",
+          "kind": "rail",
+          "ratio": 0.3,
+          "title": "Setup",
+          "rows": [
+            ["● Microphone"],
+            ["○ Accessibility"],
+            ["○ Groq key"],
+            ["○ MiniMax · opt"],
+            ["○ Hotkeys"],
+            ["○ Practice"]
+          ]
+        },
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Let Parley hear you",
+          "badge": "1 of 6",
+          "subtitle": "Grant the mic, watch the orb move",
+          "fields": [
+            { "label": "Status", "value": "○ Missing" },
+            { "label": "Proof", "value": "live orb after grant" }
+          ],
+          "actions": ["Back", "Grant Microphone", "Continue →"]
+        }
+      ],
+      "states": {
+        "loading": "Permission status resolving: row skeletons behind the pane.",
+        "empty": "Mic already granted on an earlier run: step shows Granted and offers Continue at once.",
+        "error": "Grant dismissed or failed: human line + “Open System Settings” retry; nothing auto-advances.",
+        "success": "Granted → badge flips, glow-settle + quiet chord, live orb level ~3 s, then auto-continues."
+      }
+    },
+    {
+      "id": "wizard-a11y",
+      "name": "Wizard · Accessibility",
+      "route": "settings.html · wizard 2/6",
+      "archetype": "form",
+      "purpose": "Guide the System Settings round-trip; polling finishes the step by itself.",
+      "primaryAction": "Continue →",
+      "panels": [
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Open what Parley needs",
+          "badge": "2 of 6",
+          "subtitle": "Accessibility sees keys + paste",
+          "rows": [
+            ["1 · Press the button below"],
+            ["2 · Toggle Parley on"],
+            ["3 · Come back — this finishes itself"]
+          ],
+          "fields": [{ "label": "Status", "value": "○ Missing" }],
+          "actions": ["Back", "Open System Settings"]
+        }
+      ],
+      "states": {
+        "loading": "Trust status resolving: row skeletons behind the pane.",
+        "empty": "Already trusted: step shows Granted and offers Continue at once.",
+        "error": "Deep link missed its pane (macOS version drift): shows the manual path Privacy & Security → Accessibility.",
+        "success": "The 2 s poll sees the grant → success beat → auto-continues."
+      }
+    },
+    {
+      "id": "wizard-groq",
+      "name": "Wizard · Groq key",
+      "route": "settings.html · wizard 3/6",
+      "archetype": "form",
+      "purpose": "The one required key, tested before it is stored.",
+      "primaryAction": "Test and save",
+      "panels": [
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Add your Groq key",
+          "badge": "3 of 6",
+          "subtitle": "Transcribes what you say",
+          "fields": [
+            { "label": "Groq API key", "value": "gsk_…" },
+            { "label": "Find it at", "value": "console.groq.com/keys" }
+          ],
+          "actions": ["Back", "Test and save"]
+        }
+      ],
+      "states": {
+        "loading": "Testing: button busy with role=status; the form stays readable underneath.",
+        "empty": "Blank submit: inline “Enter your Groq API key”, focus stays in the field.",
+        "error": "Invalid key: its wording + console link; nothing stored. Twice in a row adds the where-to-find hint.",
+        "success": "“Key works” panel replaces the form (the key is never echoed), then Continue appears."
+      }
+    },
+    {
+      "id": "wizard-minimax",
+      "name": "Wizard · MiniMax key",
+      "route": "settings.html · wizard 4/6",
+      "archetype": "form",
+      "purpose": "The optional key, framed as skippable from the first word.",
+      "primaryAction": "Test and save",
+      "panels": [
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Add MiniMax? (optional)",
+          "badge": "4 of 6",
+          "subtitle": "Only for voice edit + explain",
+          "fields": [{ "label": "MiniMax key", "value": "optional" }],
+          "actions": ["Back", "Skip for now", "Test and save"]
+        }
+      ],
+      "states": {
+        "loading": "Testing: button busy with role=status.",
+        "empty": "Skip jumps to hotkeys; the key can be added later in Setup.",
+        "error": "Invalid key: its wording + retry; Skip stays available throughout.",
+        "success": "“Key works” panel, then Continue. Skipped or saved, the step completes."
+      }
+    },
+    {
+      "id": "wizard-hotkeys",
+      "name": "Wizard · Hotkeys",
+      "route": "settings.html · wizard 5/6",
+      "archetype": "form",
+      "purpose": "Keys are captured live, then proved with a tap-tap-hold practice meter.",
+      "primaryAction": "Continue →",
+      "panels": [
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Choose your keys",
+          "badge": "5 of 6",
+          "subtitle": "Tap, tap, hold the last press",
+          "rows": [
+            ["Gesture key", "[ Right Option ▾ ]"],
+            ["Presses", "2  [3]  4"],
+            ["Voice edit", "[ Right Command ▾ ]"],
+            ["Explain", "[ Right Control ▾ ]"],
+            ["Practice", "○ ○ ○   hold ◌"]
+          ],
+          "actions": ["Back", "Continue →"]
+        }
+      ],
+      "states": {
+        "loading": "Settings resolve with the window; no separate load.",
+        "empty": "A key equal to another reads Off with the existing hint — valid, not an error.",
+        "error": "Capture hears a non-modifier: “Modifiers only” nudge, value unchanged.",
+        "success": "Capture sets the key; practice dots fill per tap and the hold ring completes."
+      }
+    },
+    {
+      "id": "wizard-practice",
+      "name": "Wizard · Practice",
+      "route": "settings.html · wizard 6/6",
+      "archetype": "form",
+      "purpose": "First success: a real dictation landing in a sandbox that already has focus.",
+      "primaryAction": "Finish →",
+      "panels": [
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Say your first sentence",
+          "badge": "6 of 6",
+          "subtitle": "A real dictation, landing here",
+          "rows": [["sandbox:"], ["“…speak now…”"], ["1 hold your key · 2 speak · 3 release"]],
+          "actions": ["Back", "Finish →"]
+        }
+      ],
+      "states": {
+        "loading": "Waiting for the gesture: coach marks breathe gently (opacity only under reduced motion).",
+        "empty": "Released with <300 ms of audio: “Hold a little longer” and the step stays.",
+        "error": "Transcription failed: the orb wording (“No connection”, …) mirrored inline + Try again.",
+        "success": "Text lands in the sandbox → teal flash + chord → Finish opens Done."
+      }
+    },
+    {
+      "id": "done",
+      "name": "Ready",
+      "route": "settings.html · done",
+      "archetype": "centered-card",
+      "purpose": "The completion beat: what is configured, then the handoff to Settings.",
+      "primaryAction": "Open Settings",
+      "panels": [
+        {
+          "id": "summary",
+          "kind": "card",
+          "title": "You're ready",
+          "subtitle": "Parley is listening everywhere",
+          "rows": [
+            ["✓ Microphone · ✓ Accessibility"],
+            ["✓ Groq key · Right Option ×3"],
+            ["MiniMax skipped — add later in Setup"]
+          ],
+          "actions": ["Replay tour", "Open Settings"]
+        }
+      ],
+      "states": {
+        "loading": "Summary resolves with settings; skeleton only if IPC is slow.",
+        "empty": "MiniMax skipped: the row says so with a Setup pointer (not an error).",
+        "error": "A permission revoked since step 1: that row re-opens its step instead of failing.",
+        "success": "Open Settings morphs to the 3-tab shell with the Ready badge + one-time banner."
+      }
+    }
+  ],
+  "components": [
+    {
+      "surface": "tour",
+      "control": "Carousel (no autoplay)",
+      "why": "4 peer slides, each skippable, missing one costs nothing; manual + dots + Skip",
+      "rejected": "Stepper"
+    },
+    {
+      "surface": "tour",
+      "control": "OrbCanvas + bands (reuse)",
+      "why": "the slide-1 loop must move like the real orb, not a drawing of it",
+      "rejected": "static SVG"
+    },
+    {
+      "surface": "wizard",
+      "control": "Stepper, vertical, allowNextStepsSelect=false",
+      "why": "a sequence with real prerequisites — the capability map's onboarding row verbatim",
+      "rejected": "Tabs"
+    },
+    {
+      "surface": "wizard",
+      "control": "Progress + “Step N of 6”",
+      "why": "a known fraction; the map fails a bar with no nearby number",
+      "rejected": "dots alone"
+    },
+    {
+      "surface": "wizard-groq, wizard-minimax",
+      "control": "PasswordInput + RHF/zod",
+      "why": "a secret with a labeled reveal; the existing SetupTab pattern",
+      "rejected": "TextInput type=password"
+    },
+    {
+      "surface": "wizard-hotkeys",
+      "control": "Kbd",
+      "why": "keys the user presses; the token background reads as pressable",
+      "rejected": "Text monospace"
+    },
+    {
+      "surface": "wizard-hotkeys",
+      "control": "Select",
+      "why": "8 fixed modifier keys (map: five to ten); the rows GestureTab already mounts",
+      "rejected": "Radio.Group"
+    },
+    {
+      "surface": "wizard-hotkeys",
+      "control": "SegmentedControl",
+      "why": "3 short options applied immediately; also dodges Select's jsdom cost",
+      "rejected": "Select"
+    },
+    {
+      "surface": "wizard",
+      "control": "Badge",
+      "why": "Granted/Missing status; the word carries meaning and color only reinforces",
+      "rejected": "colored dot"
+    },
+    {
+      "surface": "wizard",
+      "control": "Alert (title + icon + role=alert)",
+      "why": "standing failures with retry; a toast leaves too fast for slow readers",
+      "rejected": "notifications"
+    },
+    {
+      "surface": "wizard",
+      "control": "Skeleton / Loader",
+      "why": "skeleton where the shape is known (pane), Loader only for the busy key-test button",
+      "rejected": "spinner everywhere"
+    },
+    {
+      "surface": "wizard-practice",
+      "control": "Textarea sandbox",
+      "why": "a real dictation target with focus already inside it",
+      "rejected": "mock transcript"
+    },
+    {
+      "surface": "all",
+      "control": "motion lib (SPRING/EASE/DURATION)",
+      "why": "interruption-safe springs on one token set with reduced-motion paths",
+      "rejected": "Mantine Transition"
+    }
+  ],
+  "entities": [
+    {
+      "name": "OnboardingState",
+      "fields": [
+        {
+          "name": "tourSeen",
+          "type": "boolean",
+          "note": "tour never auto-shows twice; Replay resets this only"
+        },
+        {
+          "name": "wizardStep",
+          "type": "0..6",
+          "note": "resume index; Done is the only exit to completion"
+        },
+        {
+          "name": "onboardingComplete",
+          "type": "boolean",
+          "note": "flips the stage to the 3-tab Settings"
+        },
+        {
+          "name": "schemaVersion",
+          "type": "number",
+          "note": "first versioned settings field; v0 files migrate to v1 defaults"
+        }
+      ],
+      "relations": [
+        "lives in settings.json FileShape beside Settings; sanitized + migrated in settings-store"
+      ]
+    }
+  ],
+  "integration": [
+    {
+      "from": "electron/settings-store.ts",
+      "to": "schemaVersion + migrate() + sanitize the new fields",
+      "note": "old files load as v0, gain v1 defaults"
+    },
+    {
+      "from": "electron/types.ts",
+      "to": "Settings gains tourSeen/wizardStep/onboardingComplete; schemaVersion stays envelope-only",
+      "note": "SettingsView inherits them"
+    },
+    {
+      "from": "src/settings/SettingsApp.tsx",
+      "to": "stage switch",
+      "note": "!tourSeen → Tour, !onboardingComplete → Wizard(step), else the shell"
+    },
+    {
+      "from": "usePermissions (2 s poll)",
+      "to": "grant auto-advance",
+      "note": "600 ms success beat first — the reward, not the delay"
+    },
+    {
+      "from": "src/settings/GestureTab.tsx",
+      "to": "embedded in HotkeysStep",
+      "note": "settings + onChange passthrough, plus the practice meter below"
+    },
+    {
+      "from": "src/orb/OrbCanvas + bands",
+      "to": "mic proof + tour-1 loop",
+      "note": "one live instance at a time; loops stop offscreen"
+    },
+    {
+      "from": "src/lib/motion.ts",
+      "to": "pane slides, stagger, glow-settle, hold ring",
+      "note": "no new tokens; reduced-motion paths already exist"
+    },
+    {
+      "from": "src/settings/GeneralTab.tsx",
+      "to": "“Replay tour” link",
+      "note": "resets tourSeen only"
+    },
+    {
+      "from": "tray isReady",
+      "to": "unchanged (mic + a11y + key)",
+      "note": "Ready badge flips on completion"
+    },
+    {
+      "from": "docs/MANUAL_CHECKLIST.md",
+      "to": "clean-state walk deltas",
+      "note": "tour skip/replay, resume-after-quit, reduced motion"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "src/settings/tour/Tour.tsx",
+      "src/settings/tour/illustrations.tsx",
+      "src/settings/tour/illustrations.module.css",
+      "src/settings/Tour.stories.tsx",
+      "src/settings/wizard/WizardShell.tsx",
+      "src/settings/wizard/steps.tsx",
+      "src/settings/wizard/stage.ts",
+      "src/settings/wizard/useOnboarding.ts",
+      "src/settings/Wizard.stories.tsx",
+      "src/settings/gesture-keys.ts",
+      "src/settings/__tests__/onboarding.test.tsx"
+    ],
+    "changed": [
+      "electron/types.ts",
+      "electron/settings-store.ts",
+      "electron/__tests__/settings-store.test.ts",
+      "src/settings/SettingsApp.tsx",
+      "src/settings/GestureTab.tsx",
+      "src/settings/GeneralTab.tsx",
+      "src/settings/SetupTab.tsx",
+      "src/settings/__tests__/SettingsApp.test.tsx",
+      "src/settings/__tests__/SettingsShell.test.tsx",
+      "docs/storybook-taxonomy.json",
+      "docs/MANUAL_CHECKLIST.md",
+      "feature_list.json"
+    ]
+  },
+  "verification": [
+    "make type-check",
+    "make lint",
+    "make ui-lint",
+    "npm run test -- src/settings/__tests__/onboarding.test.tsx",
+    "npm run ui-probe",
+    "Manual: fresh userData walks tour → wizard → settings without touching tabs",
+    "Manual: quit mid-wizard resumes at the saved step; Replay tour never auto-shows",
+    "Manual: Reduce Motion + keyboard-only pass of every step"
+  ]
+}

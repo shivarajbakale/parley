@@ -12,10 +12,21 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
   return {
     onOrbPhase: () => () => {},
     sendAudio: vi.fn(),
-    getSettings: vi.fn().mockResolvedValue({ ...DEFAULT_SETTINGS, hasApiKey: true, hasRewriteKey: true }),
-    updateSettings: vi
-      .fn()
-      .mockImplementation(async (patch) => ({ ...DEFAULT_SETTINGS, ...patch, hasApiKey: true, hasRewriteKey: true })),
+    getSettings: vi.fn().mockResolvedValue({
+      ...DEFAULT_SETTINGS,
+      tourSeen: true,
+      onboardingComplete: true,
+      hasApiKey: true,
+      hasRewriteKey: true,
+    }),
+    updateSettings: vi.fn().mockImplementation(async patch => ({
+      ...DEFAULT_SETTINGS,
+      tourSeen: true,
+      onboardingComplete: true,
+      ...patch,
+      hasApiKey: true,
+      hasRewriteKey: true,
+    })),
     setApiKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     setRewriteKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     getPermissions: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
@@ -62,7 +73,13 @@ describe('SettingsApp', () => {
   it('shows the setup banner when no API key is stored', async () => {
     mount(
       mockApi({
-        getSettings: vi.fn().mockResolvedValue({ ...DEFAULT_SETTINGS, hasApiKey: false, hasRewriteKey: false }),
+        getSettings: vi.fn().mockResolvedValue({
+          ...DEFAULT_SETTINGS,
+          tourSeen: true,
+          onboardingComplete: true,
+          hasApiKey: false,
+          hasRewriteKey: false,
+        }),
       })
     );
     expect(await screen.findByText('Finish setup')).toBeInTheDocument();
@@ -72,7 +89,9 @@ describe('SettingsApp', () => {
     const api = mockApi();
     mount(api);
     await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
-    await userEvent.click(await screen.findByRole('switch', { name: 'Play sounds when recording starts and stops' }));
+    await userEvent.click(
+      await screen.findByRole('switch', { name: 'Play sounds when recording starts and stops' })
+    );
     expect(api.updateSettings).toHaveBeenCalledWith({ tickSound: false });
   });
 
@@ -96,10 +115,14 @@ describe('SettingsApp', () => {
   });
 
   it('shows an alert when saving a setting rejects', async () => {
-    const api = mockApi({ updateSettings: vi.fn().mockRejectedValue(new Error('keychain locked')) });
+    const api = mockApi({
+      updateSettings: vi.fn().mockRejectedValue(new Error('keychain locked')),
+    });
     mount(api);
     await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
-    await userEvent.click(await screen.findByRole('switch', { name: 'Play sounds when recording starts and stops' }));
+    await userEvent.click(
+      await screen.findByRole('switch', { name: 'Play sounds when recording starts and stops' })
+    );
     expect(await screen.findByText('Could not save settings')).toBeInTheDocument();
   });
 

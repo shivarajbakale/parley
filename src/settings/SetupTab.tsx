@@ -25,7 +25,7 @@ const keySchema = (label: string) =>
   z.object({ apiKey: z.string().trim().min(1, `Enter your ${label}`) });
 type KeyForm = z.infer<ReturnType<typeof keySchema>>;
 
-function PermissionRow({
+export function PermissionRow({
   kind,
   label,
   granted,
@@ -79,7 +79,7 @@ function PermissionRow({
   );
 }
 
-function ApiKeySection({
+export function ApiKeySection({
   label,
   placeholder,
   purpose,
@@ -105,7 +105,7 @@ function ApiKeySection({
   return (
     <form
       onSubmit={form.handleSubmit(({ apiKey }) =>
-        setApiKey.mutate(apiKey, { onSuccess: (r) => r.ok && form.reset() })
+        setApiKey.mutate(apiKey, { onSuccess: r => r.ok && form.reset() })
       )}
     >
       <Stack gap="xs">

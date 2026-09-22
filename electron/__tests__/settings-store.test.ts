@@ -9,8 +9,8 @@ import { DEFAULT_SETTINGS } from '../types';
 
 const crypto: CryptoLike = {
   isEncryptionAvailable: () => true,
-  encryptString: (plain) => Buffer.from(`enc(${plain})`),
-  decryptString: (encrypted) => encrypted.toString().slice(4, -1),
+  encryptString: plain => Buffer.from(`enc(${plain})`),
+  decryptString: encrypted => encrypted.toString().slice(4, -1),
 };
 
 describe('settings store', () => {
@@ -83,5 +83,55 @@ describe('settings store', () => {
   it('falls back to the defaults when the file is corrupted', () => {
     writeFileSync(path.join(dir, 'settings.json'), '{not json');
     expect(createSettingsStore({ dir, crypto }).get()).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it('migrates a v0 file forward, keeping settings and keys', () => {
+    writeFileSync(
+      path.join(dir, 'settings.json'),
+      JSON.stringify({
+        settings: { tapCount: 2 },
+        apiKeyEncrypted: Buffer.from('enc(gsk_old)').toString('base64'),
+      })
+    );
+    const store = createSettingsStore({ dir, crypto });
+    expect(store.get()).toEqual({ ...DEFAULT_SETTINGS, tapCount: 2 });
+    expect(store.get().tourSeen).toBe(false);
+    expect(store.getApiKey()).toBe('gsk_old');
+
+    store.update({ vocabulary: 'MiniMax' });
+    const saved = JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8')) as {
+      schemaVersion?: number;
+    };
+    expect(saved.schemaVersion).toBe(1);
+  });
+
+  it('round-trips the onboarding fields', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.update({ tourSeen: true, wizardStep: 4, onboardingComplete: true });
+    expect(createSettingsStore({ dir, crypto }).get()).toEqual({
+      ...DEFAULT_SETTINGS,
+      tourSeen: true,
+      wizardStep: 4,
+      onboardingComplete: true,
+    });
+  });
+
+  it('drops an out-of-range wizard step and non-boolean flags', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.update({ wizardStep: 9 as never, tourSeen: 'yes' as never });
+    store.update({ wizardStep: -1 as never });
+    store.update({ wizardStep: 1.5 as never });
+    expect(store.get().wizardStep).toBe(0);
+    expect(store.get().tourSeen).toBe(false);
+  });
+
+  it('keeps the envelope version out of the renderer’s reach', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.update({ schemaVersion: 99 } as never);
+    expect((store.get() as unknown as Record<string, unknown>).schemaVersion).toBeUndefined();
+    const saved = JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8')) as {
+      schemaVersion?: number;
+    };
+    expect(saved.schemaVersion).toBe(1);
   });
 });

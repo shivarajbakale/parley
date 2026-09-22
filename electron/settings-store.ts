@@ -1,7 +1,16 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { DEFAULT_SETTINGS, GESTURE_KEYS, type Settings, type SettingsView } from './types';
+import {
+  DEFAULT_SETTINGS,
+  GESTURE_KEYS,
+  WIZARD_STEP_MAX,
+  type Settings,
+  type SettingsView,
+} from './types';
+
+/** First versioned settings shape. v0 files predate the onboarding fields. */
+export const SETTINGS_SCHEMA_VERSION = 1;
 
 /** The shape of Electron's `safeStorage`, passed in so tests need no Electron. */
 export interface CryptoLike {
@@ -26,6 +35,16 @@ interface FileShape {
   settings?: Partial<Settings>;
   apiKeyEncrypted?: string;
   rewriteKeyEncrypted?: string;
+  /** Envelope-only: the renderer can neither read nor write this. */
+  schemaVersion?: number;
+}
+
+/** Bring an old file forward. v0 to v1 moves nothing: the onboarding fields
+ * simply did not exist, so `DEFAULT_SETTINGS` supplies them. Idempotent. */
+function migrate(shape: FileShape): FileShape {
+  const version = typeof shape.schemaVersion === 'number' ? shape.schemaVersion : 0;
+  if (version >= SETTINGS_SCHEMA_VERSION) return shape;
+  return { ...shape, schemaVersion: SETTINGS_SCHEMA_VERSION };
 }
 
 /** Keep only fields with valid values. The renderer is untrusted input. */
@@ -44,6 +63,17 @@ function sanitize(input: Partial<Settings>): Partial<Settings> {
   if (typeof input.vocabulary === 'string') out.vocabulary = input.vocabulary.slice(0, 2000);
   if (typeof input.tickSound === 'boolean') out.tickSound = input.tickSound;
   if (typeof input.launchAtLogin === 'boolean') out.launchAtLogin = input.launchAtLogin;
+  if (typeof input.tourSeen === 'boolean') out.tourSeen = input.tourSeen;
+  if (typeof input.onboardingComplete === 'boolean')
+    out.onboardingComplete = input.onboardingComplete;
+  if (
+    typeof input.wizardStep === 'number' &&
+    Number.isInteger(input.wizardStep) &&
+    input.wizardStep >= 0 &&
+    input.wizardStep <= WIZARD_STEP_MAX
+  ) {
+    out.wizardStep = input.wizardStep;
+  }
   return out;
 }
 
@@ -52,7 +82,7 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
 
   let state: FileShape = {};
   try {
-    state = JSON.parse(readFileSync(file, 'utf8')) as FileShape;
+    state = migrate(JSON.parse(readFileSync(file, 'utf8')) as FileShape);
   } catch {
     // First launch or a corrupted file: defaults are fine.
   }
@@ -67,6 +97,7 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       settings,
       ...(apiKeyEncrypted ? { apiKeyEncrypted } : {}),
       ...(rewriteKeyEncrypted ? { rewriteKeyEncrypted } : {}),
+      schemaVersion: SETTINGS_SCHEMA_VERSION,
     };
     writeFileSync(file, JSON.stringify(body, null, 2));
   }

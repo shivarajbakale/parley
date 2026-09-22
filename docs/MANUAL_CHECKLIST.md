@@ -55,6 +55,24 @@ previous clipboard content is back afterwards (copy a word first, paste it after
       `x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone`
       and `x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility`.
 
+## Onboarding tour + wizard
+
+From a clean state (delete `~/Library/Application Support/parley/settings.json`, relaunch):
+
+- [ ] A 4-slide tour opens: keycap to waveform to typing loop, edit rewrite, explain card bloom, trust rows. Only the visible slide animates.
+- [ ] Skip tour jumps to wizard step 1; Back on step 1 returns to the tour; "Set up Parley" on slide 4 enters the wizard.
+- [ ] Mic step: grant, then the live orb follows your voice for ~3 s and the step auto-continues. Dismissing shows a human error with retry and nothing advances.
+- [ ] Accessibility step: the button opens the right System Settings pane; toggling Parley on auto-continues after the beat.
+- [ ] Groq step: an invalid key shows an inline error and stores nothing; a valid key shows "Key works" and then Continue.
+- [ ] MiniMax step: Skip for now jumps to hotkeys; saving a key works like Groq.
+- [ ] Hotkeys: Capture plus pressing Right Command sets it; pressing "A" shows "Modifiers only"; two taps plus a hold completes the practice meter.
+- [ ] Practice: hold the gesture, speak, release — the text lands in the sandbox and "It landed" shows. Finish with an empty box nudges instead of advancing.
+- [ ] Done: the summary rows match reality; Open Settings lands on the tabs with Ready; Replay tour reopens the tour.
+- [ ] Quit mid-wizard (e.g. step 3) and relaunch: it resumes at step 3. The tour never auto-shows twice.
+- [ ] With Reduce Motion on: tour scenes rest on static end-frames, step changes fade, the practice hold completes without the ring sweep.
+- [ ] Keyboard-only: every step completes without a pointer; focus lands on each step heading.
+- [ ] Existing users (a 0.2.x settings.json with a stored key): the tour shows once and the wizard walks with current values kept.
+
 ## Groq API key
 
 - [ ] Entering a real Groq API key in Settings and saving it succeeds and the

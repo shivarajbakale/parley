@@ -40,7 +40,16 @@ export interface Settings {
   vocabulary: string;
   tickSound: boolean;
   launchAtLogin: boolean;
+  /** First-run tour seen. Reset alone to replay the tour without redoing setup. */
+  tourSeen: boolean;
+  /** Wizard resume index: steps 0-5, then the Done screen at `WIZARD_STEP_MAX`. */
+  wizardStep: number;
+  /** Setup finished. Flips the settings window from the wizard to its tabs. */
+  onboardingComplete: boolean;
 }
+
+/** Wizard steps 0-5 are the six setup steps; the Done screen sits at 6. */
+export const WIZARD_STEP_MAX = 6;
 
 export const DEFAULT_SETTINGS: Settings = {
   gestureKey: 'AltRight',
@@ -50,6 +59,9 @@ export const DEFAULT_SETTINGS: Settings = {
   vocabulary: '',
   tickSound: true,
   launchAtLogin: true,
+  tourSeen: false,
+  wizardStep: 0,
+  onboardingComplete: false,
 };
 
 /** `dictate` pastes what was said; `edit` applies it to the focused field. */

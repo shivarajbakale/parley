@@ -1,42 +1,42 @@
-# Progress Log
+# parley-007 — guided onboarding: tour + setup wizard (in review → release)
 
-## Current Verified State
+First run is now a stage, not a tab: a 4-slide animated product tour
+(`src/settings/tour/`), then a 6-step setup wizard (`src/settings/wizard/`)
+covering mic, accessibility, Groq key, MiniMax (optional), hotkeys with live
+capture + tap-tap-hold practice, and a real practice dictation — then the Done
+screen lands on the normal Settings with a Ready moment. Design and
+`FEATURE-PLAN.md` (11 surfaces) were approved 2026-09-22; the plan JSON is
+`parley-007.feature-plan.json` at root.
 
-- Repository root: this repo (parley).
-- Standard startup path: `./init.sh`.
-- Standard verification path: `make check`.
-- `parley-001`, `parley-002` and `parley-003` are `passing`. `parley-004`
-  (dictation by hand) and `parley-005` (voice edit) are `blocked` on a human
-  walking `docs/MANUAL_CHECKLIST.md` with `make dev`; no code is pending on
-  either. Both are merged to `main`, along with the waveform pill and the
-  glass sounds.
-- `parley-006` (personal dictionary) is `in_progress` on branch
-  `personal-dictionary`. Done so far: the core (`electron/dictionary.ts`,
-  `electron/dictionary-store.ts`, used by `electron/session.ts`), and learning
-  from corrections: after a dictation `electron/correction-watcher.ts` re-reads
-  the field, `electron/correction-detect.ts` decides whether one word was
-  respelled, and `electron/word-offer.ts` asks on the pill
-  (`src/orb/Notice.tsx`) and takes one clean tap of the dictation key as yes.
-  None of the learning path has been tried in the real app yet; the manual
-  steps are the "Personal dictionary" section of `docs/MANUAL_CHECKLIST.md`.
-- Next step: have the user walk that section, tune the detector on what they
-  report, then run `plan-feature` for the Dictionary settings tab (table,
-  inline add row, import and export, the learning toggle, migration of the
-  `vocabulary` setting). After it: snippets, add-by-voice, on-screen context.
-- A second worktree, `.claude/worktrees/explain-selection`, belongs to other
-  work. Its untracked `explain-selection.feature-plan.json` and
-  `FEATURE-PLAN.md` in the repo root fail `plan-lint` (P4) and were left
-  alone; `vite.config.ts` now keeps `.claude/**` out of the test run.
-- Current blocker: none.
+## Current state
 
-## Session Log
+- Code complete on `main`, automated gates green (see Evidence in
+  `feature_list.json`). `make check`'s probe phase hung once with frozen CPU
+  and no output for 30+ min; killed and re-ran green standalone in under
+  4 min — flake, not a code hang.
+- `parley-007` stays `in_progress`: the 13-box "Onboarding tour + wizard"
+  section in `docs/MANUAL_CHECKLIST.md` needs a human with `make dev`. Do not
+  mark `passing` until that walk is recorded.
+- Releasing as 0.3.0 (tag + local DMG) on automated verification + owner
+  waiver, per explicit instruction. DMG builds into `release/0.3.0/`
+  (gitignored, ad-hoc signed, no notarization — known limitation).
+- `FEATURE-PLAN.md` at root now renders this feature's plan. The
+  `explain-selection` source JSON is untouched and re-renderable; whoever
+  merges second re-renders to resolve the shared-file conflict.
+- The register shows three `in_progress` (parley-006 on branch
+  `personal-dictionary`, explain-selection in its worktree, parley-007 here).
+  Pre-existing single-flight violation; each lives on its own branch/tree.
 
-### Session 001 — Scaffolded from harness-core
+## Settings shape (new)
 
-- Date: 2026-07-01
-- Goal: Establish a clean, verifiable baseline for agent-driven work.
-- Completed: Project scaffolded with a complete harness (AGENTS.md, CLAUDE.md,
-  init.sh, Makefile, feature_list.json, and the continuity/checklist artifacts).
-- Verification: run `./init.sh` and confirm it exits 0.
-- Next action: read `feature_list.json`, pick the highest-priority unfinished
-  feature, and implement exactly one before stopping.
+- `settings.json` is versioned: `schemaVersion` envelope (renderer cannot read
+  or write it), currently 1. v0 files migrate by gaining defaults.
+- New sanitized settings: `tourSeen`, `wizardStep` (0–5 steps, Done at 6),
+  `onboardingComplete`. Stage machine in `src/settings/wizard/stage.ts`;
+  upgrades from 0.2.x see the tour once, then walk with values kept.
+
+## Next step
+
+Walk the onboarding checklist from a clean state
+(`rm ~/Library/Application\ Support/parley/settings.json`, `make dev`), record
+the evidence, then mark `passing` and let `make commit-feature` take it.

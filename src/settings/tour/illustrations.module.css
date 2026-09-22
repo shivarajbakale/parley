@@ -1,0 +1,411 @@
+/* Tour illustration loops. Base styles are the end frame; `.animate` runs the
+ * loops, so an inactive slide (or reduced motion) rests on a complete,
+ * meaningful picture instead of mid-animation nothing. Transform and opacity
+ * only — nothing here touches layout. */
+
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+}
+
+.scene {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+}
+
+/* --- shared bits ------------------------------------------------------ */
+
+.keyRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-xs);
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.bar {
+  width: 5px;
+  border-radius: 3px;
+  background: var(--app-aurora-core);
+  transform: scaleY(0.6);
+  transform-origin: bottom;
+}
+
+.typed {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-sm);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--app-aurora-glow);
+}
+
+.before {
+  position: relative;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  text-align: center;
+}
+
+.strike {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--mantine-color-red-filled);
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.after {
+  margin-top: var(--mantine-spacing-xs);
+  color: var(--mantine-color-teal-filled);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  text-align: center;
+}
+
+.chip {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.sel {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--mantine-radius-sm);
+  background: color-mix(in oklab, var(--app-aurora-core) 35%, transparent);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.selRow {
+  text-align: center;
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.miniCard {
+  margin: 0 auto;
+  max-width: 250px;
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  background: var(--app-glass);
+  border: 1px solid var(--app-glass-border);
+  border-radius: var(--mantine-radius-md);
+  backdrop-filter: blur(24px) saturate(1.4);
+}
+
+.prose {
+  font-size: var(--mantine-font-size-xs);
+  line-height: var(--mantine-line-height-sm);
+}
+
+.prose p {
+  margin: 0 0 4px;
+}
+
+.skel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Skeleton and prose share one slot so the card never grows mid-swap. */
+.swap {
+  position: relative;
+}
+
+.swapOverlay {
+  position: absolute;
+  inset: 0;
+}
+
+.trustRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-xs);
+  font-size: var(--mantine-font-size-sm);
+  margin-bottom: var(--mantine-spacing-sm);
+}
+
+.lockWrap {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-sm);
+  padding: 2px;
+}
+
+.shimmer {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in oklab, white 35%, transparent) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.micDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mantine-color-red-filled);
+}
+
+/* --- loops (only under .animate) -------------------------------------- */
+
+.animate .keyPress {
+  animation: press 6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes press {
+  0%,
+  100% {
+    transform: none;
+  }
+  3%,
+  12% {
+    transform: translateY(3px);
+  }
+  18% {
+    transform: none;
+  }
+}
+
+.animate .bars .bar {
+  animation: bar-dance 1.1s ease-in-out infinite alternate;
+}
+
+.animate .bars .bar:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.animate .bars .bar:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+.animate .bars .bar:nth-child(4) {
+  animation-delay: 0.08s;
+}
+
+.animate .bars .bar:nth-child(5) {
+  animation-delay: 0.36s;
+}
+
+@keyframes bar-dance {
+  from {
+    transform: scaleY(0.25);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.animate .typedLoop {
+  animation: type-loop 6s linear infinite;
+}
+
+@keyframes type-loop {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    opacity: 1;
+  }
+  45% {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+  84% {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+  94%,
+  100% {
+    clip-path: inset(0 0 0 0);
+    opacity: 0;
+  }
+}
+
+.animate .caret {
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate .strikeLoop {
+  animation: strike-loop 6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes strike-loop {
+  0%,
+  12% {
+    transform: scaleX(0);
+  }
+  28%,
+  84% {
+    transform: scaleX(1);
+  }
+  94%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+.animate .afterLoop {
+  animation: after-loop 6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes after-loop {
+  0%,
+  30% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  46%,
+  84% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate .selLoop {
+  animation: sel-loop 6s ease-in-out infinite;
+}
+
+@keyframes sel-loop {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  20%,
+  70% {
+    opacity: 1;
+  }
+}
+
+.animate .cardLoop {
+  animation: card-loop 6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes card-loop {
+  0%,
+  14% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  30%,
+  84% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate .skelLoop {
+  animation: skel-loop 6s linear infinite;
+}
+
+@keyframes skel-loop {
+  0%,
+  52% {
+    opacity: 1;
+  }
+  64%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate .proseLoop {
+  animation: prose-loop 6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes prose-loop {
+  0%,
+  52% {
+    opacity: 0;
+  }
+  66%,
+  84% {
+    opacity: 1;
+  }
+  94%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate .shimmerLoop {
+  animation: shimmer-loop 5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes shimmer-loop {
+  0%,
+  100% {
+    transform: translateX(-120%);
+  }
+  45%,
+  60% {
+    transform: translateX(120%);
+  }
+}
+
+.animate .dotLoop {
+  animation: dot-loop 2.4s ease-in-out infinite;
+}
+
+@keyframes dot-loop {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion: no loops at all. The base styles above are the end frame,
+ * so every scene still reads complete — feedback preserved, movement gone. */
+@media (prefers-reduced-motion: reduce) {
+  .scene,
+  .scene * {
+    animation: none !important;
+  }
+}
