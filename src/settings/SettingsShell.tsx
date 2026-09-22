@@ -5,9 +5,9 @@ import type { PermissionStatus, Settings, SettingsView } from '../../electron/ty
 
 import { GeneralTab } from './GeneralTab';
 import { GestureTab } from './GestureTab';
+import { OverviewTab } from './OverviewTab';
 import { PANEL_SHIFT_PX, tabDirection } from './motion-variants';
 import classes from './settings.module.css';
-import { SetupTab } from './SetupTab';
 import { type TabId } from './tabs';
 import { TabRail } from './TabRail';
 
@@ -16,14 +16,17 @@ export function SettingsShell({
   permissions,
   saveFailed,
   onChange,
+  initialTab = 'overview',
 }: {
   settings: SettingsView;
   permissions: PermissionStatus;
   saveFailed: boolean;
   onChange: (patch: Partial<Settings>) => void;
+  /** The Overview answers "is it working?", so that is where the window opens. */
+  initialTab?: TabId;
 }) {
   const needsSetup = !permissions.microphone || !permissions.accessibility || !settings.hasApiKey;
-  const [active, setActive] = useState<TabId>(needsSetup ? 'setup' : 'gesture');
+  const [active, setActive] = useState<TabId>(initialTab);
   const [direction, setDirection] = useState<1 | -1>(1);
 
   const select = (next: TabId) => {
@@ -53,14 +56,9 @@ export function SettingsShell({
             Could not save settings
           </Alert>
         )}
-        <Tabs.Panel value="setup">
+        <Tabs.Panel value="overview">
           <Box className={classes.panel} style={panelStyle}>
-            <SetupTab
-              needsSetup={needsSetup}
-              permissions={permissions}
-              hasApiKey={settings.hasApiKey}
-              hasRewriteKey={settings.hasRewriteKey}
-            />
+            <OverviewTab settings={settings} permissions={permissions} />
           </Box>
         </Tabs.Panel>
         <Tabs.Panel value="gesture">

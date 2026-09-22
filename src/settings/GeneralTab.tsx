@@ -1,10 +1,11 @@
-import { Box, Button, Divider, Stack, Switch, Textarea, Title } from '@mantine/core';
+import { Box, Button, Stack, Switch, Text, Textarea, Title } from '@mantine/core';
 
 import type { Settings, SettingsView } from '../../electron/types';
 
 import { Pressable, StaggerGroup, StaggerItem } from './motion';
 import classes from './settings.module.css';
 import { SettingRow } from './SettingRow';
+import { SettingsGroup } from './SettingsGroup';
 import { useUpdateSettings } from './use-parley';
 
 export function GeneralTab({
@@ -19,31 +20,54 @@ export function GeneralTab({
     <StaggerGroup>
       <Stack gap="lg">
         <StaggerItem>
-          <Title order={4}>General</Title>
-        </StaggerItem>
-        <StaggerItem>
-          <Box className={classes.glass} p="md">
-            <Stack gap="md">
-              <Switch
-                labelPosition="left"
-                label="Play sounds when recording starts and stops"
-                checked={settings.tickSound}
-                onChange={event => onChange({ tickSound: event.currentTarget.checked })}
-                styles={{ body: { justifyContent: 'space-between' } }}
-              />
-              <Divider />
-              <Switch
-                labelPosition="left"
-                label="Launch at login"
-                checked={settings.launchAtLogin}
-                onChange={event => onChange({ launchAtLogin: event.currentTarget.checked })}
-                styles={{ body: { justifyContent: 'space-between' } }}
-              />
-            </Stack>
+          <Box>
+            <Title order={4}>General</Title>
+            <Text size="sm" c="dimmed" mt={4}>
+              How Parley behaves on this Mac.
+            </Text>
           </Box>
         </StaggerItem>
         <StaggerItem>
-          <Box className={classes.glass} p="md">
+          <SettingsGroup label="Behaviour">
+            <SettingRow label="Sounds" description="A soft tick when recording starts and stops.">
+              <Switch
+                aria-label="Play sounds when recording starts and stops"
+                checked={settings.tickSound}
+                onChange={event => onChange({ tickSound: event.currentTarget.checked })}
+              />
+            </SettingRow>
+            <SettingRow label="Launch at login" description="Parley starts in the menu bar.">
+              <Switch
+                aria-label="Launch at login"
+                checked={settings.launchAtLogin}
+                onChange={event => onChange({ launchAtLogin: event.currentTarget.checked })}
+              />
+            </SettingRow>
+          </SettingsGroup>
+        </StaggerItem>
+        {/* Saves on blur, not on change: it's free text typed keystroke by keystroke, so firing
+            a mutation per character (like the toggles/select, where each change is a single
+            discrete choice) would spam IPC and thrash the settings store. */}
+        <StaggerItem>
+          <SettingsGroup label="Dictation">
+            <Box className={classes.blockRow}>
+              <Textarea
+                label="Custom vocabulary"
+                description="Names and jargon Whisper should recognise, separated by commas."
+                placeholder="Parley, MiniMax, Groq"
+                rows={3}
+                defaultValue={settings.vocabulary}
+                onBlur={event => {
+                  if (event.currentTarget.value !== settings.vocabulary) {
+                    onChange({ vocabulary: event.currentTarget.value });
+                  }
+                }}
+              />
+            </Box>
+          </SettingsGroup>
+        </StaggerItem>
+        <StaggerItem>
+          <SettingsGroup label="Help">
             <SettingRow label="Product tour" description="Watch the four-slide intro again.">
               <Pressable>
                 <Button
@@ -56,23 +80,7 @@ export function GeneralTab({
                 </Button>
               </Pressable>
             </SettingRow>
-          </Box>
-        </StaggerItem>
-        {/* Saves on blur, not on change: it's free text typed keystroke by keystroke, so firing
-            a mutation per character (like the toggles/select, where each change is a single
-            discrete choice) would spam IPC and thrash the settings store. */}
-        <StaggerItem>
-          <Textarea
-            label="Custom vocabulary"
-            description="Names and jargon Whisper should recognise, separated by commas."
-            rows={3}
-            defaultValue={settings.vocabulary}
-            onBlur={event => {
-              if (event.currentTarget.value !== settings.vocabulary) {
-                onChange({ vocabulary: event.currentTarget.value });
-              }
-            }}
-          />
+          </SettingsGroup>
         </StaggerItem>
       </Stack>
     </StaggerGroup>

@@ -1,25 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Alert,
-  Badge,
-  Box,
-  Button,
-  Divider,
-  Group,
-  PasswordInput,
-  Stack,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Alert, Badge, Button, Group, PasswordInput, Stack, Text } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import type { PermissionKind, PermissionStatus } from '../../electron/types';
+import type { PermissionKind } from '../../electron/types';
 
-import { Pressable, StaggerGroup, StaggerItem } from './motion';
+import { Pressable } from './motion';
 import classes from './settings.module.css';
-import { useRequestPermission, useSetApiKey, useSetRewriteKey } from './use-parley';
+import { useRequestPermission, useSetApiKey } from './use-parley';
+
+/*
+ * The permission row and key form shared by the first-run flow, the Overview
+ * and the MiniMax offer.
+ */
 
 const keySchema = (label: string) =>
   z.object({ apiKey: z.string().trim().min(1, `Enter your ${label}`) });
@@ -144,77 +138,5 @@ export function ApiKeySection({
         )}
       </Stack>
     </form>
-  );
-}
-
-export function SetupTab({
-  needsSetup,
-  permissions,
-  hasApiKey,
-  hasRewriteKey,
-}: {
-  needsSetup: boolean;
-  permissions: PermissionStatus;
-  hasApiKey: boolean;
-  hasRewriteKey: boolean;
-}) {
-  const setApiKey = useSetApiKey();
-  const setRewriteKey = useSetRewriteKey();
-
-  return (
-    <StaggerGroup>
-      <Stack gap="lg">
-        <StaggerItem>
-          <Box>
-            <Title order={4}>{needsSetup ? 'Finish setup' : 'Setup'}</Title>
-            <Text size="sm" c="dimmed" mt={4}>
-              Microphone to hear you, Accessibility to see the key and paste, a Groq key to
-              transcribe.
-            </Text>
-          </Box>
-        </StaggerItem>
-        <StaggerItem>
-          <Box className={classes.glass} p="md">
-            <Stack gap="sm">
-              <PermissionRow
-                kind="microphone"
-                label="Microphone"
-                granted={permissions.microphone}
-              />
-              <Divider />
-              <PermissionRow
-                kind="accessibility"
-                label="Accessibility"
-                granted={permissions.accessibility}
-              />
-            </Stack>
-          </Box>
-        </StaggerItem>
-        <StaggerItem>
-          <Box className={classes.glass} p="md">
-            <ApiKeySection
-              label="Groq API key"
-              placeholder="gsk_…"
-              purpose="Transcribes what you say."
-              submitLabel="Test and save"
-              hasApiKey={hasApiKey}
-              setApiKey={setApiKey}
-            />
-          </Box>
-        </StaggerItem>
-        <StaggerItem>
-          <Box className={classes.glass} p="md">
-            <ApiKeySection
-              label="MiniMax API key"
-              placeholder="Optional"
-              purpose="Only for voice edit, which rewrites the text in a field."
-              submitLabel="Test and save MiniMax key"
-              hasApiKey={hasRewriteKey}
-              setApiKey={setRewriteKey}
-            />
-          </Box>
-        </StaggerItem>
-      </Stack>
-    </StaggerGroup>
   );
 }

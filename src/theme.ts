@@ -219,9 +219,11 @@ const aurora = {
  * `darken()`, which parses hex, rgb and hsl only. Handed these oklch ramps it
  * returns `rgba(0, 0, 0, 1)`, so every light Badge and Button in dark mode
  * came out solid black. A tint of the filled shade is what Mantine meant.
+ * Stock `gray` parses, but its darkened shade 9 lands within a step of this
+ * theme's page, so a light gray Badge read as a black pill too.
  */
 const darkLightVariants = Object.fromEntries(
-  ['brand', 'green', 'yellow', 'red'].flatMap(name => [
+  ['brand', 'green', 'yellow', 'red', 'gray'].flatMap(name => [
     [`--mantine-color-${name}-light`, `color-mix(in oklab, var(--mantine-color-${name}-6) 18%, transparent)`],
     [`--mantine-color-${name}-light-hover`, `color-mix(in oklab, var(--mantine-color-${name}-6) 26%, transparent)`],
   ])

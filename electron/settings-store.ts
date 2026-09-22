@@ -29,6 +29,8 @@ export interface SettingsStore {
   getRewriteKey(): string | null;
   setRewriteKey(key: string): void;
   hasRewriteKey(): boolean;
+  /** Count a pasted dictation toward the Overview's time-saved figure. */
+  recordDictation(text: string): void;
 }
 
 interface FileShape {
@@ -37,6 +39,8 @@ interface FileShape {
   rewriteKeyEncrypted?: string;
   /** Envelope-only: the renderer can neither read nor write this. */
   schemaVersion?: number;
+  /** Envelope-only as well: main counts it, the renderer only reads it. */
+  wordsDictated?: number;
 }
 
 /** Bring an old file forward. v0 to v1 moves nothing: the onboarding fields
@@ -91,12 +95,17 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
   let apiKeyEncrypted = typeof state.apiKeyEncrypted === 'string' ? state.apiKeyEncrypted : null;
   let rewriteKeyEncrypted =
     typeof state.rewriteKeyEncrypted === 'string' ? state.rewriteKeyEncrypted : null;
+  let wordsDictated =
+    typeof state.wordsDictated === 'number' && Number.isFinite(state.wordsDictated)
+      ? Math.max(0, Math.floor(state.wordsDictated))
+      : 0;
 
   function save() {
     const body: FileShape = {
       settings,
       ...(apiKeyEncrypted ? { apiKeyEncrypted } : {}),
       ...(rewriteKeyEncrypted ? { rewriteKeyEncrypted } : {}),
+      ...(wordsDictated ? { wordsDictated } : {}),
       schemaVersion: SETTINGS_SCHEMA_VERSION,
     };
     writeFileSync(file, JSON.stringify(body, null, 2));
@@ -127,6 +136,7 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       ...settings,
       hasApiKey: apiKeyEncrypted !== null,
       hasRewriteKey: rewriteKeyEncrypted !== null,
+      wordsDictated,
     }),
     hasApiKey: () => apiKeyEncrypted !== null,
     getApiKey: () => decrypt(apiKeyEncrypted),
@@ -138,6 +148,12 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     getRewriteKey: () => decrypt(rewriteKeyEncrypted),
     setRewriteKey(key) {
       rewriteKeyEncrypted = encrypt(key);
+      save();
+    },
+    recordDictation(text) {
+      const words = text.split(/\s+/).filter(Boolean).length;
+      if (words === 0) return;
+      wordsDictated += words;
       save();
     },
   };

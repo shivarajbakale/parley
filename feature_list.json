@@ -181,7 +181,7 @@
       "area": "design",
       "title": "Revamp phase 2: one first-run flow, gesture trainer, MiniMax on first use, menu-bar finale",
       "user_visible_behavior": "First run is one six-screen flow on the Scene (Welcome, Microphone, Accessibility, Transcription, Gesture trainer, First words) that ends with the orb flying to the menu bar. The trainer lights a key cap per press and says why a try failed. MiniMax is asked for on the first voice edit or Explain gesture, not during setup. Light-variant badges and buttons no longer render black in dark mode.",
-      "status": "in_progress",
+      "status": "blocked",
       "plan": "parley-009.feature-plan.json",
       "verification": [
         "make check",
@@ -192,7 +192,26 @@
         "2026-09-23 automated: make check exit 0; unit suite 572 passed incl. new trainer.test.ts (9), MiniMaxOffer.test.tsx (5) and the rewritten onboarding.test.tsx (29); ui-probe 125/125 incl. Wizard Welcome, GestureTrainer, Finale, FinaleWithMissing and the three MiniMaxOffer stories; ui-lint 0; plan-lint 0; storybook-lint OK; doc-lint 0.",
         "2026-09-23 visual: Storybook renders at 760x560 in dark and light of Welcome, Accessibility, GestureTrainer, Finale, FinaleWithMissing and the MiniMax offer. The Missing badge and Grant button are tinted, no longer black; the finale orb docks in the drawn menu bar and the column centres."
       ],
-      "notes": "Plan written 2026-09-23; the user asked for phase 2 end to end. Stays in_progress until a human walks the First-run flow and MiniMax on first use sections of docs/MANUAL_CHECKLIST.md with make dev: the real ◉ tray item, the take-blocked path when the refusal itself opens the window, trainer timing against a physical key, and Reduce Motion. The dark light-variant fix in theme.ts is app-wide, so every light Badge and Button in the settings tabs changed too."
+      "notes": "Plan written 2026-09-23; the user asked for phase 2 end to end. Stays in_progress until a human walks the First-run flow and MiniMax on first use sections of docs/MANUAL_CHECKLIST.md with make dev: the real ◉ tray item, the take-blocked path when the refusal itself opens the window, trainer timing against a physical key, and Reduce Motion. The dark light-variant fix in theme.ts is app-wide, so every light Badge and Button in the settings tabs changed too. Moved to blocked on 2026-09-23: waiting on a human with make dev, no code change pending, so parley-010 can be in flight."
+    },
+    {
+      "id": "parley-010",
+      "priority": 12,
+      "area": "design",
+      "title": "Revamp phase 3: Overview with status and time saved, native grouped settings",
+      "user_visible_behavior": "The settings window opens on an Overview: the live orb, “Parley is ready” or “Finish setup”, time saved from dictated words, and one status row each for microphone, accessibility and both keys, each with its own fix. Gesture and General are labelled, grouped lists like System Settings.",
+      "status": "in_progress",
+      "plan": "parley-010.feature-plan.json",
+      "verification": [
+        "make check",
+        "make dev: dictate, reopen settings, and see the word count and time saved rise.",
+        "make dev: revoke Accessibility; the Overview flips to Finish setup and the row's Grant fixes it."
+      ],
+      "evidence": [
+        "2026-09-23 automated: make check exit 0; unit suite 581 passed incl. new usage.test.ts (3), three new settings-store tests (word count persists, cannot be patched, corrupt value reads as zero), and Overview cases in SettingsApp.test.tsx (ready title, time saved from 600 words, first-dictation prompt, open key form when missing, MiniMax add closes its form); ui-probe 129/129 incl. the four SettingsShell stories; ui-lint 0; plan-lint 0; storybook-lint OK.",
+        "2026-09-23 visual: Storybook renders at 760x560 in dark and light of SettingsShell Ready, NeedsSetup, Gesture and General. Grouped rows with hairlines, left-aligned rail labels, badges tinted in both themes."
+      ],
+      "notes": "Plan written 2026-09-23; the user asked for phase 3 to be finished. Stays in_progress until a human walks the Settings Overview section of docs/MANUAL_CHECKLIST.md with make dev: the word count rising after a real dictation, the Overview reacting to a revoked permission, and the rail orb and labels in the real window. The count starts at zero for everyone: dictations before this build were never counted."
     }
   ]
 }

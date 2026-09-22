@@ -6,7 +6,7 @@ import { tabDirection } from '../motion-variants';
 
 describe('tabDirection', () => {
   it('is 1 moving down the rail and -1 moving up', () => {
-    expect(tabDirection('setup', 'general')).toBe(1);
+    expect(tabDirection('overview', 'general')).toBe(1);
     expect(tabDirection('general', 'gesture')).toBe(-1);
   });
 });

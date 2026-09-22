@@ -34,8 +34,15 @@
 .tab {
   position: relative;
   isolation: isolate;
+  justify-content: flex-start;
   background: transparent;
   color: var(--mantine-color-text);
+}
+
+/* Mantine centres a tab's label; a sidebar reads left-aligned, like Finder. */
+.tab :global(.mantine-Tabs-tabLabel) {
+  flex: 1;
+  text-align: left;
 }
 
 .tab:hover {
@@ -162,3 +169,24 @@
   }
 }
 
+
+/* Grouped settings: one card per group, rows split by hairlines. The card
+ * holds still on hover; each row is the thing you act on. */
+.group,
+.group:hover {
+  background: var(--app-glass);
+}
+
+.group > * + * {
+  border-top: 1px solid var(--app-glass-border);
+}
+
+.row {
+  min-height: 44px;
+  padding: 8px 14px;
+}
+
+/* A block row: a full-width control such as the vocabulary box. */
+.blockRow {
+  padding: 12px 14px;
+}

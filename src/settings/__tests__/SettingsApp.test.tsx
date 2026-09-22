@@ -18,6 +18,7 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       onboardingComplete: true,
       hasApiKey: true,
       hasRewriteKey: true,
+      wordsDictated: 0,
     }),
     updateSettings: vi.fn().mockImplementation(async patch => ({
       ...DEFAULT_SETTINGS,
@@ -56,10 +57,33 @@ function mount(api: ParleyApi) {
 describe('SettingsApp', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('shows no setup banner when everything is in place', async () => {
+  it('opens on the Overview, ready, when everything is in place', async () => {
     mount(mockApi());
-    expect(await screen.findByRole('tab', { name: 'Gesture' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Parley is ready' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByText('Finish setup')).not.toBeInTheDocument();
+  });
+
+  it('shows time saved from the dictated word count', async () => {
+    mount(
+      mockApi({
+        getSettings: vi.fn().mockResolvedValue({
+          ...DEFAULT_SETTINGS,
+          tourSeen: true,
+          onboardingComplete: true,
+          hasApiKey: true,
+          hasRewriteKey: true,
+          wordsDictated: 600,
+        }),
+      })
+    );
+    expect(await screen.findByText('11 min')).toBeInTheDocument();
+    expect(screen.getByText(/600 words dictated/)).toBeInTheDocument();
+  });
+
+  it('invites a first dictation instead of showing zero', async () => {
+    mount(mockApi());
+    expect(await screen.findByText('Your first dictation starts the count.')).toBeInTheDocument();
   });
 
   it('shows the setup banner and a Grant button when Accessibility is missing', async () => {
@@ -68,6 +92,7 @@ describe('SettingsApp', () => {
     });
     mount(api);
     expect(await screen.findByText('Finish setup')).toBeInTheDocument();
+    expect(screen.getByText('One thing needs you before the gesture works.')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Grant Accessibility' }));
     expect(api.requestPermission).toHaveBeenCalledWith('accessibility');
   });
@@ -85,6 +110,11 @@ describe('SettingsApp', () => {
       })
     );
     expect(await screen.findByText('Finish setup')).toBeInTheDocument();
+    // The missing key's form is the fix, so it is already open.
+    expect(screen.getByRole('button', { name: 'Add transcription key' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
   });
 
   it('saves a toggle at once', async () => {
@@ -100,17 +130,46 @@ describe('SettingsApp', () => {
   it('tests and saves the API key, and shows the result', async () => {
     const api = mockApi();
     mount(api);
-    await userEvent.click(await screen.findByRole('tab', { name: 'Setup' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Replace transcription key' }));
     await userEvent.type(await screen.findByLabelText('Groq API key'), 'gsk_abc');
     await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
     await waitFor(() => expect(api.setApiKey).toHaveBeenCalledWith('gsk_abc'));
     expect(await screen.findByText('Key works')).toBeInTheDocument();
   });
 
+  it('adds the optional MiniMax key from its own row', async () => {
+    let hasRewriteKey = false;
+    const api = mockApi({
+      getSettings: vi.fn(async () => ({
+        ...DEFAULT_SETTINGS,
+        tourSeen: true,
+        onboardingComplete: true,
+        hasApiKey: true,
+        hasRewriteKey,
+        wordsDictated: 0,
+      })),
+      setRewriteKey: vi.fn(async () => {
+        hasRewriteKey = true;
+        return { ok: true, message: 'Key works' };
+      }),
+    });
+    mount(api);
+    expect(await screen.findByText('Optional')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Add MiniMax key' }));
+    await userEvent.type(await screen.findByLabelText('MiniMax API key'), 'mm_abc');
+    await userEvent.click(screen.getByRole('button', { name: 'Test and save MiniMax key' }));
+    await waitFor(() => expect(api.setRewriteKey).toHaveBeenCalledWith('mm_abc'));
+    // The stored key closes the form and the row flips to Stored.
+    expect(await screen.findByRole('button', { name: 'Replace MiniMax key' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+  });
+
   it('rejects an empty key without calling main', async () => {
     const api = mockApi();
     mount(api);
-    await userEvent.click(await screen.findByRole('tab', { name: 'Setup' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Replace transcription key' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Test and save' }));
     expect(await screen.findByText('Enter your Groq API key')).toBeInTheDocument();
     expect(api.setApiKey).not.toHaveBeenCalled();
@@ -141,7 +200,7 @@ describe('SettingsApp', () => {
   it('shows an alert when testing the API key rejects, without rendering the key', async () => {
     const api = mockApi({ setApiKey: vi.fn().mockRejectedValue(new Error('network down')) });
     mount(api);
-    await userEvent.click(await screen.findByRole('tab', { name: 'Setup' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Replace transcription key' }));
     await userEvent.type(await screen.findByLabelText('Groq API key'), 'gsk_secret');
     await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
     const alert = await screen.findByText('Could not test the key');

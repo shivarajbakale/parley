@@ -46,6 +46,7 @@ const fresh: SettingsView = {
   onboardingComplete: false,
   hasApiKey: false,
   hasRewriteKey: false,
+  wordsDictated: 0,
 };
 
 /** First-run flow: one screen at a time under the ring, opened mid-flow as a resume would. */

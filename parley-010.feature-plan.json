@@ -1,0 +1,293 @@
+{
+  "feature": {
+    "id": "parley-010",
+    "title": "Revamp phase 3: Overview with status and time saved, native grouped settings",
+    "problem": "After first run, the settings window still reads like a form dump. The Setup tab stacks a permission card and two API key forms, even when everything is already set, so the one question people open the window with, “is Parley working?”, has no direct answer. The Gesture and General tabs are loose glass cards with ad-hoc spacing and no group labels, unlike System Settings. Nothing shows what Parley has done for the user, so it gives no reason to come back. Phase 3 replaces the Setup tab with an Overview. At the top, the live orb and a status line say “Parley is ready” or “Finish setup”. Below that, a time-saved stat is counted from dictated words in the main process. Then a Status group has one row each for microphone, accessibility, transcription key and MiniMax key, and each row has its own one-click fix. Key forms open inline only when asked. Gesture and General become labelled, grouped lists with hairline dividers and 44 px rows. Frame note: the settings window is not PageShell, so the archetypes below are illustrative and not probe-enforced, as in parley-007 to parley-009.",
+    "nonGoals": [
+      "A menu bar popover with recent dictations — a later idea, not this phase.",
+      "Per-day or per-week charts: one running total is enough to make the point.",
+      "Counting voice edit or Explain toward time saved — only pasted dictation replaces typing.",
+      "Syncing the count across Macs or resetting it from the UI.",
+      "A Dictionary tab — parley-006 owns that."
+    ]
+  },
+  "app": "Parley",
+  "nav": [
+    "Overview",
+    "Gesture",
+    "General"
+  ],
+  "surfaces": [
+    {
+      "id": "overview",
+      "name": "Overview tab (replaces Setup)",
+      "route": "settings.html · settings · Overview",
+      "archetype": "list-detail",
+      "purpose": "Answers “is it working?” at a glance, fixes whatever is not in one click, and shows what Parley has saved you.",
+      "primaryAction": "Grant / Add (whichever row needs it)",
+      "panels": [
+        {
+          "id": "rail",
+          "kind": "rail",
+          "ratio": 0.3,
+          "title": "Parley",
+          "rows": [
+            [
+              "▣ Overview"
+            ],
+            [
+              "□ Gesture"
+            ],
+            [
+              "□ General"
+            ]
+          ]
+        },
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Parley is ready",
+          "subtitle": "◉ orb · Tap Right Option 2× and hold in any app",
+          "rows": [
+            [
+              "USAGE"
+            ],
+            [
+              "≈ 26 min saved · 1,340 words dictated"
+            ],
+            [
+              "STATUS"
+            ],
+            [
+              "Microphone ............ ✓ Granted"
+            ],
+            [
+              "Accessibility ......... ✓ Granted"
+            ],
+            [
+              "Transcription key ..... ✓ Stored   Replace"
+            ],
+            [
+              "MiniMax key ........... Not set    Add"
+            ]
+          ],
+          "actions": [
+            "Replace",
+            "Add"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "Settings and permissions resolve before the shell mounts, as today: a Loader on the tint.",
+        "empty": "No words yet: the Usage row reads “Your first dictation starts the count.” in place of a zero.",
+        "error": "A missing permission or key turns the title into “Finish setup”, names how many things need you, and gives that row a Grant or Add button. A failed permission request shows the existing red Alert under its row.",
+        "success": "Every row is green and the title reads “Parley is ready”. Saving a key closes its inline form, and the row flips to Stored."
+      }
+    },
+    {
+      "id": "gesture",
+      "name": "Gesture tab",
+      "route": "settings.html · settings · Gesture",
+      "archetype": "form",
+      "purpose": "The same controls, grouped under Keys and Timing with native row rhythm.",
+      "primaryAction": "Select a key",
+      "panels": [
+        {
+          "id": "groups",
+          "kind": "Detail",
+          "title": "Gesture",
+          "rows": [
+            [
+              "KEYS"
+            ],
+            [
+              "Dictate ............ [Right Option ▾]"
+            ],
+            [
+              "Voice edit ......... [Right Command ▾]"
+            ],
+            [
+              "Explain ............ [Right Control ▾]"
+            ],
+            [
+              "TIMING"
+            ],
+            [
+              "Presses ............ [2 | 3 | 4]"
+            ]
+          ],
+          "actions": []
+        }
+      ],
+      "states": {
+        "loading": "Unchanged.",
+        "empty": "No empty state: every key has a default.",
+        "error": "The save-failed Alert shows above the groups, unchanged.",
+        "success": "A change saves at once, unchanged."
+      }
+    },
+    {
+      "id": "general",
+      "name": "General tab",
+      "route": "settings.html · settings · General",
+      "archetype": "form",
+      "purpose": "Switches, vocabulary and the tour replay, grouped as Behaviour, Dictation and Help.",
+      "primaryAction": "Toggle",
+      "panels": [
+        {
+          "id": "groups",
+          "kind": "Detail",
+          "title": "General",
+          "rows": [
+            [
+              "BEHAVIOUR"
+            ],
+            [
+              "Sounds ............. (●)"
+            ],
+            [
+              "Launch at login .... (●)"
+            ],
+            [
+              "DICTATION"
+            ],
+            [
+              "Custom vocabulary [..........]"
+            ],
+            [
+              "HELP"
+            ],
+            [
+              "Product tour ....... Replay tour"
+            ]
+          ],
+          "actions": [
+            "Replay tour"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "Unchanged.",
+        "empty": "Vocabulary empty: its placeholder gives an example.",
+        "error": "The save-failed Alert shows above the groups, unchanged.",
+        "success": "Toggles save at once. Vocabulary saves on blur, unchanged."
+      }
+    }
+  ],
+  "components": [
+    {
+      "surface": "all",
+      "control": "SettingsGroup: an uppercase dimmed label over a glass card whose rows are split by hairlines, with a minimum row height of 44 px",
+      "why": "This is the grouped-list idiom of macOS System Settings. One component gives every tab the same rhythm, so each card no longer sets its own padding.",
+      "rejected": "One glass Box per control (the current loose cards)"
+    },
+    {
+      "surface": "overview",
+      "control": "StatusRow: label and reason on the left; Badge and a one-click fix Button on the right",
+      "why": "The fix sits where the problem is named, so each problem is one click from being fixed.",
+      "rejected": "A Finish setup banner and a separate forms section (today's Setup tab)"
+    },
+    {
+      "surface": "overview",
+      "control": "Collapse under a key row holding the existing ApiKeySection",
+      "why": "Most visits need no key change. The form stays mounted, so a half-typed key survives a tab switch, as it does today.",
+      "rejected": "Always-open key forms, or a Modal (loses the row's context)"
+    },
+    {
+      "surface": "overview",
+      "control": "Time-saved row: Text at size xl for the minutes, dimmed words count",
+      "why": "One number the user can feel. The words count keeps the estimate honest.",
+      "rejected": "A chart (too much for a running total), or a StatsGrid (one metric)"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Usage stat",
+      "fields": [
+        {
+          "name": "wordsDictated",
+          "type": "number",
+          "note": "main-process-only, in the settings.json envelope; the renderer reads it through SettingsView and cannot write it"
+        }
+      ],
+      "relations": [
+        "time saved = words/40 − words/150 minutes (typing at 40 wpm vs speaking at 150)"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "IPC invoke",
+      "path": "settings:get",
+      "note": "unchanged channel; SettingsView gains wordsDictated"
+    }
+  ],
+  "integration": [
+    {
+      "from": "electron/settings-store.ts",
+      "to": "recordDictation(text) adds the word count; view() exposes wordsDictated",
+      "note": "kept out of Settings, so updateSettings can never set it"
+    },
+    {
+      "from": "electron/main.ts",
+      "to": "onDictation also calls store.recordDictation",
+      "note": "dictation only; voice edit and Explain are not counted"
+    },
+    {
+      "from": "src/settings/OverviewTab.tsx",
+      "to": "SettingsShell, replacing SetupTab",
+      "note": "PermissionRow and ApiKeySection stay in SetupTab.tsx for the wizard and the offer"
+    },
+    {
+      "from": "src/settings/SettingsGroup.tsx",
+      "to": "Overview, Gesture and General tabs",
+      "note": "GestureTab bare in the trainer uses it too"
+    },
+    {
+      "from": "src/settings/tabs.ts + TabRail.tsx",
+      "to": "'setup' becomes 'overview'",
+      "note": "Overview is always the default tab now"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "src/settings/OverviewTab.tsx",
+      "src/settings/SettingsGroup.tsx",
+      "src/settings/usage.ts",
+      "src/settings/__tests__/usage.test.ts",
+      "src/settings/SettingsShell.stories.tsx"
+    ],
+    "changed": [
+      "electron/types.ts",
+      "electron/settings-store.ts",
+      "electron/main.ts",
+      "electron/__tests__/settings-store.test.ts",
+      "src/settings/SettingsShell.tsx",
+      "src/settings/TabRail.tsx",
+      "src/settings/tabs.ts",
+      "src/settings/SetupTab.tsx",
+      "src/settings/GestureTab.tsx",
+      "src/settings/GeneralTab.tsx",
+      "src/settings/SettingRow.tsx",
+      "src/settings/settings.module.css",
+      "src/settings/__tests__/SettingsApp.test.tsx",
+      "src/settings/__tests__/SettingsShell.test.tsx",
+      "src/settings/__tests__/MiniMaxOffer.test.tsx",
+      "src/settings/Wizard.stories.tsx",
+      "docs/storybook-taxonomy.json",
+      "docs/MANUAL_CHECKLIST.md",
+      "feature_list.json",
+      "src/settings/__tests__/motion.test.tsx",
+      "src/theme.ts",
+      ".storybook/Introduction.mdx",
+      "src/settings/__tests__/onboarding.test.tsx"
+    ]
+  },
+  "verification": [
+    "make check",
+    "npm run test -- src/settings electron/__tests__/settings-store.test.ts",
+    "Storybook screenshots at 760x560, dark and light: Overview ready, Overview needing setup, Gesture, General",
+    "Manual: make dev — dictate a sentence, reopen settings, and see the word count and time saved rise",
+    "Manual: revoke Accessibility in System Settings; the Overview title flips to Finish setup and the row's Grant button fixes it"
+  ]
+}

@@ -57,6 +57,10 @@
         "Onboarding": {
           "blurb": "First run: the six-screen flow, the replayable tour, and the MiniMax offer on first use.",
           "members": ["Tour", "Wizard", "MiniMaxOffer"]
+        },
+        "Settings": {
+          "blurb": "The settings window after first run: the Overview and the grouped Gesture and General tabs.",
+          "members": ["SettingsShell"]
         }
       }
     }

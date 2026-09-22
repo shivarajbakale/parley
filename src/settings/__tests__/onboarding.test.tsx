@@ -30,6 +30,7 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
     ...DEFAULT_SETTINGS,
     hasApiKey: false,
     hasRewriteKey: false,
+    wordsDictated: 0,
     ...init.settings,
   };
   let permissions: PermissionStatus = init.permissions ?? {

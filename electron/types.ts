@@ -110,6 +110,9 @@ export interface SettingsView extends Settings {
   hasApiKey: boolean;
   /** The MiniMax key that voice edit rewrites with. */
   hasRewriteKey: boolean;
+  /** Words pasted by dictation, all time. Counted in main; the renderer can
+   * read it here but no patch can set it. */
+  wordsDictated: number;
 }
 
 export interface KeyTestResult {

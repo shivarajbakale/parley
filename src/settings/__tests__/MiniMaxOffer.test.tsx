@@ -21,6 +21,7 @@ function mount(pending: SessionBlockedReason | null = null) {
     onboardingComplete: true,
     hasApiKey: true,
     hasRewriteKey: false,
+    wordsDictated: 0,
   };
   let push: ((reason: SessionBlockedReason) => void) | null = null;
   const api: ParleyApi = {

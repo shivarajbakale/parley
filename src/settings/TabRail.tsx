@@ -1,5 +1,5 @@
 import { Box, Group, Tabs, Text, Title } from '@mantine/core';
-import { Keyboard, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { Gauge, Keyboard, SlidersHorizontal } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 import { DURATION, EASE, SPRING } from '@/lib/motion';
@@ -12,12 +12,24 @@ import classes from './settings.module.css';
 import type { TabId } from './tabs';
 
 const IDLE = () => ({ bands: SILENT_BANDS, phase: 'listening' as const });
+const RAIL_ORB_BOX = 32;
+const RAIL_ORB = 84;
 
 export function TabRail({ needsSetup, active }: { needsSetup: boolean; active: TabId }) {
   return (
     <Tabs.List className={classes.rail} pt={TRAFFIC_LIGHT_INSET ? 40 : undefined}>
       <Group gap="xs" px="xs" pb="md" wrap="nowrap">
-        <OrbCanvas size={48} running read={IDLE} />
+        {/* The idle orb fills a third of its canvas and sits low in it, so a
+            larger canvas overhangs a small box to seat the body in line. */}
+        <Box pos="relative" w={RAIL_ORB_BOX} h={RAIL_ORB_BOX} flex="none" aria-hidden="true">
+          <Box
+            pos="absolute"
+            top={(RAIL_ORB_BOX - RAIL_ORB) / 2 - Math.round(RAIL_ORB * 0.165)}
+            left={(RAIL_ORB_BOX - RAIL_ORB) / 2}
+          >
+            <OrbCanvas size={RAIL_ORB} running read={IDLE} />
+          </Box>
+        </Box>
         <Box miw={0}>
           <Title order={5}>Parley</Title>
           <AnimatePresence mode="wait" initial={false}>
@@ -52,16 +64,16 @@ export function TabRail({ needsSetup, active }: { needsSetup: boolean; active: T
         </Box>
       </Group>
       <Tabs.Tab
-        value="setup"
-        leftSection={<ShieldCheck size={16} />}
+        value="overview"
+        leftSection={<Gauge size={16} />}
         className={classes.tab}
         px="sm"
         py={8}
       >
-        {active === 'setup' && (
+        {active === 'overview' && (
           <motion.span layoutId="tab-pill" className={classes.pill} transition={SPRING} />
         )}
-        Setup
+        Overview
       </Tabs.Tab>
       <Tabs.Tab
         value="gesture"

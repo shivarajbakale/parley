@@ -49,6 +49,7 @@ describe('settings store', () => {
       ...DEFAULT_SETTINGS,
       hasApiKey: true,
       hasRewriteKey: false,
+      wordsDictated: 0,
     });
   });
 
@@ -133,5 +134,29 @@ describe('settings store', () => {
       schemaVersion?: number;
     };
     expect(saved.schemaVersion).toBe(1);
+  });
+
+  it('counts dictated words across instances, ignoring empty text', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.recordDictation('Hello there, Parley');
+    store.recordDictation('   ');
+    store.recordDictation('two\nwords');
+    expect(store.view().wordsDictated).toBe(5);
+    expect(createSettingsStore({ dir, crypto }).view().wordsDictated).toBe(5);
+  });
+
+  it('keeps the word count out of the renderer’s reach', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.update({ wordsDictated: 9000 } as never);
+    expect(store.view().wordsDictated).toBe(0);
+    expect(store.get()).not.toHaveProperty('wordsDictated');
+  });
+
+  it('treats a corrupt word count as zero', () => {
+    writeFileSync(
+      path.join(dir, 'settings.json'),
+      JSON.stringify({ schemaVersion: 1, wordsDictated: 'lots' })
+    );
+    expect(createSettingsStore({ dir, crypto }).view().wordsDictated).toBe(0);
   });
 });

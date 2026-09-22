@@ -423,7 +423,10 @@ async function startApp() {
       if (contents && !contents.isLoading()) contents.send('session:blocked', reason);
       else pendingBlocked = reason;
     },
-    onDictation: (text) => correctionWatcher.watch(text),
+    onDictation: (text) => {
+      store.recordDictation(text);
+      correctionWatcher.watch(text);
+    },
     onTranscript: (text) => {
       lastTranscript = text;
       refreshTray();

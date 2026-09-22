@@ -84,6 +84,18 @@ With no MiniMax key stored and onboarding complete:
 - [ ] A bad key shows MiniMax's reason in red and the dialog stays; a good key shows "Try the gesture again" and the dialog closes itself; the gesture then works.
 - [ ] Not now (the close button) dismisses it; dictation keeps working without a key.
 
+## Settings Overview
+
+After onboarding:
+
+- [ ] The settings window opens on Overview. With everything granted it reads "Parley is ready" and names your gesture.
+- [ ] Time saved starts as "Your first dictation starts the count." Dictate two sentences, reopen or refocus the window, and the words count and the minutes rise. Voice edit and Explain do not add to it.
+- [ ] Quit and relaunch: the count survives.
+- [ ] Revoke Accessibility in System Settings: within two seconds the title turns to "Finish setup", the row shows Grant Accessibility, and the rail says Setup needed. The button fixes it.
+- [ ] Replace on the transcription key opens its form inline; a good key shows "Key works". Add on the MiniMax row does the same for MiniMax.
+- [ ] Gesture and General are grouped lists (Keys, Timing; Behaviour, Dictation, Help) with hairlines between rows; every control still saves at once, and vocabulary saves on blur.
+- [ ] The rail labels sit left beside their icons, and the rail orb sits in line with "Parley".
+
 ## Groq API key
 
 - [ ] Entering a real Groq API key in Settings and saving it succeeds and the
@@ -147,7 +159,7 @@ With no MiniMax key stored and onboarding complete:
 
 ## Voice edit
 
-Needs a MiniMax key saved in Setup. The voice edit key defaults to Right
+Needs a MiniMax key saved on the Overview tab. The voice edit key defaults to Right
 Command, with the same number of presses as dictation.
 
 - [ ] Type a sentence into Notes, leave the cursor in it with nothing
@@ -199,7 +211,7 @@ inside the app.
 
 ## Explain
 
-Needs a MiniMax key (Settings, Setup). Default explain key is Right Control.
+Needs a MiniMax key (Settings, Overview). Default explain key is Right Control.
 
 - [ ] Select a word in Notes, tap-tap-hold the explain key: the usual orb
       appears above the Dock (indigo) and listens. Say "why is this named that?"

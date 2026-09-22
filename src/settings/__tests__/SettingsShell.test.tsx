@@ -18,6 +18,7 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       onboardingComplete: true,
       hasApiKey: true,
       hasRewriteKey: true,
+      wordsDictated: 0,
     }),
     updateSettings: vi.fn().mockImplementation(async patch => ({
       ...DEFAULT_SETTINGS,
@@ -59,14 +60,14 @@ describe('SettingsShell tab persistence', () => {
   it('keeps a half-typed API key when switching tabs away and back', async () => {
     mount(mockApi());
 
-    await userEvent.click(await screen.findByRole('tab', { name: 'Setup' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Replace transcription key' }));
     const keyInput = await screen.findByLabelText('Groq API key');
     await userEvent.type(keyInput, 'gsk_half-typed');
     expect(keyInput).toHaveValue('gsk_half-typed');
 
     await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
 
-    await userEvent.click(await screen.findByRole('tab', { name: 'Setup' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Overview' }));
     const keyInputAgain = await screen.findByLabelText('Groq API key');
     expect(keyInputAgain).toHaveValue('gsk_half-typed');
   });
@@ -74,7 +75,7 @@ describe('SettingsShell tab persistence', () => {
   it('every tab resolves aria-controls to a panel present in the DOM', async () => {
     mount(mockApi());
 
-    for (const name of ['Setup', 'Gesture', 'General']) {
+    for (const name of ['Overview', 'Gesture', 'General']) {
       const tab = await screen.findByRole('tab', { name });
       const controls = tab.getAttribute('aria-controls');
       expect(controls).toBeTruthy();

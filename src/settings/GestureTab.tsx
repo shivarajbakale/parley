@@ -1,4 +1,4 @@
-import { Box, Divider, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core';
+import { Box, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core';
 
 import {
   GESTURE_KEYS,
@@ -10,8 +10,8 @@ import {
 
 import { KEY_LABELS } from './gesture-keys';
 import { StaggerGroup, StaggerItem } from './motion';
-import classes from './settings.module.css';
 import { SettingRow } from './SettingRow';
+import { SettingsGroup } from './SettingsGroup';
 
 export function GestureTab({
   settings,
@@ -37,66 +37,65 @@ export function GestureTab({
           </StaggerItem>
         )}
         <StaggerItem>
-          <Box className={classes.glass} p="md">
-            <Stack gap="md">
-              <SettingRow label="Gesture key" description="Modifier keys only.">
-                <Select
-                  aria-label="Gesture key"
-                  w={180}
-                  allowDeselect={false}
-                  data={GESTURE_KEYS.map(key => ({ value: key, label: KEY_LABELS[key] }))}
-                  value={settings.gestureKey}
-                  onChange={value => value && onChange({ gestureKey: value as GestureKey })}
-                />
-              </SettingRow>
-              <Divider />
-              <SettingRow
-                label="Voice edit key"
-                description={
-                  settings.editGestureKey === settings.gestureKey
-                    ? 'Off while it matches the gesture key.'
-                    : 'Same presses. Say how to change the text in the field.'
-                }
-              >
-                <Select
-                  aria-label="Voice edit key"
-                  w={180}
-                  allowDeselect={false}
-                  data={GESTURE_KEYS.map(key => ({ value: key, label: KEY_LABELS[key] }))}
-                  value={settings.editGestureKey}
-                  onChange={value => value && onChange({ editGestureKey: value as GestureKey })}
-                />
-              </SettingRow>
-              <Divider />
-              <SettingRow
-                label="Explain key"
-                description={
-                  settings.explainGestureKey === settings.gestureKey ||
-                  settings.explainGestureKey === settings.editGestureKey
-                    ? 'Off while it matches another key.'
-                    : 'Same presses. Select text anywhere and get a short explanation beside it.'
-                }
-              >
-                <Select
-                  aria-label="Explain key"
-                  w={180}
-                  allowDeselect={false}
-                  data={GESTURE_KEYS.map(key => ({ value: key, label: KEY_LABELS[key] }))}
-                  value={settings.explainGestureKey}
-                  onChange={value => value && onChange({ explainGestureKey: value as GestureKey })}
-                />
-              </SettingRow>
-              <Divider />
-              <SettingRow label="Presses" description="The last one is held.">
-                <SegmentedControl
-                  w={180}
-                  data={['2', '3', '4']}
-                  value={String(settings.tapCount)}
-                  onChange={value => onChange({ tapCount: Number(value) as TapCount })}
-                />
-              </SettingRow>
-            </Stack>
-          </Box>
+          <SettingsGroup label="Keys">
+            <SettingRow label="Dictate" description="Modifier keys only.">
+              <Select
+                aria-label="Gesture key"
+                w={180}
+                allowDeselect={false}
+                data={GESTURE_KEYS.map(key => ({ value: key, label: KEY_LABELS[key] }))}
+                value={settings.gestureKey}
+                onChange={value => value && onChange({ gestureKey: value as GestureKey })}
+              />
+            </SettingRow>
+            <SettingRow
+              label="Voice edit"
+              description={
+                settings.editGestureKey === settings.gestureKey
+                  ? 'Off while it matches the dictate key.'
+                  : 'Say how to change the text in the field.'
+              }
+            >
+              <Select
+                aria-label="Voice edit key"
+                w={180}
+                allowDeselect={false}
+                data={GESTURE_KEYS.map(key => ({ value: key, label: KEY_LABELS[key] }))}
+                value={settings.editGestureKey}
+                onChange={value => value && onChange({ editGestureKey: value as GestureKey })}
+              />
+            </SettingRow>
+            <SettingRow
+              label="Explain"
+              description={
+                settings.explainGestureKey === settings.gestureKey ||
+                settings.explainGestureKey === settings.editGestureKey
+                  ? 'Off while it matches another key.'
+                  : 'Select text anywhere and get a short explanation beside it.'
+              }
+            >
+              <Select
+                aria-label="Explain key"
+                w={180}
+                allowDeselect={false}
+                data={GESTURE_KEYS.map(key => ({ value: key, label: KEY_LABELS[key] }))}
+                value={settings.explainGestureKey}
+                onChange={value => value && onChange({ explainGestureKey: value as GestureKey })}
+              />
+            </SettingRow>
+          </SettingsGroup>
+        </StaggerItem>
+        <StaggerItem>
+          <SettingsGroup label="Timing">
+            <SettingRow label="Presses" description="Every key uses the same count; the last press is held.">
+              <SegmentedControl
+                w={180}
+                data={['2', '3', '4']}
+                value={String(settings.tapCount)}
+                onChange={value => onChange({ tapCount: Number(value) as TapCount })}
+              />
+            </SettingRow>
+          </SettingsGroup>
         </StaggerItem>
       </Stack>
     </StaggerGroup>
