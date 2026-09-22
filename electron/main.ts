@@ -322,7 +322,12 @@ async function startApp() {
    * correction-watcher read, and it only ever needs `frontWindowBounds`. */
   async function readFrontWindowBounds(): Promise<Rect | null> {
     try {
-      const { stdout } = await execFileAsync(AX_HELPER, [], { timeout: 300, maxBuffer: 1024 });
+      // 1000ms, not the usual 300ms: the helper's own AX messaging timeout
+      // (parley-ax.swift) is 1000ms, tuned for apps that build their
+      // accessibility tree lazily (Electron apps). A tighter timeout here
+      // kills the helper before that read finishes, so the correction is
+      // silently dropped and the orb is left on the previous window's display.
+      const { stdout } = await execFileAsync(AX_HELPER, [], { timeout: 1000, maxBuffer: 1024 });
       return parseFrontWindowBounds(stdout);
     } catch {
       return null;
