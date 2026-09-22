@@ -155,6 +155,25 @@
         "2026-09-22 caveat: one make check run hung in ui-probe (frozen CPU, no output 30+ min); killed and re-ran the probe standalone green. Flake, not a code hang — same tree passed in under 4 min."
       ],
       "notes": "Design + plan approved 2026-09-22. Manual walk (13 boxes in MANUAL_CHECKLIST.md) still needs a human with make dev, so this stays in_progress. Shipped in 0.3.0 on automated verification + owner waiver."
+    },
+    {
+      "id": "parley-008",
+      "priority": 10,
+      "area": "design",
+      "title": "Revamp phase 1: mode-colored orb, scene backdrop, one progress ring",
+      "user_visible_behavior": "The orb glows violet for dictation, amber for voice edit and teal for explain. Tour and wizard sit on a full-bleed tinted scene, the wizard shows progress as a single ring around a live orb, and only the primary button carries the gradient.",
+      "status": "in_progress",
+      "plan": "parley-008.feature-plan.json",
+      "verification": [
+        "make check",
+        "Walk the wizard: only the ring shows progress; one gradient button per step.",
+        "make dev: overlay orb hue matches mode for dictate, edit, explain."
+      ],
+      "evidence": [
+        "2026-09-23 automated: make check exit 0; unit suite 554 passed incl. new OrbProgress.test.tsx and windows.test.ts titlebar case; ui-probe 121/121 incl. all Tour and Wizard stories; ui-lint 0; plan-lint 0.",
+        "2026-09-23 visual: Storybook renders of wizard (fresh start, accessibility, done) and tour (voice edit, explain) at 760x560 in dark and light; ring orb centred, scene tone follows slide (amber edit, cyan explain), done ring teal."
+      ],
+      "notes": "Plan approved 2026-09-23 with explain in cyan (teal stays the done flash). Stays in_progress until a human runs make dev: overlay orb hue per mode, the hiddenInset titlebar drag strip, and the Reduce Motion pass. Known leftover for phase 2: PermissionRow's Missing badge and Grant button render near-black on the dark scene."
     }
   ]
 }

@@ -10,7 +10,7 @@ import {
 import { WizardShell } from './wizard/WizardShell';
 
 /**
- * Setup wizard: step rail plus one step pane. Each story pins the persisted
+ * Setup wizard: an orb progress ring above one step pane, on the first-run Scene. Each story pins the persisted
  * settings, so the shell opens mid-flow exactly as a resume would.
  */
 function withParley(settings: SettingsView, permissions: PermissionStatus) {

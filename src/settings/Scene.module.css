@@ -1,0 +1,79 @@
+/* The first-run backdrop: a full-bleed ground lit by two soft blooms in the
+ * current tone's colours, with a whisper of grain so the gradients do not band.
+ * The bloom colours are registered custom properties, so a tone change
+ * crossfades instead of snapping. Everything here is paint, nothing layout. */
+
+@property --scene-core {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --scene-glow {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+.scene {
+  position: relative;
+  isolation: isolate;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--app-tint-bg);
+  transition:
+    --scene-core 400ms cubic-bezier(0.22, 1, 0.36, 1),
+    --scene-glow 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scene::before,
+.scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.scene::before {
+  background:
+    radial-gradient(60% 55% at 50% 30%, color-mix(in oklab, var(--scene-core) 34%, transparent), transparent 70%),
+    radial-gradient(45% 45% at 12% 100%, color-mix(in oklab, var(--scene-glow) 22%, transparent), transparent 70%),
+    radial-gradient(40% 40% at 95% 0%, color-mix(in oklab, var(--scene-glow) 16%, transparent), transparent 70%);
+}
+
+.scene::after {
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.dictate {
+  --scene-core: var(--app-aurora-core);
+  --scene-glow: var(--app-aurora-glow);
+}
+
+.edit {
+  --scene-core: var(--app-edit-core);
+  --scene-glow: var(--app-edit-glow);
+}
+
+.explain {
+  --scene-core: var(--app-explain-core);
+  --scene-glow: var(--app-explain-glow);
+}
+
+.neutral {
+  --scene-core: var(--mantine-color-gray-6);
+  --scene-glow: var(--app-aurora-glow);
+}
+
+.done {
+  --scene-core: var(--mantine-color-teal-5);
+  --scene-glow: var(--mantine-color-teal-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene {
+    transition: none;
+  }
+}

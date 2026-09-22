@@ -169,7 +169,7 @@ export function MicStep() {
         <StepFoot>
           <BackButton />
           <Pressable>
-            <Button onClick={next} disabled={!granted}>
+            <Button className={shell.primary} onClick={next} disabled={!granted}>
               Continue →
             </Button>
           </Pressable>
@@ -217,7 +217,7 @@ export function AccessStep() {
         <StepFoot>
           <BackButton />
           <Pressable>
-            <Button onClick={next} disabled={!granted}>
+            <Button className={shell.primary} onClick={next} disabled={!granted}>
               Continue →
             </Button>
           </Pressable>
@@ -262,7 +262,7 @@ export function GroqKeyStep() {
         <StepFoot>
           <BackButton />
           <Pressable>
-            <Button onClick={next} disabled={!hasKey}>
+            <Button className={shell.primary} onClick={next} disabled={!hasKey}>
               Continue →
             </Button>
           </Pressable>
@@ -310,7 +310,7 @@ export function MinimaxStep() {
               </Button>
             </Pressable>
             <Pressable>
-              <Button onClick={next} disabled={!hasKey}>
+              <Button className={shell.primary} onClick={next} disabled={!hasKey}>
                 Continue →
               </Button>
             </Pressable>
@@ -537,7 +537,9 @@ export function HotkeysStep() {
         <StepFoot>
           <BackButton />
           <Pressable>
-            <Button onClick={next}>Continue →</Button>
+            <Button className={shell.primary} onClick={next}>
+              Continue →
+            </Button>
           </Pressable>
         </StepFoot>
       </Stack>
@@ -600,6 +602,7 @@ export function PracticeStep() {
           <BackButton />
           <Pressable>
             <Button
+              className={shell.primary}
               onClick={() => {
                 if (!landed) {
                   setNudge(true);

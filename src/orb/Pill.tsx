@@ -42,9 +42,9 @@ function barTokens(uniforms: OrbUniforms, mode: SessionMode): [string, string] {
     return ['--mantine-color-teal-6', '--mantine-color-teal-4'];
   }
   if (uniforms.to === PHASE_INDEX.error) return ['--mantine-color-red-7', '--mantine-color-red-5'];
-  return mode === 'edit'
-    ? ['--app-lilac-core', '--app-lilac-glow']
-    : ['--app-aurora-core', '--app-aurora-glow'];
+  if (mode === 'edit') return ['--app-edit-core', '--app-edit-glow'];
+  if (mode === 'explain') return ['--app-explain-core', '--app-explain-glow'];
+  return ['--app-aurora-core', '--app-aurora-glow'];
 }
 
 function draw(

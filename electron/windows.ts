@@ -1,5 +1,5 @@
 import { CARD_MIN_HEIGHT, CARD_WIDTH } from './explain-placement';
-import { BACKGROUND_DARK } from './window-options';
+import { BACKGROUND_DARK, TRAFFIC_LIGHT_POSITION } from './window-options';
 
 /**
  * Options for Parley's two windows, as pure functions — same reason as
@@ -102,6 +102,10 @@ export function settingsWindowOptions(
     // Shown on `ready-to-show` in main.ts, which also avoids a vibrancy flash.
     show: false,
     title: 'Parley',
+    // The first-run scene runs under the titlebar; the renderer declares its
+    // own drag strip and clears the lights (`TRAFFIC_LIGHT_INSET`).
+    titleBarStyle: (isMac ? 'hiddenInset' : 'default') as 'hiddenInset' | 'default',
+    trafficLightPosition: isMac ? TRAFFIC_LIGHT_POSITION : undefined,
     // Glass is real system blur on macOS; elsewhere the window stays solid.
     vibrancy: isMac ? ('under-window' as const) : undefined,
     visualEffectState: isMac ? ('active' as const) : undefined,

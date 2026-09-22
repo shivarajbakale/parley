@@ -45,6 +45,7 @@ export function SettingsShell({
       value={active}
       onChange={(value) => value && select(value as TabId)}
     >
+      <div className={classes.drag} aria-hidden="true" />
       <TabRail needsSetup={needsSetup} active={active} />
       <Box flex={1} miw={0} p="xl" style={{ overflowY: 'auto' }}>
         {saveFailed && (

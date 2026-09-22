@@ -1,8 +1,10 @@
-import { Alert, Box, Group, Loader, Progress, Stack, Stepper, Text, Title } from '@mantine/core';
+import { Alert, Box, Loader, Stack } from '@mantine/core';
 import { useEffect, useRef } from 'react';
 
+import { Scene } from '../Scene';
 import shell from '../settings.module.css';
 
+import { OrbProgress } from './OrbProgress';
 import { DONE_STEP } from './stage';
 import {
   AccessStep,
@@ -16,20 +18,13 @@ import {
 import { useOnboarding } from './useOnboarding';
 
 /**
- * The setup wizard: a step rail on the left, one step pane on the right. The
- * step comes from persisted settings, so this frame holds no navigation state
- * of its own — it draws where the user is and focuses each arriving pane's
- * heading. The pane scrolls exactly like the settings content beside it.
+ * The setup wizard: one centered column on the first-run Scene, with a live
+ * orb in a progress ring above it. The step comes from persisted settings, so
+ * this frame holds no navigation state of its own — it draws where the user is
+ * and focuses each arriving pane's heading.
  */
 
-const RAIL_STEPS = [
-  { label: 'Microphone', description: 'Let Parley hear you' },
-  { label: 'Accessibility', description: 'Keys + paste' },
-  { label: 'Groq key', description: 'Transcription' },
-  { label: 'MiniMax', description: 'Optional' },
-  { label: 'Hotkeys', description: 'Gesture keys' },
-  { label: 'Practice', description: 'First dictation' },
-];
+const STEP_LABELS = ['Microphone', 'Accessibility', 'Groq key', 'MiniMax', 'Hotkeys', 'Practice'];
 
 const PANES = [MicStep, AccessStep, GroqKeyStep, MinimaxStep, HotkeysStep, PracticeStep];
 
@@ -46,59 +41,35 @@ export function WizardShell() {
 
   if (!isReady) {
     return (
-      <Box className={shell.shell}>
+      <Scene tone="neutral">
         <Stack h="100%" align="center" justify="center" role="status" aria-label="Loading setup">
           <Loader />
         </Stack>
-      </Box>
+      </Scene>
     );
   }
 
   const Pane = done ? DoneStep : PANES[step];
 
   return (
-    <Box className={shell.shell}>
-      <Group h="100%" gap={0} wrap="nowrap" align="stretch">
-        <Box w={200} className={shell.rail}>
-          <Stack gap="md">
-            <Box px="xs">
-              <Title order={5}>Setup</Title>
-              <Text size="xs" c="dimmed" mt={2}>
-                {done ? 'Complete' : `Step ${step + 1} of ${RAIL_STEPS.length}`}
-              </Text>
-            </Box>
-            <Stepper
-              active={done ? RAIL_STEPS.length : step}
-              orientation="vertical"
-              allowNextStepsSelect={false}
-            >
-              {RAIL_STEPS.map(rail => (
-                <Stepper.Step key={rail.label} label={rail.label} description={rail.description} />
-              ))}
-            </Stepper>
-          </Stack>
-        </Box>
-        <Box flex={1} miw={0} p="xl" style={{ overflowY: 'auto' }}>
-          <Group justify="space-between" align="center" mb="md">
-            <Text size="sm" fw={500}>
-              {done ? 'Done' : `Step ${step + 1} of ${RAIL_STEPS.length}`}
-            </Text>
-            <Progress
-              value={done ? 100 : Math.round(((step + 1) / (RAIL_STEPS.length + 1)) * 100)}
-              w={160}
-              aria-label="Setup progress"
-            />
-          </Group>
+    <Scene tone={done ? 'done' : 'dictate'}>
+      <Box h="100%" px="xl" pt={36} pb="xl" style={{ overflowY: 'auto' }}>
+        <Stack gap="lg" maw={520} mx="auto">
+          <OrbProgress
+            step={done ? STEP_LABELS.length : step}
+            total={STEP_LABELS.length}
+            label={done ? 'Done' : STEP_LABELS[step]}
+          />
           {saveFailed && (
-            <Alert color="red" variant="light" mb="md">
+            <Alert color="red" variant="light">
               Could not save settings
             </Alert>
           )}
           <Box key={step} ref={paneRef} className={shell.panel}>
             <Pane />
           </Box>
-        </Box>
-      </Group>
-    </Box>
+        </Stack>
+      </Box>
+    </Scene>
   );
 }

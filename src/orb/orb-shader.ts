@@ -160,7 +160,7 @@ void main() {
 }`;
 
 export interface OrbRenderer {
-  /** `mode` picks the hue: indigo for dictation, lilac for a voice edit. */
+  /** `mode` picks the hue: indigo for dictation, amber for a voice edit, cyan for Explain. */
   render(uniforms: OrbUniforms, mode?: SessionMode): void;
   dispose(): void;
 }
@@ -217,8 +217,8 @@ export function createOrbRenderer(
   const auroraLocation = location('uAurora[0]');
   const hues: Record<SessionMode, Float32Array> = {
     dictate: new Float32Array(palette.aurora.flat()),
-    edit: new Float32Array(palette.lilac.flat()),
-    explain: new Float32Array(palette.aurora.flat()),
+    edit: new Float32Array(palette.edit.flat()),
+    explain: new Float32Array(palette.explain.flat()),
   };
   let worn: SessionMode = 'dictate';
   gl.uniform3fv(auroraLocation, hues[worn]);

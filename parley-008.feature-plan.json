@@ -1,0 +1,256 @@
+{
+  "feature": {
+    "id": "parley-008",
+    "title": "Revamp phase 1: mode-colored orb, scene backdrop, one progress ring",
+    "problem": "Onboarding and settings read like an admin panel rather than a Mac app. The wizard shows progress three ways at once (a vertical Stepper rail, “Step N of 6” twice, and a Progress bar). The aurora gradient is on the tab pill and every primary button, so it no longer marks anything. The orb, Parley's one distinctive asset, is a 48 px sidebar icon. It also barely tells the modes apart: dictate and explain share the indigo palette, and edit is only a slightly shifted lilac. Phase 1 changes the atmosphere without changing the flow. The orb gets a distinct color per mode (dictate violet, edit amber, explain cyan — teal stays the orb's done flash, so the two never read alike). A tone-tinted Scene backdrop sits behind the tour and wizard. The wizard's progress becomes a single ring around a live orb above one centered column. The gradient is kept for the primary CTA only. The settings window gets an inset title bar so the scene runs edge to edge. Frame note: the settings window is not PageShell, so the archetypes below are illustrative and not probe-enforced, as in parley-007.",
+    "nonGoals": [
+      "Merging the tour and wizard into one flow, the gesture trainer, or moving MiniMax to first use — that is phase 2.",
+      "Native grouped-list settings, a status header, or a time-saved stat — that is phase 3.",
+      "Changing the 760x560 settings window size — it is already compact.",
+      "New IPC channels — every change is renderer-side or in window options.",
+      "A dark-only onboarding: the Scene follows the app theme, with lighter blooms on the light ground."
+    ]
+  },
+  "app": "Parley",
+  "nav": ["Setup", "Gesture", "General"],
+  "surfaces": [
+    {
+      "id": "wizard",
+      "name": "Setup wizard (all six steps)",
+      "route": "settings.html · wizard N/6",
+      "archetype": "form",
+      "purpose": "One centered column on a full-bleed Scene. A live orb inside a progress ring replaces the Stepper rail, both step counters and the Progress bar. Each step's content and footer stay as they are.",
+      "primaryAction": "Continue →",
+      "panels": [
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Open what Parley needs",
+          "badge": "ring 2/6",
+          "subtitle": "◌ orb in a ring · Accessibility",
+          "rows": [
+            ["( ◉ ) ring 33% — Accessibility"],
+            ["1 · Press the button below"],
+            ["2 · Toggle Parley on"],
+            ["3 · Come back — this finishes itself"]
+          ],
+          "fields": [
+            {
+              "label": "Status",
+              "value": "○ Missing"
+            }
+          ],
+          "actions": ["Back", "Open System Settings"]
+        }
+      ],
+      "states": {
+        "loading": "Settings resolving: the ring draws empty around a still orb and the Scene is already painted, so there is no Loader on a blank frame.",
+        "empty": "Step already satisfied on arrival: the ring shows that step's fraction, the orb sits still, and Continue is available at once.",
+        "error": "Save failed: the red Alert sits above the column. The ring does not advance and the Scene keeps its tone.",
+        "success": "Step completes: the ring sweeps to the next fraction on SPRING and the orb pulses once in the step's tone. Done fills the ring and turns it teal."
+      }
+    },
+    {
+      "id": "tour",
+      "name": "Tour slide",
+      "route": "settings.html · tour N/4",
+      "archetype": "centered-card",
+      "purpose": "Same four slides and Carousel, now on a Scene whose tone follows the slide: dictate violet, edit amber, explain cyan, trust neutral. The grey stage box goes away.",
+      "primaryAction": "Next",
+      "panels": [
+        {
+          "id": "slide",
+          "kind": "card",
+          "title": "Say how to change it",
+          "badge": "2 of 4",
+          "subtitle": "Scene tone: edit · amber",
+          "rows": [
+            ["“make it shorter”"],
+            ["“The meeting that was planned…”"],
+            ["→ “Meeting moved.” ✓"]
+          ],
+          "footer": "○ ● ○ ○",
+          "actions": ["Back", "Next"]
+        }
+      ],
+      "states": {
+        "loading": "The Scene paints in the first frame through CSS only, so there is no flash of the old tint.",
+        "empty": "If an illustration fails, the copy, dots and controls still show on the Scene, as today.",
+        "error": "No error state: the tour is static content.",
+        "success": "On slide change the Scene tone crossfades over DURATION.slow. Under reduced motion it swaps with no transition."
+      }
+    },
+    {
+      "id": "settings-rail",
+      "name": "Settings tab rail",
+      "route": "settings.html · settings",
+      "archetype": "list-detail",
+      "purpose": "The selection pill loses the aurora gradient and becomes an accent tint, so the gradient means ‘the primary action’ again. The rail header clears the inset traffic lights.",
+      "primaryAction": "Select tab",
+      "panels": [
+        {
+          "id": "rail",
+          "kind": "rail",
+          "ratio": 0.3,
+          "title": "Parley",
+          "rows": [["▣ Setup"], ["□ Gesture"], ["□ General"]]
+        },
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Gesture",
+          "subtitle": "unchanged content",
+          "fields": [
+            {
+              "label": "Selection",
+              "value": "accent tint, not gradient"
+            }
+          ],
+          "actions": []
+        }
+      ],
+      "states": {
+        "loading": "Unchanged: settings resolve with the window.",
+        "empty": "Unchanged: needs-setup lands on the Setup tab.",
+        "error": "Unchanged: the save-failed Alert shows above the panel.",
+        "success": "The tinted pill slides between tabs on the existing layoutId spring."
+      }
+    }
+  ],
+  "components": [
+    {
+      "surface": "wizard",
+      "control": "OrbProgress: OrbCanvas inside an SVG ring, role=progressbar with aria-valuetext “Step 2 of 6: Accessibility”",
+      "why": "One indicator that also shows the hero object. The number now lives in aria-valuetext, so screen readers still get the fraction.",
+      "rejected": "Stepper + Progress + “Step N of 6” text (three competing indicators)"
+    },
+    {
+      "surface": "wizard, tour",
+      "control": "Scene (CSS module: layered radial gradients + 3% noise, tone prop)",
+      "why": "Full-bleed atmosphere with no JS cost. Tone comes from mode tokens, so the backdrop and the orb always agree.",
+      "rejected": "WebGL backdrop (a second GL context beside OrbCanvas)"
+    },
+    {
+      "surface": "all",
+      "control": "Mode token triples --app-edit-* (amber) and --app-explain-* (cyan) in theme.ts",
+      "why": "The orb palette already reads token triples through readTokenBytes. Two new triples give each mode its own hue without literals in the shader.",
+      "rejected": "Hard-coded RGB in orb-shader.ts"
+    },
+    {
+      "surface": "wizard, tour",
+      "control": "Button with shell.primary for the primary CTA only",
+      "why": "One gradient per screen puts the eye on the next action.",
+      "rejected": "Gradient on every filled button"
+    },
+    {
+      "surface": "settings-rail",
+      "control": "Accent-tint pill (primary-light background)",
+      "why": "Selection is state, not action, so a tint is the native macOS idiom.",
+      "rejected": "Aurora gradient pill"
+    },
+    {
+      "surface": "all",
+      "control": "titleBarStyle hiddenInset + trafficLightPosition on the settings window",
+      "why": "The scene runs under the title bar the way full-bleed Mac apps do. The inset reuses TRAFFIC_LIGHT_INSET.",
+      "rejected": "frame:false (loses native window drag and the traffic lights)"
+    }
+  ],
+  "entities": [
+    {
+      "name": "SceneTone",
+      "fields": [
+        {
+          "name": "tone",
+          "type": "'dictate' | 'edit' | 'explain' | 'neutral' | 'done'",
+          "note": "maps 1:1 to SessionMode plus two onboarding states"
+        }
+      ],
+      "relations": ["drives Scene's CSS variables and the OrbProgress orb mode"]
+    }
+  ],
+  "integration": [
+    {
+      "from": "src/theme.ts",
+      "to": "--app-edit-{deep,core,glow} + --app-explain-{deep,core,glow}",
+      "note": "shared across color schemes like the aurora tokens; lilac is retired, nothing else reads it"
+    },
+    {
+      "from": "src/orb/palette.ts",
+      "to": "OrbPalette swaps lilac for edit + explain triples",
+      "note": "buildPalette reads them like aurora"
+    },
+    {
+      "from": "src/orb/orb-shader.ts",
+      "to": "mode map: dictate→aurora, edit→amber, explain→cyan",
+      "note": "the live overlay orb changes too, which is the point"
+    },
+    {
+      "from": "src/orb/Pill.tsx",
+      "to": "bar colours per mode",
+      "note": "edit and explain tokens, same as the shader"
+    },
+    {
+      "from": "src/settings/Scene.tsx (+ Scene.module.css)",
+      "to": "Tour and WizardShell root",
+      "note": "replaces shell.shell's flat tint on those two stages"
+    },
+    {
+      "from": "src/settings/wizard/OrbProgress.tsx",
+      "to": "WizardShell header",
+      "note": "Stepper, both step texts and Progress are deleted"
+    },
+    {
+      "from": "src/settings/wizard/steps.tsx",
+      "to": "Continue buttons get shell.primary",
+      "note": "secondary buttons stay default"
+    },
+    {
+      "from": "src/settings/settings.module.css",
+      "to": ".pill → accent tint",
+      "note": ".primary is unchanged"
+    },
+    {
+      "from": "electron/windows.ts",
+      "to": "settingsWindowOptions: hiddenInset + trafficLightPosition",
+      "note": "keep in step with src/lib/platform.ts TRAFFIC_LIGHT_INSET"
+    },
+    {
+      "from": "src/settings/Tour.tsx",
+      "to": "Scene tone per slide; stage box removed",
+      "note": "Carousel unchanged"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "src/settings/Scene.tsx",
+      "src/settings/Scene.module.css",
+      "src/settings/wizard/OrbProgress.tsx",
+      "src/settings/__tests__/OrbProgress.test.tsx"
+    ],
+    "changed": [
+      "src/theme.ts",
+      "src/orb/palette.ts",
+      "src/orb/orb-shader.ts",
+      "src/orb/Pill.tsx",
+      "src/orb/__tests__/palette.test.ts",
+      "src/settings/wizard/WizardShell.tsx",
+      "src/settings/wizard/steps.tsx",
+      "src/settings/tour/Tour.tsx",
+      "src/settings/settings.module.css",
+      "src/settings/SettingsShell.tsx",
+      "src/settings/TabRail.tsx",
+      "electron/windows.ts",
+      "electron/__tests__/windows.test.ts",
+      "src/settings/Wizard.stories.tsx",
+      "feature_list.json"
+    ]
+  },
+  "verification": [
+    "make check",
+    "npm run test -- src/settings/__tests__/onboarding.test.tsx src/settings/__tests__/OrbProgress.test.tsx src/orb",
+    "npm run ui-probe (Tour + Wizard stories)",
+    "Manual: make dev — the overlay orb is violet for dictate, amber for edit and cyan for explain",
+    "Manual: walk the wizard; only the ring shows progress and each step has one gradient button",
+    "Manual: Reduce Motion — the ring and Scene tone change with no animation"
+  ]
+}

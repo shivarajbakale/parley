@@ -5,6 +5,7 @@
 }
 
 .shell {
+  position: relative;
   height: 100vh;
   overflow: hidden;
   background: var(--app-tint-bg);
@@ -47,8 +48,8 @@
   z-index: -1;
   pointer-events: none;
   border-radius: var(--mantine-radius-md);
-  background: var(--app-aurora-gradient);
-  opacity: 0.9;
+  /* Selection is state, not action: a tint. The gradient belongs to the CTA. */
+  background: var(--mantine-primary-color-light);
 }
 
 /* Primary buttons carry the gradient, with a sheen that crosses on hover. */
@@ -75,6 +76,36 @@
 
 .primary:hover::after {
   transform: translateX(120%);
+}
+
+.primary:disabled,
+.primary[data-disabled] {
+  opacity: 0.4;
+}
+
+.primary:disabled::after,
+.primary[data-disabled]::after {
+  display: none;
+}
+
+/* The settings window hides its titlebar on macOS, so this strip is what drags
+ * it. Controls that overlap the strip opt out, or a click would move the window. */
+.drag {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 28px;
+  /* Behind the content: Electron reads drag regions from layout, not paint, so
+   * the strip still drags while the browser never lets it swallow a click. */
+  z-index: -1;
+  -webkit-app-region: drag;
+}
+
+:global(button),
+:global(a),
+:global(input),
+:global(textarea),
+:global([role='tab']) {
+  -webkit-app-region: no-drag;
 }
 
 .glow {

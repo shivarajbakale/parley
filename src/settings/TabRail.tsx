@@ -3,6 +3,7 @@ import { Keyboard, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 import { DURATION, EASE, SPRING } from '@/lib/motion';
+import { TRAFFIC_LIGHT_INSET } from '@/lib/platform';
 
 import { SILENT_BANDS } from '../orb/bands';
 import { OrbCanvas } from '../orb/OrbCanvas';
@@ -14,7 +15,7 @@ const IDLE = () => ({ bands: SILENT_BANDS, phase: 'listening' as const });
 
 export function TabRail({ needsSetup, active }: { needsSetup: boolean; active: TabId }) {
   return (
-    <Tabs.List className={classes.rail}>
+    <Tabs.List className={classes.rail} pt={TRAFFIC_LIGHT_INSET ? 40 : undefined}>
       <Group gap="xs" px="xs" pb="md" wrap="nowrap">
         <OrbCanvas size={48} running read={IDLE} />
         <Box miw={0}>

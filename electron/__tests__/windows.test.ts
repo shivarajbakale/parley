@@ -58,6 +58,15 @@ describe('settings window', () => {
     expect(options.backgroundColor).toBe('#00000000');
   });
 
+  it('insets the traffic lights into a hidden titlebar on macOS only', () => {
+    const mac = settingsWindowOptions('/app/preload.mjs', 'darwin');
+    expect(mac.titleBarStyle).toBe('hiddenInset');
+    expect(mac.trafficLightPosition).toEqual({ x: 14, y: 12 });
+    const win = settingsWindowOptions('/app/preload.mjs', 'win32');
+    expect(win.titleBarStyle).toBe('default');
+    expect(win.trafficLightPosition).toBeUndefined();
+  });
+
   it('keeps a solid dark background where vibrancy does not exist', () => {
     const options = settingsWindowOptions('/app/preload.mjs', 'win32');
     expect(options.vibrancy).toBeUndefined();

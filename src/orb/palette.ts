@@ -8,8 +8,10 @@ export type Rgb = [number, number, number];
 
 export interface OrbPalette {
   aurora: [Rgb, Rgb, Rgb];
-  /** The same three depths in lilac and violet, worn while a voice edit is running. */
-  lilac: [Rgb, Rgb, Rgb];
+  /** The same three depths in amber, worn while a voice edit is running. */
+  edit: [Rgb, Rgb, Rgb];
+  /** The same three depths in cyan, worn while Explain is listening. */
+  explain: [Rgb, Rgb, Rgb];
   done: Rgb;
   error: Rgb;
 }
@@ -18,7 +20,8 @@ export const PALETTE_TOKENS = {
   aurora: ['--app-aurora-deep', '--app-aurora-core', '--app-aurora-glow'],
   done: '--mantine-color-teal-5',
   error: '--mantine-color-red-6',
-  lilac: ['--app-lilac-deep', '--app-lilac-core', '--app-lilac-glow'],
+  edit: ['--app-edit-deep', '--app-edit-core', '--app-edit-glow'],
+  explain: ['--app-explain-deep', '--app-explain-core', '--app-explain-glow'],
 } as const;
 
 export function srgbByteToLinear(byte: number): number {
@@ -36,10 +39,17 @@ export function buildPalette(readBytes: (token: string) => Rgb): OrbPalette {
   const [deep, core, glow] = PALETTE_TOKENS.aurora.map((token) => toLinear(readBytes(token)));
   const done = toLinear(readBytes(PALETTE_TOKENS.done));
   const error = toLinear(readBytes(PALETTE_TOKENS.error));
-  const [lilacDeep, lilacCore, lilacGlow] = PALETTE_TOKENS.lilac.map((token) =>
-    toLinear(readBytes(token))
-  );
-  return { aurora: [deep, core, glow], lilac: [lilacDeep, lilacCore, lilacGlow], done, error };
+  const triple = (tokens: readonly [string, string, string]): [Rgb, Rgb, Rgb] => {
+    const [a, b, c] = tokens.map((token) => toLinear(readBytes(token)));
+    return [a, b, c];
+  };
+  return {
+    aurora: [deep, core, glow],
+    edit: triple(PALETTE_TOKENS.edit),
+    explain: triple(PALETTE_TOKENS.explain),
+    done,
+    error,
+  };
 }
 
 /** Browser only: resolves a CSS custom property to sRGB bytes. */

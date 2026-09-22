@@ -24,8 +24,11 @@ describe('buildPalette', () => {
       ...PALETTE_TOKENS.aurora,
       PALETTE_TOKENS.done,
       PALETTE_TOKENS.error,
-      ...PALETTE_TOKENS.lilac,
+      ...PALETTE_TOKENS.edit,
+      ...PALETTE_TOKENS.explain,
     ]);
+    expect(palette.edit).toHaveLength(3);
+    expect(palette.explain).toHaveLength(3);
     expect(palette.aurora).toHaveLength(3);
     expect(palette.done[0]).toBeCloseTo(1, 6);
     expect(palette.done[1]).toBe(0);

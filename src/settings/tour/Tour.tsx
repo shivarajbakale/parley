@@ -3,6 +3,7 @@ import { Box, Button, Group, Stack, Text, Title, VisuallyHidden } from '@mantine
 import { useEffect, useState } from 'react';
 
 import { Pressable } from '../motion';
+import { Scene, type SceneTone } from '../Scene';
 import shell from '../settings.module.css';
 
 import { DictateScene, EditScene, ExplainScene, TrustScene } from './illustrations';
@@ -24,27 +25,37 @@ interface CarouselApi {
   off(event: 'select', cb: () => void): void;
 }
 
-const SLIDES = [
+const SLIDES: {
+  eyebrow: string;
+  title: string;
+  copy: string;
+  tone: SceneTone;
+  Scene: typeof DictateScene;
+}[] = [
   {
     eyebrow: 'Meet Parley',
+    tone: 'dictate',
     title: 'Hold to talk, release to paste',
     copy: 'Tap twice, hold the third press, speak, release — your words land where the cursor already is.',
     Scene: DictateScene,
   },
   {
     eyebrow: 'Voice edit',
+    tone: 'edit',
     title: 'Say how to change it',
     copy: '“Make it shorter.” The text in the field rewrites itself around your words.',
     Scene: EditScene,
   },
   {
     eyebrow: 'Explain',
+    tone: 'explain',
     title: 'Ask about anything',
     copy: 'Select text in any app and ask — a short answer appears beside it.',
     Scene: ExplainScene,
   },
   {
     eyebrow: 'Private by design',
+    tone: 'neutral',
     title: 'Yours alone',
     copy: 'Keys stay encrypted on your Mac, the mic is live only while you hold, and transcripts are never stored. Setup takes about two minutes.',
     Scene: TrustScene,
@@ -69,7 +80,7 @@ export function Tour({ onDone, initialSlide = 0 }: { onDone(): void; initialSlid
   }, [api]);
 
   return (
-    <Box className={shell.shell}>
+    <Scene tone={SLIDES[index].tone}>
       <Stack h="100%" gap={0}>
         <Group justify="flex-end" px="md" pt="sm">
           <Button variant="subtle" size="xs" onClick={onDone}>
@@ -89,11 +100,11 @@ export function Tour({ onDone, initialSlide = 0 }: { onDone(): void; initialSlid
           initialSlide={initialSlide}
           getEmblaApi={setApi}
         >
-          {SLIDES.map(({ eyebrow, title, copy, Scene }, slide) => (
+          {SLIDES.map(({ eyebrow, title, copy, Scene: Illustration }, slide) => (
             <Carousel.Slide key={title}>
               <Stack align="center" gap="md" px="xl" pb="xl" mih={380}>
                 <Box className={stage.stage} w="100%">
-                  <Scene active={slide === index} />
+                  <Illustration active={slide === index} />
                 </Box>
                 <Stack align="center" gap={4}>
                   <Text
@@ -130,11 +141,13 @@ export function Tour({ onDone, initialSlide = 0 }: { onDone(): void; initialSlid
                 Set up Parley
               </Button>
             ) : (
-              <Button onClick={() => api?.scrollNext()}>Next</Button>
+              <Button className={shell.primary} onClick={() => api?.scrollNext()}>
+                Next
+              </Button>
             )}
           </Pressable>
         </Group>
       </Stack>
-    </Box>
+    </Scene>
   );
 }
