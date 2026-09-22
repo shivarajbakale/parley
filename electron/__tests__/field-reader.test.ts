@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createFieldReader, parseFocusedField } from '../field-reader';
+import { createFieldReader, parseFocusedField, parseFrontWindowBounds } from '../field-reader';
 
 describe('field reader', () => {
   it('parses what the helper prints', () => {
@@ -13,6 +13,7 @@ describe('field reader', () => {
       selectedText: 'he',
       secure: false,
       selectionBounds: { x: 10, y: 20, width: 30, height: 16 },
+      frontWindowBounds: { x: 0, y: 0, width: 1440, height: 900 },
     });
     expect(parseFocusedField(stdout)).toEqual({
       editable: true,
@@ -21,6 +22,7 @@ describe('field reader', () => {
       selectedText: 'he',
       secure: false,
       selectionBounds: { x: 10, y: 20, width: 30, height: 16 },
+      frontWindowBounds: { x: 0, y: 0, width: 1440, height: 900 },
     });
   });
 
@@ -49,11 +51,22 @@ describe('field reader', () => {
       selectedText: '',
       secure: false,
       selectionBounds: null,
+      frontWindowBounds: null,
     });
     expect(run).toHaveBeenCalledWith('/x/parley-ax', {
       timeout: expect.any(Number),
       maxBuffer: expect.any(Number),
     });
+  });
+
+  it('reads the frontmost window\'s bounds even on the no-field path', () => {
+    expect(parseFrontWindowBounds(JSON.stringify({ error: 'no_focus' }))).toBeNull();
+    expect(
+      parseFrontWindowBounds(
+        JSON.stringify({ error: 'no_focus', frontWindowBounds: { x: 1, y: 2, width: 3, height: 4 } })
+      )
+    ).toEqual({ x: 1, y: 2, width: 3, height: 4 });
+    expect(parseFrontWindowBounds('not json')).toBeNull();
   });
 
   it('reports no field when the helper is missing, slow or too chatty', async () => {

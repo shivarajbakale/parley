@@ -25,7 +25,7 @@ import { createDictionaryStore } from './dictionary-store';
 import { createEditTargets } from './edit-target';
 import { createExplain, EXPLAIN_LEAVE_MS } from './explain';
 import { CARD_MIN_HEIGHT, CARD_WIDTH, maxCardHeight, placeCard } from './explain-placement';
-import { createFieldReader } from './field-reader';
+import { createFieldReader, parseFrontWindowBounds } from './field-reader';
 import { createGestureDetector } from './gesture-detector';
 import { createInjector } from './injector';
 import { createKeyHook } from './key-hook';
@@ -317,12 +317,34 @@ async function startApp() {
     onTimeout: recoverStuckSession,
   });
 
+  /** A dedicated, un-shared run of the helper: this must never wait behind a
+   * correction-watcher read, and it only ever needs `frontWindowBounds`. */
+  async function readFrontWindowBounds(): Promise<Rect | null> {
+    try {
+      const { stdout } = await execFileAsync(AX_HELPER, [], { timeout: 300, maxBuffer: 1024 });
+      return parseFrontWindowBounds(stdout);
+    } catch {
+      return null;
+    }
+  }
+
   const orb = {
     show: () => {
-      const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-      orbWindow?.setBounds(orbBounds(display.workArea));
+      // Shown at once, at the cursor's display, so there is no lag: most of
+      // the time this is already right. If the user is on another display
+      // entirely — hands on the keyboard, mouse resting elsewhere — the
+      // Accessibility read a moment later corrects it to the real window.
+      const cursorDisplay = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+      orbWindow?.setBounds(orbBounds(cursorDisplay.workArea));
       // `showInactive`, never `show`: the user's text field must keep focus.
       orbWindow?.showInactive();
+      const shownFor = orbWindow;
+      void readFrontWindowBounds().then((bounds) => {
+        if (!bounds || !shownFor || orbWindow !== shownFor || !shownFor.isVisible()) return;
+        const windowDisplay = screen.getDisplayMatching(bounds);
+        if (windowDisplay.id === cursorDisplay.id) return;
+        shownFor.setBounds(orbBounds(windowDisplay.workArea));
+      });
     },
     hide: () => orbWindow?.hide(),
     setPhase: (payload: OrbPhasePayload) => {

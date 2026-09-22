@@ -47,6 +47,24 @@ func selectionBounds(_ element: AXUIElement) -> [String: Double]? {
   return ["x": rect.origin.x, "y": rect.origin.y, "width": rect.size.width, "height": rect.size.height]
 }
 
+/// The frontmost app's key window, in the same top-left coordinates Electron
+/// uses. This is what "which window is the user on" means: the mouse can be
+/// resting on another display entirely.
+func frontWindowBounds() -> [String: Double]? {
+  guard let front = NSWorkspace.shared.frontmostApplication else { return nil }
+  let application = AXUIElementCreateApplication(front.processIdentifier)
+  guard let window = attribute(application, kAXFocusedWindowAttribute) else { return nil }
+  guard
+    let positionValue = attribute(window as! AXUIElement, kAXPositionAttribute),
+    let sizeValue = attribute(window as! AXUIElement, kAXSizeAttribute)
+  else { return nil }
+  var point = CGPoint.zero
+  var size = CGSize.zero
+  guard AXValueGetValue(positionValue as! AXValue, .cgPoint, &point) else { return nil }
+  guard AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) else { return nil }
+  return ["x": point.x, "y": point.y, "width": size.width, "height": size.height]
+}
+
 func emit(_ object: [String: Any]) -> Never {
   let data = try! JSONSerialization.data(withJSONObject: object)
   FileHandle.standardOutput.write(data)
@@ -54,7 +72,11 @@ func emit(_ object: [String: Any]) -> Never {
 }
 
 guard AXIsProcessTrusted() else { emit(["error": "untrusted"]) }
-guard let element = focusedElement() else { emit(["error": "no_focus"]) }
+
+let windowBounds = frontWindowBounds()
+guard let element = focusedElement() else {
+  emit(["error": "no_focus", "frontWindowBounds": windowBounds as Any? ?? NSNull()])
+}
 
 let role = attribute(element, kAXRoleAttribute) as? String ?? ""
 let subrole = attribute(element, kAXSubroleAttribute) as? String ?? ""
@@ -81,4 +103,5 @@ emit([
   "selectedText": secure ? "" : (attribute(element, kAXSelectedTextAttribute) as? String ?? ""),
   "secure": secure,
   "selectionBounds": (secure ? nil : selectionBounds(element)) as Any? ?? NSNull(),
+  "frontWindowBounds": windowBounds as Any? ?? NSNull(),
 ])

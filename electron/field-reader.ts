@@ -24,6 +24,10 @@ export interface FocusedField {
   secure: boolean;
   /** Screen rectangle of the selection, when the app reports one. */
   selectionBounds: Rect | null;
+  /** The frontmost app's key window — the window the user is actually on,
+   * which can be on a different display than the mouse. `null` when the
+   * helper could not read it (an app that fights Accessibility, no window). */
+  frontWindowBounds: Rect | null;
 }
 
 export interface FieldReader {
@@ -54,10 +58,8 @@ export function parseFocusedField(stdout: string): FocusedField | null {
     return null;
   }
   if (typeof raw !== 'object' || raw === null || 'error' in raw) return null;
-  const { editable, valueKnown, value, selectedText, secure, selectionBounds } = raw as Record<
-    string,
-    unknown
-  >;
+  const { editable, valueKnown, value, selectedText, secure, selectionBounds, frontWindowBounds } =
+    raw as Record<string, unknown>;
   if (typeof editable !== 'boolean') return null;
   return {
     editable,
@@ -66,7 +68,21 @@ export function parseFocusedField(stdout: string): FocusedField | null {
     selectedText: typeof selectedText === 'string' ? selectedText : '',
     secure: secure === true,
     selectionBounds: parseRect(selectionBounds),
+    frontWindowBounds: parseRect(frontWindowBounds),
   };
+}
+
+/**
+ * Just the frontmost window's bounds, from the same helper output, even on the
+ * "nothing focused" path — the orb needs this when no field has focus at all.
+ */
+export function parseFrontWindowBounds(stdout: string): Rect | null {
+  try {
+    const raw = JSON.parse(stdout) as Record<string, unknown>;
+    return parseRect(raw.frontWindowBounds);
+  } catch {
+    return null;
+  }
 }
 
 export function createFieldReader(deps: { helperPath: string; run: RunHelper }): FieldReader {

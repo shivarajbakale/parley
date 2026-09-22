@@ -10,6 +10,7 @@ const field = (value: string, rest: Partial<FocusedField> = {}): FocusedField =>
   selectedText: '',
   secure: false,
   selectionBounds: null,
+    frontWindowBounds: null,
   ...rest,
 });
 

@@ -30,6 +30,15 @@ previous clipboard content is back afterwards (copy a word first, paste it after
       works; the old key no longer shows the orb.
 - [ ] Changing the tap count in Settings and performing the new gesture works.
 
+## Window intelligence
+
+- [ ] With two displays: put a text field on the second display, move the
+      mouse cursor back to the first, and perform the gesture without moving
+      the mouse. The orb appears above the Dock on the display holding the
+      window, not the one holding the cursor.
+- [ ] With one display, the orb still appears in its usual spot regardless of
+      which app is frontmost.
+
 ## Onboarding from a clean state
 
 - [ ] `tccutil reset Accessibility` and `tccutil reset Microphone`, delete

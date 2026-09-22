@@ -19,6 +19,7 @@ const field = (patch: Partial<FocusedField> = {}): FocusedField => ({
   selectedText: '',
   secure: false,
   selectionBounds: null,
+    frontWindowBounds: null,
   ...patch,
 });
 
