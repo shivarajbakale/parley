@@ -104,10 +104,14 @@ export function createSession(deps: SessionDeps): Session {
     state: () => state,
 
     start(requested = 'dictate') {
-      if (state !== 'idle') return;
+      if (state !== 'idle') {
+        console.log('[session] start blocked, state=', state);
+        return;
+      }
       const permissions = deps.getPermissions();
       const hasKeys = deps.hasApiKey() && (requested === 'dictate' || deps.hasRewriteKey());
       if (!permissions.microphone || !permissions.accessibility || !hasKeys) {
+        console.log('[session] start blocked', { permissions, hasKeys });
         deps.openSettings();
         return;
       }
