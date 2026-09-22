@@ -6,6 +6,7 @@ import type { Bands } from './bands';
 import { createFrame, type OrbUniforms } from './frame';
 import { PHASE_INDEX } from './phase-mix';
 import { BAR_COUNT, pillBars, pillOpacity } from './pill-bars';
+import { pillMotion } from './pill-motion';
 
 const PILL_SIZE = { width: 148, height: 40 };
 /** Room around the capsule for its glow, inside the canvas. */
@@ -60,6 +61,14 @@ function draw(
   context.clearRect(0, 0, canvas.width, canvas.height);
 
   if (presence <= 0.001 || pillOpacity(uniforms) <= 0) return;
+
+  // The ending's own move — pop, shudder or shrink — about the pill's centre.
+  const motion = pillMotion(uniforms);
+  const centreX = GLOW_PAD + PILL_SIZE.width / 2;
+  const centreY = GLOW_PAD + PILL_SIZE.height / 2;
+  context.translate(centreX + motion.offsetX, centreY);
+  context.scale(motion.scale, motion.scale);
+  context.translate(-centreX, -centreY);
 
   const [deep, glow] = barTokens(uniforms, mode).map(token);
   // Mantine writes its variables a moment after mount; a gradient stop of ''

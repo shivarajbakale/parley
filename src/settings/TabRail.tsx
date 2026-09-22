@@ -13,21 +13,21 @@ import type { TabId } from './tabs';
 
 const IDLE = () => ({ bands: SILENT_BANDS, phase: 'listening' as const });
 const RAIL_ORB_BOX = 32;
-const RAIL_ORB = 84;
+const RAIL_ORB = 64;
 
 export function TabRail({ needsSetup, active }: { needsSetup: boolean; active: TabId }) {
   return (
     <Tabs.List className={classes.rail} pt={TRAFFIC_LIGHT_INSET ? 40 : undefined}>
       <Group gap="xs" px="xs" pb="md" wrap="nowrap">
-        {/* The idle orb fills a third of its canvas and sits low in it, so a
-            larger canvas overhangs a small box to seat the body in line. */}
+        {/* The badge orb's body is half its canvas; the canvas overhangs the
+            box so the glow has room without pushing the title aside. */}
         <Box pos="relative" w={RAIL_ORB_BOX} h={RAIL_ORB_BOX} flex="none" aria-hidden="true">
           <Box
             pos="absolute"
-            top={(RAIL_ORB_BOX - RAIL_ORB) / 2 - Math.round(RAIL_ORB * 0.165)}
+            top={(RAIL_ORB_BOX - RAIL_ORB) / 2}
             left={(RAIL_ORB_BOX - RAIL_ORB) / 2}
           >
-            <OrbCanvas size={RAIL_ORB} running read={IDLE} />
+            <OrbCanvas size={RAIL_ORB} framing="badge" running read={IDLE} />
           </Box>
         </Box>
         <Box miw={0}>

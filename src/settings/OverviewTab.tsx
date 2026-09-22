@@ -20,8 +20,7 @@ import { useRequestPermission, useSetApiKey, useSetRewriteKey } from './use-parl
  */
 
 const ORB_BOX = 56;
-const ORB = 104;
-const ORB_LIFT = Math.round(ORB * 0.165);
+const ORB = 80;
 const readIdle = () => ({ bands: SILENT_BANDS, phase: 'listening' as const });
 
 type KeyRow = 'groq' | 'minimax';
@@ -122,8 +121,8 @@ export function OverviewTab({
         <StaggerItem>
           <Group gap="md" wrap="nowrap">
             <Box pos="relative" w={ORB_BOX} h={ORB_BOX} flex="none" aria-hidden="true">
-              <Box pos="absolute" top={(ORB_BOX - ORB) / 2 - ORB_LIFT} left={(ORB_BOX - ORB) / 2}>
-                <OrbCanvas size={ORB} running read={readIdle} />
+              <Box pos="absolute" top={(ORB_BOX - ORB) / 2} left={(ORB_BOX - ORB) / 2}>
+                <OrbCanvas size={ORB} framing="badge" running read={readIdle} />
               </Box>
             </Box>
             <Box miw={0}>

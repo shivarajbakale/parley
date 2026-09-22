@@ -13,6 +13,8 @@ const uniforms = (patch: Partial<OrbUniforms> = {}): OrbUniforms => ({
   to: PHASE_INDEX.listening,
   mix: 1,
   calm: 0,
+  age: 0,
+  pulse: 0,
   ...patch,
 });
 

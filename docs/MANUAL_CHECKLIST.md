@@ -157,6 +157,16 @@ After onboarding:
 - [ ] With Reduce Motion on, the app uses fades only and the bars drift
       slower.
 
+
+### Orb and pill polish (parley-011)
+
+- [ ] Dictate a sentence: the pill pops (a quick swell) as the text lands, then folds.
+- [ ] Force an error (e.g. turn Wi‑Fi off and dictate): the pill shudders sideways and settles, then shows the message.
+- [ ] Press Esc mid-recording: the pill shrinks as it fades instead of only fading.
+- [ ] With Reduce Motion on, none of the three moves; the colours and fades still happen.
+- [ ] In the first-run gesture trainer, each press of your key makes the ring orb swell briefly; holding the key does not keep re-triggering it.
+- [ ] The small orbs (settings sidebar, Overview header, finale menu bar) sit centred and look calm, not noisy.
+
 ## Voice edit
 
 Needs a MiniMax key saved on the Overview tab. The voice edit key defaults to Right

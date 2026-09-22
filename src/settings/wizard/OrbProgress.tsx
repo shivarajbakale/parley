@@ -17,29 +17,33 @@ const RING = 104;
 const STROKE = 3;
 const RADIUS = (RING - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-// The idle orb fills about a third of its canvas, so the canvas overhangs the
-// ring and its glow spills past it; the ring is what sets the layout box.
-const ORB = 176;
-// The orb's body sits below its canvas centre (room for the glow above), so
-// lift the canvas by that much to seat the body in the middle of the ring.
-const ORB_LIFT = Math.round(ORB * 0.165);
+// The badge orb's body is half its canvas, so the canvas overhangs the ring
+// and its glow spills past it; the ring is what sets the layout box.
+const ORB = 136;
 
 export function OrbProgress({
   step,
   total,
   label,
+  pulses,
 }: {
   /** Steps finished so far: 0 on the first step, `total` once setup is done. */
   step: number;
   total: number;
   /** Name of the current step, or of the finish when done. */
   label: string;
+  /** A running count of key presses from the screen below; each one kicks the orb. */
+  pulses?: { current: number };
 }) {
   const reduced = useReducedMotion();
   const done = step >= total;
   // The current step counts as begun, so the first step already shows a sliver.
   const fraction = done ? 1 : (step + 1) / (total + 1);
-  const read = () => ({ bands: SILENT_BANDS, phase: done ? ('done' as const) : ('listening' as const) });
+  const read = () => ({
+    bands: SILENT_BANDS,
+    phase: done ? ('done' as const) : ('listening' as const),
+    pulses: pulses?.current,
+  });
 
   return (
     <Box
@@ -83,8 +87,8 @@ export function OrbProgress({
           transition={reduced ? { duration: 0 } : SPRING}
         />
       </svg>
-      <Box pos="absolute" top={(RING - ORB) / 2 - ORB_LIFT} left={(RING - ORB) / 2}>
-        <OrbCanvas size={ORB} running read={read} />
+      <Box pos="absolute" top={(RING - ORB) / 2} left={(RING - ORB) / 2}>
+        <OrbCanvas size={ORB} framing="badge" running read={read} />
       </Box>
     </Box>
   );

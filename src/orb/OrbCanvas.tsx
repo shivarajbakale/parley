@@ -4,7 +4,7 @@ import type { OrbPhase, SessionMode } from '../../electron/types';
 
 import type { Bands } from './bands';
 import { createFrame, type OrbUniforms } from './frame';
-import { createOrbRenderer, type OrbRenderer } from './orb-shader';
+import { createOrbRenderer, detailFor, FRAMING, type OrbFraming, type OrbRenderer } from './orb-shader';
 import { buildPalette, readTokenBytes } from './palette';
 
 interface OrbCanvasProps {
@@ -12,29 +12,36 @@ interface OrbCanvasProps {
   size: number;
   /** The loop runs only while true, so a hidden orb costs nothing. */
   running: boolean;
-  /** Called once per frame for the current audio and phase. */
-  read: () => { bands: Bands; phase: OrbPhase; mode?: SessionMode };
+  /** Called once per frame for the current audio and phase. `pulses` is a
+   * running count; each increase kicks the orb once. */
+  read: () => { bands: Bands; phase: OrbPhase; mode?: SessionMode; pulses?: number };
+  /** `flame` (the default) sits the body low with room for tongues above;
+   * `badge` centres it, for static places where the canvas fills its box. */
+  framing?: OrbFraming;
 }
 
 /** Without WebGL the orb is a plain disc in the accent colour: dull, never missing. */
-function drawFallback(canvas: HTMLCanvasElement, uniforms: OrbUniforms) {
+function drawFallback(canvas: HTMLCanvasElement, uniforms: OrbUniforms, framing: OrbFraming) {
   const context = canvas.getContext('2d');
   if (!context) return;
   const center = canvas.width / 2;
+  const { seat, radius } = FRAMING[framing];
   context.clearRect(0, 0, canvas.width, canvas.height);
   if (uniforms.to === 0 && uniforms.mix === 1) return;
   context.fillStyle = getComputedStyle(document.documentElement)
     .getPropertyValue('--mantine-primary-color-filled')
     .trim();
   context.beginPath();
-  context.arc(center, center, canvas.width * 0.31 * (1 + 0.06 * uniforms.low), 0, Math.PI * 2);
+  context.arc(center, center * (1 + seat), center * radius * (1 + 0.06 * uniforms.low), 0, Math.PI * 2);
   context.fill();
 }
 
-export function OrbCanvas({ size, running, read }: OrbCanvasProps) {
+export function OrbCanvas({ size, running, read, framing = 'flame' }: OrbCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const readRef = useRef(read);
   readRef.current = read;
+  const lookRef = useRef({ framing, detail: detailFor(size) });
+  lookRef.current = { framing, detail: detailFor(size) };
   const rendererRef = useRef<OrbRenderer | null>(null);
   const frameRef = useRef<ReturnType<typeof createFrame> | null>(null);
   // 'gl' is the default; a failed compile/link or a lost context that never
@@ -95,14 +102,20 @@ export function OrbCanvas({ size, running, read }: OrbCanvasProps) {
     let handle = 0;
     let previous = performance.now();
     const loop = (now: number) => {
-      const { bands, phase, mode: sessionMode } = readRef.current();
+      const { bands, phase, mode: sessionMode, pulses } = readRef.current();
       const reducedMotion = media?.matches ?? false;
-      const uniforms = frameRef.current?.step({ deltaMs: now - previous, bands, phase, reducedMotion });
+      const uniforms = frameRef.current?.step({
+        deltaMs: now - previous,
+        bands,
+        phase,
+        reducedMotion,
+        pulses,
+      });
       previous = now;
       if (uniforms) {
         const renderer = rendererRef.current;
-        if (renderer) renderer.render(uniforms, sessionMode);
-        else drawFallback(canvas, uniforms);
+        if (renderer) renderer.render(uniforms, sessionMode, lookRef.current);
+        else drawFallback(canvas, uniforms, lookRef.current.framing);
       }
       handle = requestAnimationFrame(loop);
     };

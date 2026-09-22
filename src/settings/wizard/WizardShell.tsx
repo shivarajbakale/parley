@@ -1,10 +1,11 @@
 import { Alert, Box, Loader, Stack } from '@mantine/core';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { Scene } from '../Scene';
 import shell from '../settings.module.css';
 
 import { OrbProgress } from './OrbProgress';
+import { OrbPulseContext } from './orb-pulse';
 import { DONE_STEP } from './stage';
 import {
   AccessStep,
@@ -31,6 +32,10 @@ const PANES = [WelcomeStep, MicStep, AccessStep, TranscriptionStep, TrainerStep,
 export function WizardShell() {
   const { step, isReady, saveFailed } = useOnboarding();
   const paneRef = useRef<HTMLDivElement>(null);
+  const pulses = useRef(0);
+  const bumpPulse = useCallback(() => {
+    pulses.current += 1;
+  }, []);
   const done = step >= DONE_STEP;
 
   useEffect(() => {
@@ -62,14 +67,23 @@ export function WizardShell() {
       >
         {/* The finale has no ring above it, so it sits in the middle of the window. */}
         <Stack gap="lg" w="100%" maw={520} mx="auto" my={done ? 'auto' : undefined}>
-          {!done && <OrbProgress step={step} total={STEP_LABELS.length} label={STEP_LABELS[step]} />}
+          {!done && (
+            <OrbProgress
+              step={step}
+              total={STEP_LABELS.length}
+              label={STEP_LABELS[step]}
+              pulses={pulses}
+            />
+          )}
           {saveFailed && (
             <Alert color="red" variant="light">
               Could not save settings
             </Alert>
           )}
           <Box key={step} ref={paneRef} className={shell.panel}>
-            <Pane />
+            <OrbPulseContext.Provider value={bumpPulse}>
+              <Pane />
+            </OrbPulseContext.Provider>
           </Box>
         </Stack>
       </Box>

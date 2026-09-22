@@ -200,7 +200,7 @@
       "area": "design",
       "title": "Revamp phase 3: Overview with status and time saved, native grouped settings",
       "user_visible_behavior": "The settings window opens on an Overview: the live orb, “Parley is ready” or “Finish setup”, time saved from dictated words, and one status row each for microphone, accessibility and both keys, each with its own fix. Gesture and General are labelled, grouped lists like System Settings.",
-      "status": "in_progress",
+      "status": "blocked",
       "plan": "parley-010.feature-plan.json",
       "verification": [
         "make check",
@@ -211,7 +211,26 @@
         "2026-09-23 automated: make check exit 0; unit suite 581 passed incl. new usage.test.ts (3), three new settings-store tests (word count persists, cannot be patched, corrupt value reads as zero), and Overview cases in SettingsApp.test.tsx (ready title, time saved from 600 words, first-dictation prompt, open key form when missing, MiniMax add closes its form); ui-probe 129/129 incl. the four SettingsShell stories; ui-lint 0; plan-lint 0; storybook-lint OK.",
         "2026-09-23 visual: Storybook renders at 760x560 in dark and light of SettingsShell Ready, NeedsSetup, Gesture and General. Grouped rows with hairlines, left-aligned rail labels, badges tinted in both themes."
       ],
-      "notes": "Plan written 2026-09-23; the user asked for phase 3 to be finished. Stays in_progress until a human walks the Settings Overview section of docs/MANUAL_CHECKLIST.md with make dev: the word count rising after a real dictation, the Overview reacting to a revoked permission, and the rail orb and labels in the real window. The count starts at zero for everyone: dictations before this build were never counted."
+      "notes": "Plan written 2026-09-23; the user asked for phase 3 to be finished. Stays in_progress until a human walks the Settings Overview section of docs/MANUAL_CHECKLIST.md with make dev: the word count rising after a real dictation, the Overview reacting to a revoked permission, and the rail orb and labels in the real window. The count starts at zero for everyone: dictations before this build were never counted. Moved to blocked on 2026-09-23: waiting on a human with make dev, no code change pending, so parley-011 can be in flight."
+    },
+    {
+      "id": "parley-011",
+      "priority": 13,
+      "area": "orb",
+      "title": "Orb and pill polish: centred framing, small-size detail, tap pulse, distinct endings",
+      "user_visible_behavior": "The settings orbs sit centred and stay crisp at small sizes. The orb in the setup ring swells on each trainer tap. The dictation pill pops when text lands, shudders on an error and shrinks away on a cancel.",
+      "status": "in_progress",
+      "plan": "none: renderer-only motion on the existing OrbCanvas and Pill; no layout, control or screen changes",
+      "verification": [
+        "make check",
+        "Storybook: OrbCanvas badge framing at 32, 64 and 136 px sits centred and calm.",
+        "make dev: the pill pops on a dictation, shudders on an error, shrinks on Esc; the trainer taps pulse the ring orb."
+      ],
+      "evidence": [
+        "2026-09-23 automated on branch orb-polish: make check exit 0; unit suite 590 passed incl. new pill-motion.test.ts (5), orb-pulse.test.tsx (1) and three new frame.test.ts cases (phase age, pulse kick and decay, no pulse under reduced motion); ui-probe 131/131 incl. the new OrbCanvas Badge and BadgeSmall stories; ui-lint 0; storybook-lint OK.",
+        "2026-09-23 visual: Storybook renders of the badge orb at 136 px, the Overview and sidebar orbs, the trainer ring orb and the finale's docked orb, all seated centred with no per-caller offsets."
+      ],
+      "notes": "Branch orb-polish, 2026-09-23. The overlay users see while dictating is the Pill, not the WebGL orb, so the endings live on the Pill. The pill cannot pulse on taps: its window only appears once the hold registers. Stays in_progress until a human checks the pill endings and the trainer pulse with make dev (see the parley-011 block in docs/MANUAL_CHECKLIST.md)."
     }
   ]
 }

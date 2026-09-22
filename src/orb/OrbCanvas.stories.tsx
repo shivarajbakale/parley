@@ -5,6 +5,8 @@ import { numberArg } from 'storybook/story-helpers';
 
 import type { OrbPhase } from '../../electron/types';
 
+import type { OrbFraming } from './orb-shader';
+
 import type { Bands } from './bands';
 import { OrbCanvas } from './OrbCanvas';
 
@@ -27,11 +29,22 @@ function synth(signal: Signal, seconds: number): Bands {
   return { low: energy * 0.9, mid: energy * 0.7, high: energy * 0.4 * (0.5 + 0.5 * Math.sin(seconds * 11)) };
 }
 
-function Demo({ size, phase, signal }: { size: number; phase: OrbPhase; signal: Signal }) {
+function Demo({
+  size,
+  phase,
+  signal,
+  framing = 'flame',
+}: {
+  size: number;
+  phase: OrbPhase;
+  signal: Signal;
+  framing?: OrbFraming;
+}) {
   return (
     <Center w={size + 40} h={size + 40}>
       <OrbCanvas
         size={size}
+        framing={framing}
         running
         read={() => ({ bands: synth(signal, performance.now() / 1000), phase })}
       />
@@ -57,6 +70,11 @@ const meta = {
       options: ['silence', 'speech', 'sweep'],
       description: 'Synthetic audio fed to the orb.',
     },
+    framing: {
+      control: 'select',
+      options: ['flame', 'badge'],
+      description: 'flame sits the body low with room for tongues; badge centres it for settings.',
+    },
   },
 } satisfies Meta<typeof Demo>;
 
@@ -70,3 +88,5 @@ export const Transcribing: Story = { args: { size: 240, phase: 'transcribing', s
 export const Done: Story = { args: { size: 240, phase: 'done', signal: 'silence' } };
 export const Failed: Story = { args: { size: 240, phase: 'error', signal: 'silence' } };
 export const Mini: Story = { args: { size: 48, phase: 'listening', signal: 'silence' } };
+export const Badge: Story = { args: { size: 136, phase: 'listening', signal: 'silence', framing: 'badge' } };
+export const BadgeSmall: Story = { args: { size: 32, phase: 'listening', signal: 'silence', framing: 'badge' } };

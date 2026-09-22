@@ -35,6 +35,7 @@ import { usePermissions, useSetApiKey, useSettings, useUpdateSettings } from '..
 
 import classes from './Trainer.module.css';
 import { MISS_COPY, TRAINER_START, trainerStep, type TrainerState } from './trainer';
+import { useOrbPulse } from './orb-pulse';
 import { useOnboarding } from './useOnboarding';
 
 /**
@@ -380,6 +381,8 @@ function GestureTrainer({
       trainerStep(current, event, tapCount),
     TRAINER_START
   );
+  // Each press also kicks the ring orb above, so the rhythm shows twice.
+  const pulseOrb = useOrbPulse();
 
   useEffect(() => {
     if (paused) return;
@@ -387,6 +390,7 @@ function GestureTrainer({
     const onKeyDown = (event: KeyboardEvent) => {
       if (!matches(event)) return;
       event.preventDefault();
+      if (!event.repeat) pulseOrb();
       dispatch({ type: 'down', at: performance.now() });
     };
     const onKeyUp = (event: KeyboardEvent) => {
@@ -400,7 +404,7 @@ function GestureTrainer({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [gestureKey, paused]);
+  }, [gestureKey, paused, pulseOrb]);
 
   // The two moments that pass with no key event: the hold reaching its
   // minimum, and the gap after a tap running out.
@@ -628,8 +632,8 @@ export function PracticeStep() {
 
 /** How long the orb rests in the middle before it flies to the menu bar. */
 const FINALE_BEAT_MS = 700;
-const FLYING_ORB = 160;
-const DOCKED_ORB = 60;
+const FLYING_ORB = 120;
+const DOCKED_ORB = 48;
 
 /**
  * The orb, centred on whatever box holds it. Both the middle of the pane and
@@ -637,8 +641,6 @@ const DOCKED_ORB = 60;
  * them holds it is the flight.
  */
 function FinaleOrb({ size }: { size: number }) {
-  // The orb's body sits below its canvas centre; lift by that much.
-  const lift = Math.round(size * 0.165);
   return (
     <motion.div
       layoutId="finale-orb"
@@ -650,11 +652,11 @@ function FinaleOrb({ size }: { size: number }) {
         width: size,
         height: size,
         marginLeft: -size / 2,
-        marginTop: -size / 2 - lift,
+        marginTop: -size / 2,
         pointerEvents: 'none',
       }}
     >
-      <OrbCanvas size={size} running read={readIdle} />
+      <OrbCanvas size={size} framing="badge" running read={readIdle} />
     </motion.div>
   );
 }

@@ -26,6 +26,12 @@ const FRAGMENT = `
 precision highp float;
 varying vec2 vUv;
 uniform float uFlow, uLow, uHigh, uFrom, uTo, uMix, uCalm;
+// Framing: how far below centre the body sits, and its radius, in clip units.
+uniform float uSeat, uRadius;
+// 0 at thumbnail sizes, 1 from about 64 px: fine noise only where it can show.
+uniform float uDetail;
+// A key-press kick, 1 when it lands and easing to 0.
+uniform float uPulse;
 uniform vec3 uAurora[3];
 uniform vec3 uDone;
 uniform vec3 uError;
@@ -76,9 +82,10 @@ vec4 look(float phase, vec2 uv) {
   float high = uHigh * listening;
 
   float edge = length(uv);
-  // Smaller and lower than the canvas centre: the room above is the flame's.
-  float radius = 0.38 * (1.0 + 0.05 * low);
-  vec2 seat = uv + vec2(0.0, 0.35);
+  // The flame framing sits the body low, leaving the room above for tongues;
+  // the badge framing centres a larger body for static places in the UI.
+  float radius = uRadius * (1.0 + 0.05 * low + 0.08 * uPulse);
+  vec2 seat = uv + vec2(0.0, uSeat);
 
   // Transcribing: the field winds inward, tighter toward the centre.
   vec2 p = rotate(transcribing * (uFlow * 0.8 + (1.0 - edge) * 2.5)) * seat;
@@ -89,11 +96,12 @@ vec4 look(float phase, vec2 uv) {
   vec2 s = seat / radius;
   float upness = pow(smoothstep(-0.2, 1.0, s.y / max(length(s), 0.001)), 1.5);
   float lick = 0.75 * snoise(vec2(s.x * 1.5, s.y * 1.1 - uFlow * 0.8))
-    + 0.25 * snoise(vec2(s.x * 3.0 + 3.1, s.y * 2.2 - uFlow * 1.3));
+    + 0.25 * uDetail * snoise(vec2(s.x * 3.0 + 3.1, s.y * 2.2 - uFlow * 1.3));
   // Only ever outward, and sharpened, so tongues come to a point instead of
   // the outline wobbling in and out like a blob.
   float tongue = pow(clamp(lick * 0.5 + 0.5, 0.0, 1.0), 1.6);
-  float motion = 1.0 - 0.7 * uCalm;
+  // Small orbs keep a gentle outline: fine tongues at 30 px read as mush.
+  float motion = (1.0 - 0.7 * uCalm) * mix(0.4, 1.0, uDetail);
   float energy = 0.18 + low * 0.25 + high * 0.04;
   float outline = 1.0
     + motion * upness * (0.06 + low * 0.06 + energy * tongue)
@@ -136,14 +144,14 @@ vec4 look(float phase, vec2 uv) {
     + rimTint * fresnel * (0.5 + high * 1.2);
   // Flicker scales the light that is there. Added instead, the same grain
   // swamps the dark parts of a linear-light field and reads as black specks.
-  colour *= 1.0 + high * (1.0 - uCalm) * 0.15 * snoise(q * 4.0 + vec2(0.0, -uFlow * 1.2));
+  colour *= 1.0 + high * (1.0 - uCalm) * uDetail * 0.15 * snoise(q * 4.0 + vec2(0.0, -uFlow * 1.2));
   colour *= 1.0 - 0.25 * transcribing;
   // Error: one slow pulse.
   colour *= 1.0 - failed * 0.25 * (0.5 + 0.5 * sin(uFlow * 4.0));
 
   // Crisp at the base, feathered where the tongues thin out.
   float body = 1.0 - smoothstep(mix(0.96, 0.8, upness * motion), 1.0, r);
-  float halo = exp(-max(r - 1.0, 0.0) * 5.0) * (0.25 + low * 0.35 + done * 0.3) * (1.0 - body);
+  float halo = exp(-max(r - 1.0, 0.0) * 5.0) * (0.25 + low * 0.35 + done * 0.3 + uPulse * 0.45) * (1.0 - body);
   // Reaches zero before the canvas edge, so the window never clips the glow.
   float fade = 1.0 - smoothstep(0.85, 1.0, edge);
 
@@ -159,9 +167,32 @@ void main() {
   gl_FragColor = vec4(pow(straight, vec3(1.0 / 2.2)) * colour.a, colour.a);
 }`;
 
+/** Where the body sits in its canvas. */
+export type OrbFraming = 'flame' | 'badge';
+
+/** Clip-space seat and radius per framing. Also read by the 2D fallback. */
+export const FRAMING: Record<OrbFraming, { seat: number; radius: number }> = {
+  // The overlay-style orb: body low, a third of the canvas, flame room above.
+  flame: { seat: 0.35, radius: 0.38 },
+  // Settings and onboarding: body near the centre and about half the canvas,
+  // so a caller sizes the canvas to its box with no offsets of its own.
+  badge: { seat: 0.1, radius: 0.5 },
+};
+
+/** Fine detail fades in between these canvas sizes, in CSS pixels. */
+export function detailFor(size: number): number {
+  return Math.min(1, Math.max(0, (size - 24) / 40));
+}
+
+export interface OrbLook {
+  framing: OrbFraming;
+  /** From `detailFor(size)`. */
+  detail: number;
+}
+
 export interface OrbRenderer {
   /** `mode` picks the hue: indigo for dictation, amber for a voice edit, cyan for Explain. */
-  render(uniforms: OrbUniforms, mode?: SessionMode): void;
+  render(uniforms: OrbUniforms, mode?: SessionMode, look?: OrbLook): void;
   dispose(): void;
 }
 
@@ -233,12 +264,16 @@ export function createOrbRenderer(
     uTo: location('uTo'),
     uMix: location('uMix'),
     uCalm: location('uCalm'),
+    uSeat: location('uSeat'),
+    uRadius: location('uRadius'),
+    uDetail: location('uDetail'),
+    uPulse: location('uPulse'),
   };
 
   gl.clearColor(0, 0, 0, 0);
 
   return {
-    render(uniforms, mode = 'dictate') {
+    render(uniforms, mode = 'dictate', look = { framing: 'flame', detail: 1 }) {
       if (mode !== worn) {
         worn = mode;
         gl.uniform3fv(auroraLocation, hues[worn]);
@@ -252,6 +287,10 @@ export function createOrbRenderer(
       gl.uniform1f(scalars.uTo, uniforms.to);
       gl.uniform1f(scalars.uMix, uniforms.mix);
       gl.uniform1f(scalars.uCalm, uniforms.calm);
+      gl.uniform1f(scalars.uSeat, FRAMING[look.framing].seat);
+      gl.uniform1f(scalars.uRadius, FRAMING[look.framing].radius);
+      gl.uniform1f(scalars.uDetail, look.detail);
+      gl.uniform1f(scalars.uPulse, uniforms.pulse);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     },
     dispose() {

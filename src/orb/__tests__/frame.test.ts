@@ -45,4 +45,30 @@ describe('createFrame', () => {
     const step = frame.step({ deltaMs: 150, bands: SILENT, phase: 'listening', reducedMotion: false });
     expect(step).toMatchObject({ from: 0, to: 1, mix: 0.5 });
   });
+
+  it('counts the age of the current phase and restarts it on a change', () => {
+    const frame = createFrame('listening');
+    const input = { bands: SILENT, reducedMotion: false };
+    frame.step({ ...input, deltaMs: 100, phase: 'listening' });
+    expect(frame.step({ ...input, deltaMs: 100, phase: 'listening' }).age).toBe(200);
+    expect(frame.step({ ...input, deltaMs: 16, phase: 'done' }).age).toBe(0);
+    expect(frame.step({ ...input, deltaMs: 50, phase: 'done' }).age).toBe(50);
+  });
+
+  it('kicks a pulse when the count rises, then eases it off', () => {
+    const frame = createFrame('listening');
+    const input = { bands: SILENT, phase: 'listening' as const, reducedMotion: false };
+    expect(frame.step({ ...input, deltaMs: 16, pulses: 3 }).pulse).toBe(0);
+    expect(frame.step({ ...input, deltaMs: 16, pulses: 4 }).pulse).toBe(1);
+    const later = frame.step({ ...input, deltaMs: 200, pulses: 4 }).pulse;
+    expect(later).toBeGreaterThan(0);
+    expect(later).toBeLessThan(0.2);
+  });
+
+  it('never pulses under reduced motion', () => {
+    const frame = createFrame('listening');
+    const input = { bands: SILENT, phase: 'listening' as const, reducedMotion: true };
+    frame.step({ ...input, deltaMs: 16, pulses: 0 });
+    expect(frame.step({ ...input, deltaMs: 16, pulses: 1 }).pulse).toBe(0);
+  });
 });
