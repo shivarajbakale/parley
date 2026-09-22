@@ -8,6 +8,7 @@ import type {
   OrbPhasePayload,
   PermissionStatus,
   RecordedAudio,
+  SessionBlockedReason,
   SessionMode,
   Settings,
 } from './types';
@@ -57,6 +58,10 @@ export interface SessionDeps {
   getPermissions(): PermissionStatus;
   /** The settings window doubles as onboarding. */
   openSettings(): void;
+  /** A gesture was refused for a missing permission or key. Opening settings
+   * is silent when that window is already in front, so this is the only way
+   * the user learns why nothing happened. */
+  onBlocked?(reason: SessionBlockedReason): void;
   onTranscript(text: string): void;
   /** A dictation, not an edit, has just been pasted: the text now sits in a field. */
   onDictation?(text: string): void;
@@ -104,14 +109,27 @@ export function createSession(deps: SessionDeps): Session {
     state: () => state,
 
     start(requested = 'dictate') {
-      if (state !== 'idle') {
-        console.log('[session] start blocked, state=', state);
+      // A session already in flight swallows the gesture rather than queuing
+      // it — nothing to report, the user will see the orb still busy.
+      if (state !== 'idle') return;
+      const permissions = deps.getPermissions();
+      if (!permissions.microphone) {
+        deps.onBlocked?.('microphone');
+        deps.openSettings();
         return;
       }
-      const permissions = deps.getPermissions();
-      const hasKeys = deps.hasApiKey() && (requested === 'dictate' || deps.hasRewriteKey());
-      if (!permissions.microphone || !permissions.accessibility || !hasKeys) {
-        console.log('[session] start blocked', { permissions, hasKeys });
+      if (!permissions.accessibility) {
+        deps.onBlocked?.('accessibility');
+        deps.openSettings();
+        return;
+      }
+      if (!deps.hasApiKey()) {
+        deps.onBlocked?.('apiKey');
+        deps.openSettings();
+        return;
+      }
+      if (requested !== 'dictate' && !deps.hasRewriteKey()) {
+        deps.onBlocked?.('rewriteKey');
         deps.openSettings();
         return;
       }

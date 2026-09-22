@@ -67,6 +67,10 @@ export const DEFAULT_SETTINGS: Settings = {
 /** `dictate` pastes what was said; `edit` applies it to the focused field. */
 export type SessionMode = 'dictate' | 'edit' | 'explain';
 
+/** Why `session.start()` refused the gesture — sent to the settings window
+ * since opening it again is a no-op when it's already the window in front. */
+export type SessionBlockedReason = 'microphone' | 'accessibility' | 'apiKey' | 'rewriteKey';
+
 /** `notice` is the pill speaking outside a session: an offer to remember a word. */
 export type OrbPhase = 'listening' | 'transcribing' | 'done' | 'error' | 'cancelled' | 'notice';
 
@@ -158,4 +162,7 @@ export interface ParleyApi {
   reportExplainHeight(height: number): void;
   copyExplain(text: string): void;
   dismissExplain(): void;
+  /** Fired when a gesture is refused for a missing permission or key —
+   * `openSettings()` is silent when this window is already the one in front. */
+  onSessionBlocked(listener: (reason: SessionBlockedReason) => void): () => void;
 }

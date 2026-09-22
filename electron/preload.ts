@@ -11,6 +11,7 @@ import type {
   ParleyApi,
   PermissionKind,
   RecordedAudio,
+  SessionBlockedReason,
   Settings,
 } from './types';
 
@@ -40,6 +41,14 @@ const parley: ParleyApi = {
   reportExplainHeight: (height: number) => ipcRenderer.send('explain:height', height),
   copyExplain: (text: string) => ipcRenderer.send('explain:copy', text),
   dismissExplain: () => ipcRenderer.send('explain:dismiss'),
+  onSessionBlocked(listener) {
+    const handler = (_event: Electron.IpcRendererEvent, reason: SessionBlockedReason) =>
+      listener(reason);
+    ipcRenderer.on('session:blocked', handler);
+    return () => {
+      ipcRenderer.off('session:blocked', handler);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('parley', parley);

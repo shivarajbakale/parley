@@ -413,6 +413,7 @@ async function startApp() {
     hasRewriteKey: () => store.hasRewriteKey(),
     getPermissions,
     openSettings,
+    onBlocked: (reason) => settingsWindow?.webContents.send('session:blocked', reason),
     onDictation: (text) => correctionWatcher.watch(text),
     onTranscript: (text) => {
       lastTranscript = text;

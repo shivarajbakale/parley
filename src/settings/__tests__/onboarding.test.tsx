@@ -55,6 +55,7 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
     reportExplainHeight: vi.fn(),
     copyExplain: vi.fn(),
     dismissExplain: vi.fn(),
+    onSessionBlocked: vi.fn(() => () => {}),
   };
   return api;
 }
