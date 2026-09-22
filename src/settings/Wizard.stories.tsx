@@ -10,7 +10,7 @@ import {
 import { WizardShell } from './wizard/WizardShell';
 
 /**
- * Setup wizard: an orb progress ring above one step pane, on the first-run Scene. Each story pins the persisted
+ * First-run flow: an orb progress ring above one screen, on the first-run Scene. Each story pins the persisted
  * settings, so the shell opens mid-flow exactly as a resume would.
  */
 function withParley(settings: SettingsView, permissions: PermissionStatus) {
@@ -33,6 +33,7 @@ function withParley(settings: SettingsView, permissions: PermissionStatus) {
       copyExplain: () => {},
       dismissExplain: () => {},
       onSessionBlocked: () => () => {},
+      takeBlockedReason: async () => null,
     } satisfies ParleyApi;
     return <Story />;
   };
@@ -47,7 +48,7 @@ const fresh: SettingsView = {
   hasRewriteKey: false,
 };
 
-/** Setup wizard: step rail plus one step pane, opened mid-flow as a resume would. */
+/** First-run flow: one screen at a time under the ring, opened mid-flow as a resume would. */
 const meta = {
   title: 'Parley/Onboarding/Wizard',
   component: WizardShell,
@@ -58,28 +59,26 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof WizardShell>;
 
-export const FreshStart: Story = {
+export const Welcome: Story = {
   decorators: [withParley(fresh, { microphone: false, accessibility: false })],
 };
 
 export const AccessibilityStep: Story = {
-  decorators: [withParley({ ...fresh, wizardStep: 1 }, { microphone: true, accessibility: false })],
+  decorators: [withParley({ ...fresh, wizardStep: 2 }, { microphone: true, accessibility: false })],
 };
 
-export const HotkeysStep: Story = {
+export const GestureTrainer: Story = {
   decorators: [
-    withParley(
-      { ...fresh, wizardStep: 4, hasApiKey: true, hasRewriteKey: true },
-      { microphone: true, accessibility: true }
-    ),
+    withParley({ ...fresh, wizardStep: 4, hasApiKey: true }, { microphone: true, accessibility: true }),
   ],
 };
 
-export const Done: Story = {
+export const Finale: Story = {
   decorators: [
-    withParley(
-      { ...fresh, wizardStep: 6, hasApiKey: true, hasRewriteKey: true },
-      { microphone: true, accessibility: true }
-    ),
+    withParley({ ...fresh, wizardStep: 6, hasApiKey: true }, { microphone: true, accessibility: true }),
   ],
+};
+
+export const FinaleWithMissing: Story = {
+  decorators: [withParley({ ...fresh, wizardStep: 6 }, { microphone: true, accessibility: false })],
 };

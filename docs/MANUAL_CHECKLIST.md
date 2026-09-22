@@ -55,23 +55,34 @@ previous clipboard content is back afterwards (copy a word first, paste it after
       `x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone`
       and `x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility`.
 
-## Onboarding tour + wizard
+## First-run flow
 
 From a clean state (delete `~/Library/Application Support/parley/settings.json`, relaunch):
 
-- [ ] A 4-slide tour opens: keycap to waveform to typing loop, edit rewrite, explain card bloom, trust rows. Only the visible slide animates.
-- [ ] Skip tour jumps to wizard step 1; Back on step 1 returns to the tour; "Set up Parley" on slide 4 enters the wizard.
-- [ ] Mic step: grant, then the live orb follows your voice for ~3 s and the step auto-continues. Dismissing shows a human error with retry and nothing advances.
-- [ ] Accessibility step: the button opens the right System Settings pane; toggling Parley on auto-continues after the beat.
-- [ ] Groq step: an invalid key shows an inline error and stores nothing; a valid key shows "Key works" and then Continue.
-- [ ] MiniMax step: Skip for now jumps to hotkeys; saving a key works like Groq.
-- [ ] Hotkeys: Capture plus pressing Right Command sets it; pressing "A" shows "Modifiers only"; two taps plus a hold completes the practice meter.
-- [ ] Practice: hold the gesture, speak, release — the text lands in the sandbox and "It landed" shows. Finish with an empty box nudges instead of advancing.
-- [ ] Done: the summary rows match reality; Open Settings lands on the tabs with Ready; Replay tour reopens the tour.
-- [ ] Quit mid-wizard (e.g. step 3) and relaunch: it resumes at step 3. The tour never auto-shows twice.
-- [ ] With Reduce Motion on: tour scenes rest on static end-frames, step changes fade, the practice hold completes without the ring sweep.
-- [ ] Keyboard-only: every step completes without a pointer; focus lands on each step heading.
-- [ ] Existing users (a 0.2.x settings.json with a stored key): the tour shows once and the wizard walks with current values kept.
+- [ ] Welcome opens, not the tour: the three modes with violet, amber and cyan dots; Get started goes to the microphone. There is no Back on Welcome.
+- [ ] Mic screen: grant, then the live orb follows your voice for ~3 s and the screen auto-continues. Back returns to Welcome.
+- [ ] Accessibility: the button opens the right System Settings pane; toggling Parley on auto-continues after the beat. The Missing badge and Grant button are tinted, not black, in dark mode.
+- [ ] Transcription: "Get a free key" opens console.groq.com in the browser; an invalid key shows an inline error and stores nothing; a valid key shows "Key works" and then Continue. There is no MiniMax screen after it.
+- [ ] Gesture trainer: each tap lights a key cap, the last cap fills while held, and the finished gesture turns all caps teal with "That’s the gesture ✓".
+- [ ] Gesture trainer misses: a slow tap says "That tap was a hold"; a long pause between taps says "Too slow between taps"; letting go of the hold early says "Hold the last press a moment longer".
+- [ ] Gesture trainer: Capture plus pressing Right Command sets the key and the caps redraw with ⌘; pressing "A" shows "Modifiers only"; More keys opens the voice edit, Explain and presses rows.
+- [ ] First words: hold the gesture, speak, release — the text lands in the sandbox and "It landed" shows. Finish with an empty box nudges instead of advancing.
+- [ ] Finale: the orb rests, then flies onto the drawn menu bar strip, and the Scene is teal. Only missing items are listed, each with Re-open step. Start using Parley lands on the tabs; Take the tour plays the tour, then lands on the tabs.
+- [ ] The real menu bar shows ◉, and clicking it offers Settings.
+- [ ] Quit mid-flow (e.g. on Transcription) and relaunch: it resumes on the same screen. The tour never shows on its own.
+- [ ] With Reduce Motion on: the ring, the Scene tone and the finale orb change with no animation; the trainer's hold cap fills at once.
+- [ ] Keyboard-only: every screen completes without a pointer; focus lands on each heading.
+- [ ] Existing users mid-wizard on 0.3.0: they resume at their stored step number, which may be one screen off from where they left. Nothing breaks.
+
+## MiniMax on first use
+
+With no MiniMax key stored and onboarding complete:
+
+- [ ] Settings window closed: the voice edit gesture opens it with the "Voice edit and Explain need MiniMax" dialog already showing.
+- [ ] Settings window open and in front: the same gesture shows the dialog over the current tab.
+- [ ] The Explain gesture does the same.
+- [ ] A bad key shows MiniMax's reason in red and the dialog stays; a good key shows "Try the gesture again" and the dialog closes itself; the gesture then works.
+- [ ] Not now (the close button) dismisses it; dictation keeps working without a key.
 
 ## Groq API key
 
@@ -154,8 +165,8 @@ Command, with the same number of presses as dictation.
       focused".
 - [ ] In an empty field the orb shows "Nothing to edit".
 - [ ] The clipboard holds what it held before each of the checks above.
-- [ ] With no MiniMax key, the voice edit gesture opens Settings and
-      dictation still works.
+- [ ] With no MiniMax key, the voice edit gesture opens Settings on the
+      MiniMax dialog and dictation still works.
 - [ ] Setting the voice edit key to the dictation key turns voice edit off
       and the row says so.
 - [ ] Voice edit works in the packaged build: `parley-ax` is inside
@@ -234,7 +245,8 @@ Needs a MiniMax key (Settings, Setup). Default explain key is Right Control.
       after two seconds.
 - [ ] Selecting text in a password field shows nothing to explain, and the
       clipboard is untouched.
-- [ ] With no MiniMax key the card shows "No MiniMax key".
+- [ ] With no MiniMax key the gesture opens Settings on the MiniMax dialog
+      instead of a card.
 - [ ] The clipboard holds what it held before each of the checks above.
 - [ ] Setting the explain key to the dictation or voice edit key turns Explain
       off and the row says so.

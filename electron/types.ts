@@ -165,4 +165,8 @@ export interface ParleyApi {
   /** Fired when a gesture is refused for a missing permission or key —
    * `openSettings()` is silent when this window is already the one in front. */
   onSessionBlocked(listener: (reason: SessionBlockedReason) => void): () => void;
+  /** A refusal that happened while this window was closed or still loading —
+   * the refusal is what opened it, so the push above had no one to reach.
+   * Taken once: a second call returns null. */
+  takeBlockedReason(): Promise<SessionBlockedReason | null>;
 }

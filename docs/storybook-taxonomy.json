@@ -55,8 +55,8 @@
           "members": ["OrbCanvas"]
         },
         "Onboarding": {
-          "blurb": "First run: the product tour and the setup wizard.",
-          "members": ["Tour", "Wizard"]
+          "blurb": "First run: the six-screen flow, the replayable tour, and the MiniMax offer on first use.",
+          "members": ["Tour", "Wizard", "MiniMaxOffer"]
         }
       }
     }

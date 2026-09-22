@@ -1,46 +1,47 @@
 import {
   Alert,
+  Anchor,
   Badge,
   Box,
   Button,
+  Collapse,
+  ColorSwatch,
   DataList,
   Group,
   Kbd,
   List,
-  RingProgress,
   Stack,
   Text,
   Textarea,
   Title,
 } from '@mantine/core';
-import { useEffect, useRef, useState } from 'react';
-import { animate, useReducedMotion } from 'motion/react';
+import { useEffect, useReducer, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 
-import { GAP_MAX_MS, HOLD_MIN_MS, TAP_MAX_MS } from '../../../electron/gesture-detector';
-import type { GestureKey } from '../../../electron/types';
+import { SPRING } from '@/lib/motion';
+
+import { GAP_MAX_MS, HOLD_MIN_MS } from '../../../electron/gesture-detector';
+import type { GestureKey, OrbPhase } from '../../../electron/types';
 import { createRecorder } from '../../orb/recorder';
 import { OrbCanvas } from '../../orb/OrbCanvas';
 import { SILENT_BANDS } from '../../orb/bands';
 
 import { GestureTab } from '../GestureTab';
-import { KEY_LABELS } from '../gesture-keys';
+import { KEY_GLYPHS, KEY_LABELS } from '../gesture-keys';
 import { Pressable, StaggerGroup, StaggerItem } from '../motion';
 import shell from '../settings.module.css';
 import { ApiKeySection, PermissionRow } from '../SetupTab';
-import {
-  usePermissions,
-  useSetApiKey,
-  useSetRewriteKey,
-  useSettings,
-  useUpdateSettings,
-} from '../use-parley';
+import { usePermissions, useSetApiKey, useSettings, useUpdateSettings } from '../use-parley';
+
+import classes from './Trainer.module.css';
+import { MISS_COPY, TRAINER_START, trainerStep, type TrainerState } from './trainer';
 import { useOnboarding } from './useOnboarding';
 
 /**
- * The six wizard steps plus Done. Each owns its pane: a heading (focused on
- * arrival by the shell), its controls, and its own Back/Continue footer, since
- * what "forward" needs varies per step. All navigation and data ride the
- * existing settings/permissions/key hooks — no step holds wizard state itself.
+ * The six first-run screens plus the finale. Each owns its pane: a heading
+ * (focused on arrival by the shell), its controls, and its own footer, since
+ * what "forward" needs varies per screen. All navigation and data ride the
+ * existing settings/permissions/key hooks — no screen holds flow state itself.
  */
 
 function StepHead({ children }: { children: React.ReactNode }) {
@@ -59,18 +60,11 @@ function StepFoot({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Footer Back that returns to the tour from step 1, one step otherwise. */
 function BackButton() {
-  const { back, step, replayTour } = useOnboarding();
+  const { back } = useOnboarding();
   return (
     <Pressable>
-      <Button
-        variant="default"
-        onClick={() => {
-          if (step === 0) replayTour();
-          else back();
-        }}
-      >
+      <Button variant="default" onClick={back}>
         Back
       </Button>
     </Pressable>
@@ -93,7 +87,69 @@ function useGrantedAdvance(granted: boolean, delayMs: number, fn: () => void) {
   }, [granted, delayMs]);
 }
 
-/* --- step 1: microphone --------------------------------------------------- */
+const readIdle = () => ({ bands: SILENT_BANDS, phase: 'listening' as OrbPhase });
+
+/* --- 1: welcome ----------------------------------------------------------- */
+
+/** The three modes in the colours the orb wears for each. */
+const MODES = [
+  { name: 'Dictate', color: 'var(--app-aurora-core)', copy: 'Hold your key, speak, release. Words land at the cursor.' },
+  { name: 'Voice edit', color: 'var(--app-edit-core)', copy: 'Say how to change the text in a field.' },
+  { name: 'Explain', color: 'var(--app-explain-core)', copy: 'Select text anywhere and ask about it.' },
+];
+
+export function WelcomeStep() {
+  const { next } = useOnboarding();
+
+  return (
+    <StaggerGroup>
+      <Stack gap="md">
+        <StaggerItem>
+          <Box ta="center">
+            <Text size="xs" fw={600} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.08em' }}>
+              Welcome to Parley
+            </Text>
+            <StepHead>Talk to any text field</StepHead>
+          </Box>
+        </StaggerItem>
+        <StaggerItem>
+          <Box className={shell.glass} p="md">
+            <Stack gap="sm">
+              {MODES.map(mode => (
+                <Group key={mode.name} gap="sm" wrap="nowrap" align="flex-start">
+                  <ColorSwatch color={mode.color} size={14} withShadow={false} mt={3} />
+                  <Box style={{ minWidth: 0 }}>
+                    <Text size="sm" fw={600}>
+                      {mode.name}
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      {mode.copy}
+                    </Text>
+                  </Box>
+                </Group>
+              ))}
+            </Stack>
+          </Box>
+        </StaggerItem>
+        <StaggerItem>
+          <Text size="xs" c="dimmed" ta="center">
+            The mic is live only while you hold, and nothing is stored. Setup takes about two
+            minutes.
+          </Text>
+        </StaggerItem>
+        <Group justify="center" mt="sm">
+          <Pressable>
+            <Button size="md" className={shell.primary} onClick={next}>
+              Get started →
+            </Button>
+          </Pressable>
+        </Group>
+      </Stack>
+    </StaggerGroup>
+  );
+}
+
+/* --- 2: microphone -------------------------------------------------------- */
 
 const MIC_PROOF_MS = 3000;
 
@@ -179,7 +235,7 @@ export function MicStep() {
   );
 }
 
-/* --- step 2: accessibility ------------------------------------------------ */
+/* --- 3: accessibility ----------------------------------------------------- */
 
 const A11Y_BEAT_MS = 1200;
 
@@ -227,9 +283,9 @@ export function AccessStep() {
   );
 }
 
-/* --- steps 3–4: API keys -------------------------------------------------- */
+/* --- 4: transcription ----------------------------------------------------- */
 
-export function GroqKeyStep() {
+export function TranscriptionStep() {
   const settings = useSettings();
   const setApiKey = useSetApiKey();
   const { next } = useOnboarding();
@@ -240,10 +296,13 @@ export function GroqKeyStep() {
       <Stack gap="md">
         <StaggerItem>
           <Box>
-            <StepHead>Add your Groq key</StepHead>
+            <StepHead>Connect transcription</StepHead>
             <Text size="sm" c="dimmed" mt={4}>
-              Groq turns your speech into text. The key is tested before it is stored, and never
-              shown again.
+              Groq’s Whisper turns your voice into text. Paste a Groq API key — it is tested before
+              it is stored, and never shown again.{' '}
+              <Anchor href="https://console.groq.com/keys" target="_blank" size="sm">
+                Get a free key
+              </Anchor>
             </Text>
           </Box>
         </StaggerItem>
@@ -272,56 +331,7 @@ export function GroqKeyStep() {
   );
 }
 
-export function MinimaxStep() {
-  const settings = useSettings();
-  const setRewriteKey = useSetRewriteKey();
-  const { next } = useOnboarding();
-  const hasKey = settings.data?.hasRewriteKey ?? false;
-
-  return (
-    <StaggerGroup>
-      <Stack gap="md">
-        <StaggerItem>
-          <Box>
-            <StepHead>Add MiniMax? (optional)</StepHead>
-            <Text size="sm" c="dimmed" mt={4}>
-              Only voice edit and Explain need it. Skip now and add it later in Setup.
-            </Text>
-          </Box>
-        </StaggerItem>
-        <StaggerItem>
-          <Box className={shell.glass} p="md">
-            <ApiKeySection
-              label="MiniMax API key"
-              placeholder="Optional"
-              purpose="Only for voice edit, which rewrites the text in a field."
-              submitLabel="Test and save MiniMax key"
-              hasApiKey={hasKey}
-              setApiKey={setRewriteKey}
-            />
-          </Box>
-        </StaggerItem>
-        <StepFoot>
-          <BackButton />
-          <Group gap="sm">
-            <Pressable>
-              <Button variant="subtle" onClick={next}>
-                Skip for now
-              </Button>
-            </Pressable>
-            <Pressable>
-              <Button className={shell.primary} onClick={next} disabled={!hasKey}>
-                Continue →
-              </Button>
-            </Pressable>
-          </Group>
-        </StepFoot>
-      </Stack>
-    </StaggerGroup>
-  );
-}
-
-/* --- step 5: hotkeys ------------------------------------------------------ */
+/* --- 5: gesture trainer --------------------------------------------------- */
 
 const CODE_TO_KEY: Record<string, GestureKey> = {
   AltLeft: 'Alt',
@@ -334,132 +344,110 @@ const CODE_TO_KEY: Record<string, GestureKey> = {
   MetaRight: 'MetaRight',
 };
 
-function PracticeMeter({ gestureKey, tapCount }: { gestureKey: GestureKey; tapCount: number }) {
-  const reduceMotion = useReducedMotion();
-  const [taps, setTaps] = useState(0);
-  const [holding, setHolding] = useState(false);
-  const [held, setHeld] = useState(false);
-  const [holdValue, setHoldValue] = useState(0);
-  const downAt = useRef<number | null>(null);
-  const gapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const state = useRef({ taps: 0, holding: false });
-  state.current.taps = taps;
+function capState(state: TrainerState, index: number, tapCount: number) {
+  if (state.phase === 'done') return 'done';
+  if (index < state.taps) return 'lit';
+  if (index === tapCount - 1 && state.phase === 'holding') return 'holding';
+  if (index === state.taps && state.downAt !== null) return 'lit';
+  return undefined;
+}
+
+function trainerLine(state: TrainerState, gestureKey: GestureKey, tapCount: number) {
+  if (state.phase === 'done') return 'That’s the gesture ✓';
+  if (state.phase === 'holding') return 'Keep holding…';
+  if (state.miss) return MISS_COPY[state.miss];
+  if (state.taps > 0) return `${state.taps} of ${tapCount - 1} taps — keep going`;
+  return `Tap ${KEY_LABELS[gestureKey]} ${tapCount - 1}×, then hold it`;
+}
+
+/**
+ * One key cap per press. The last one fills while it is held; a try that
+ * resets says why, in the real detector's terms. Keyed on key and press count
+ * by its parent, so a settings change starts it fresh.
+ */
+function GestureTrainer({
+  gestureKey,
+  tapCount,
+  paused,
+}: {
+  gestureKey: GestureKey;
+  tapCount: number;
+  /** While the key is being captured, presses belong to the capture. */
+  paused: boolean;
+}) {
+  const [state, dispatch] = useReducer(
+    (current: TrainerState, event: Parameters<typeof trainerStep>[1]) =>
+      trainerStep(current, event, tapCount),
+    TRAINER_START
+  );
 
   useEffect(() => {
-    const reset = () => {
-      setTaps(0);
-      setHolding(false);
-      setHeld(false);
-      setHoldValue(0);
-      state.current = { taps: 0, holding: false };
-    };
-
+    if (paused) return;
+    const matches = (event: KeyboardEvent) => CODE_TO_KEY[event.code] === gestureKey;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat) return;
-      const key = CODE_TO_KEY[event.code];
-      if (!key || key !== gestureKey) return;
+      if (!matches(event)) return;
       event.preventDefault();
-      if (gapTimer.current) clearTimeout(gapTimer.current);
-      downAt.current = performance.now();
-      if (state.current.taps === tapCount - 1) {
-        state.current.holding = true;
-        setHolding(true);
-        // Reduced motion — or no frame loop at all (jsdom) — completes at once.
-        if (reduceMotion || typeof requestAnimationFrame === 'undefined') {
-          setHoldValue(100);
-        } else {
-          const controls = animate(0, 100, {
-            duration: HOLD_MIN_MS / 1000,
-            ease: 'linear',
-            onUpdate: value => setHoldValue(value),
-          });
-          gapTimer.current = setTimeout(() => controls.stop(), HOLD_MIN_MS + 50);
-        }
-      }
+      dispatch({ type: 'down', at: performance.now() });
     };
-
     const onKeyUp = (event: KeyboardEvent) => {
-      const key = CODE_TO_KEY[event.code];
-      if (!key || key !== gestureKey || downAt.current === null) return;
+      if (!matches(event)) return;
       event.preventDefault();
-      const heldFor = performance.now() - downAt.current;
-      downAt.current = null;
-      if (state.current.holding) {
-        state.current.holding = false;
-        setHolding(false);
-        if (heldFor >= HOLD_MIN_MS) {
-          setHeld(true);
-          setHoldValue(100);
-        } else {
-          setHoldValue(0);
-          reset();
-        }
-        return;
-      }
-      if (heldFor >= TAP_MAX_MS) {
-        reset();
-        return;
-      }
-      const next = state.current.taps + 1;
-      state.current.taps = next;
-      setTaps(next);
-      if (gapTimer.current) clearTimeout(gapTimer.current);
-      gapTimer.current = setTimeout(reset, GAP_MAX_MS);
+      dispatch({ type: 'up', at: performance.now() });
     };
-
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
-      if (gapTimer.current) clearTimeout(gapTimer.current);
     };
-  }, [gestureKey, tapCount, reduceMotion]);
+  }, [gestureKey, paused]);
+
+  // The two moments that pass with no key event: the hold reaching its
+  // minimum, and the gap after a tap running out.
+  useEffect(() => {
+    let wait: number | null = null;
+    if (state.phase === 'holding' && state.downAt !== null) wait = HOLD_MIN_MS;
+    else if (state.phase === 'tapping' && state.downAt === null) wait = GAP_MAX_MS + 1;
+    if (wait === null) return;
+    const timer = setTimeout(() => dispatch({ type: 'tick', at: performance.now() }), wait);
+    return () => clearTimeout(timer);
+  }, [state]);
+
+  const done = state.phase === 'done';
 
   return (
-    <Stack gap="xs" align="center">
-      <Group
-        gap="xs"
-        aria-label={`Practice: ${taps} of ${tapCount - 1} taps, hold ${held ? 'done' : 'pending'}`}
+    <Stack gap="sm" align="center">
+      <Box
+        className={classes.caps}
+        aria-hidden="true"
+        style={{ '--hold-ms': `${HOLD_MIN_MS}ms` } as React.CSSProperties}
       >
-        {Array.from({ length: tapCount - 1 }, (_, i) => (
-          <Box
-            key={i}
-            w={10}
-            h={10}
-            style={{
-              borderRadius: 999,
-              background: i < taps ? 'var(--app-aurora-core)' : 'var(--app-glass-hover)',
-              border: '1px solid var(--app-glass-border)',
-            }}
-          />
+        {Array.from({ length: tapCount }, (_, index) => (
+          <Kbd key={index} className={classes.cap} data-state={capState(state, index, tapCount)}>
+            {KEY_GLYPHS[gestureKey]}
+            <span className={classes.label}>{index < tapCount - 1 ? 'tap' : 'hold'}</span>
+          </Kbd>
         ))}
-        <RingProgress
-          size={44}
-          thickness={5}
-          sections={[{ value: holding || held ? holdValue : 0, color: 'teal' }]}
-          label={
-            <Text size="xs" ta="center" c={held ? 'teal' : 'dimmed'}>
-              {held ? '✓' : 'hold'}
-            </Text>
-          }
-        />
-      </Group>
-      <Text size="xs" c={held ? 'teal' : 'dimmed'} aria-live="polite">
-        {held
-          ? 'That’s the gesture ✓'
-          : `Tap ${KEY_LABELS[gestureKey]} ${tapCount - 1}×, then hold it`}
+      </Box>
+      <Text
+        size="sm"
+        c={done ? 'teal' : state.miss && state.phase === 'idle' ? 'yellow' : 'dimmed'}
+        aria-live="polite"
+        ta="center"
+      >
+        {trainerLine(state, gestureKey, tapCount)}
       </Text>
     </Stack>
   );
 }
 
-export function HotkeysStep() {
+export function TrainerStep() {
   const settings = useSettings();
   const update = useUpdateSettings();
   const { next } = useOnboarding();
   const [capturing, setCapturing] = useState(false);
   const [captureError, setCaptureError] = useState(false);
+  const [moreKeys, setMoreKeys] = useState(false);
   const data = settings.data;
 
   // While armed, the next modifier pressed anywhere in this window becomes the
@@ -492,20 +480,25 @@ export function HotkeysStep() {
       <Stack gap="md">
         <StaggerItem>
           <Box>
-            <StepHead>Choose your keys</StepHead>
+            <StepHead>Learn the gesture</StepHead>
             <Text size="sm" c="dimmed" mt={4}>
-              Tap, tap, hold the last press to talk. Capture your key, tune the rest, then try the
-              gesture below.
+              Quick taps, then hold the last press to talk. Try it here — nothing is recorded.
             </Text>
           </Box>
         </StaggerItem>
         <StaggerItem>
           <Box className={shell.glass} p="md">
-            <Stack gap="sm">
+            <Stack gap="md">
+              <GestureTrainer
+                key={`${data.gestureKey}-${data.tapCount}`}
+                gestureKey={data.gestureKey}
+                tapCount={data.tapCount}
+                paused={capturing}
+              />
               <Group justify="space-between" wrap="nowrap">
-                <Group gap="xs">
+                <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
                   <Kbd>{KEY_LABELS[data.gestureKey]}</Kbd>
-                  <Text size="sm" c="dimmed">
+                  <Text size="sm" c="dimmed" truncate>
                     {capturing ? 'Press a modifier…' : 'your gesture key'}
                   </Text>
                 </Group>
@@ -527,12 +520,23 @@ export function HotkeysStep() {
                   Modifiers only — try Option, Control, Shift or Command.
                 </Text>
               )}
-              <PracticeMeter gestureKey={data.gestureKey} tapCount={data.tapCount} />
             </Stack>
           </Box>
         </StaggerItem>
         <StaggerItem>
-          <GestureTab bare settings={data} onChange={patch => update.mutate(patch)} />
+          <Button
+            variant="subtle"
+            size="xs"
+            aria-expanded={moreKeys}
+            onClick={() => setMoreKeys(open => !open)}
+          >
+            {moreKeys ? 'Fewer options' : 'More keys: voice edit, Explain, presses'}
+          </Button>
+          <Collapse expanded={moreKeys}>
+            <Box mt="sm">
+              <GestureTab bare settings={data} onChange={patch => update.mutate(patch)} />
+            </Box>
+          </Collapse>
         </StaggerItem>
         <StepFoot>
           <BackButton />
@@ -547,7 +551,7 @@ export function HotkeysStep() {
   );
 }
 
-/* --- step 6: practice ----------------------------------------------------- */
+/* --- 6: first words ------------------------------------------------------- */
 
 export function PracticeStep() {
   const { next } = useOnboarding();
@@ -620,113 +624,144 @@ export function PracticeStep() {
   );
 }
 
-/* --- done ----------------------------------------------------------------- */
+/* --- finale --------------------------------------------------------------- */
 
-function SummaryRow({
-  label,
-  ok,
-  value,
-  fix,
-}: {
-  label: string;
-  ok: boolean;
-  value: string;
-  fix?: { label: string; onFix(): void };
-}) {
+/** How long the orb rests in the middle before it flies to the menu bar. */
+const FINALE_BEAT_MS = 700;
+const FLYING_ORB = 160;
+const DOCKED_ORB = 60;
+
+/**
+ * The orb, centred on whatever box holds it. Both the middle of the pane and
+ * the menu bar slot render one with the same layoutId, so switching which of
+ * them holds it is the flight.
+ */
+function FinaleOrb({ size }: { size: number }) {
+  // The orb's body sits below its canvas centre; lift by that much.
+  const lift = Math.round(size * 0.165);
+  return (
+    <motion.div
+      layoutId="finale-orb"
+      transition={SPRING}
+      style={{
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        width: size,
+        height: size,
+        marginLeft: -size / 2,
+        marginTop: -size / 2 - lift,
+        pointerEvents: 'none',
+      }}
+    >
+      <OrbCanvas size={size} running read={readIdle} />
+    </motion.div>
+  );
+}
+
+function MissingRow({ label, value, onFix }: { label: string; value: string; onFix(): void }) {
   return (
     <DataList.Item>
       <DataList.ItemLabel>{label}</DataList.ItemLabel>
       <DataList.ItemValue>
         <Group gap="xs" justify="flex-end">
-          <Badge color={ok ? 'teal' : 'yellow'} variant="light">
+          <Badge color="yellow" variant="light">
             {value}
           </Badge>
-          {fix && (
-            <Button size="compact-xs" variant="subtle" onClick={fix.onFix}>
-              {fix.label}
-            </Button>
-          )}
+          <Button size="compact-xs" variant="subtle" onClick={onFix}>
+            Re-open step
+          </Button>
         </Group>
       </DataList.ItemValue>
     </DataList.Item>
   );
 }
 
-export function DoneStep() {
+export function FinaleStep() {
   const settings = useSettings();
   const permissions = usePermissions();
-  const { complete, goTo } = useOnboarding();
+  const { complete, goTo, replayTour } = useOnboarding();
+  const reduced = useReducedMotion();
+  const [landed, setLanded] = useState(!!reduced);
   const data = settings.data;
-  const mic = permissions.data?.microphone ?? false;
-  const a11y = permissions.data?.accessibility ?? false;
+
+  useEffect(() => {
+    if (landed) return;
+    const timer = setTimeout(() => setLanded(true), FINALE_BEAT_MS);
+    return () => clearTimeout(timer);
+  }, [landed]);
 
   if (!data) return null;
 
-  return (
-    <StaggerGroup>
-      <Stack gap="md">
-        <StaggerItem>
-          <Box>
-            <StepHead>You’re ready</StepHead>
-            <Text size="sm" c="dimmed" mt={4}>
-              Parley is listening everywhere. Here’s what got configured.
-            </Text>
-          </Box>
-        </StaggerItem>
-        <StaggerItem>
-          <Box className={shell.glass} p="md">
-            <DataList withDivider labelWidth={130}>
-              <SummaryRow
-                label="Microphone"
-                ok={mic}
-                value={mic ? 'Granted' : 'Missing'}
-                fix={mic ? undefined : { label: 'Re-open step', onFix: () => goTo(0) }}
-              />
-              <SummaryRow
-                label="Accessibility"
-                ok={a11y}
-                value={a11y ? 'Granted' : 'Missing'}
-                fix={a11y ? undefined : { label: 'Re-open step', onFix: () => goTo(1) }}
-              />
-              <SummaryRow
-                label="Groq key"
-                ok={data.hasApiKey}
-                value={data.hasApiKey ? 'Stored' : 'Missing'}
-                fix={data.hasApiKey ? undefined : { label: 'Re-open step', onFix: () => goTo(2) }}
-              />
-              <SummaryRow
-                label="Gesture"
-                ok
-                value={`${KEY_LABELS[data.gestureKey]} ×${data.tapCount}`}
-              />
-              <SummaryRow
-                label="MiniMax"
-                ok={data.hasRewriteKey}
-                value={data.hasRewriteKey ? 'Stored' : 'Skipped'}
-              />
-            </DataList>
-          </Box>
-        </StaggerItem>
-        <StepFoot>
-          <ReplayTourButton />
-          <Pressable>
-            <Button size="md" className={shell.primary} onClick={complete}>
-              Open Settings
-            </Button>
-          </Pressable>
-        </StepFoot>
-      </Stack>
-    </StaggerGroup>
-  );
-}
+  const mic = permissions.data?.microphone ?? false;
+  const a11y = permissions.data?.accessibility ?? false;
+  const missing: { label: string; value: string; step: number }[] = [];
+  if (!mic) missing.push({ label: 'Microphone', value: 'Missing', step: 1 });
+  if (!a11y) missing.push({ label: 'Accessibility', value: 'Missing', step: 2 });
+  if (!data.hasApiKey) missing.push({ label: 'Transcription', value: 'No key', step: 3 });
 
-export function ReplayTourButton() {
-  const { replayTour } = useOnboarding();
   return (
-    <Pressable>
-      <Button variant="subtle" onClick={replayTour}>
-        Replay tour
-      </Button>
-    </Pressable>
+    <Stack gap="md">
+      <Box className={shell.glass} style={{ borderRadius: 'var(--mantine-radius-md)' }}>
+        <Group className={classes.menubar} justify="flex-end" gap="md" wrap="nowrap">
+          <Box className={classes.slot} aria-hidden="true">
+            {landed && <FinaleOrb size={DOCKED_ORB} />}
+          </Box>
+          <Text size="xs" c="dimmed">
+            Wi‑Fi
+          </Text>
+          <Text size="xs" c="dimmed">
+            9:41
+          </Text>
+        </Group>
+      </Box>
+      {/* The launch pad closes up once the orb has left, so the copy rises
+          under the menu bar instead of leaving an empty band behind. */}
+      <motion.div
+        aria-hidden="true"
+        initial={false}
+        animate={{ height: landed ? 0 : FLYING_ORB - 48 }}
+        transition={SPRING}
+        style={{ position: 'relative' }}
+      >
+        {!landed && <FinaleOrb size={FLYING_ORB} />}
+      </motion.div>
+      <Box ta="center">
+        <StepHead>Parley lives in your menu bar</StepHead>
+        <Text size="sm" c="dimmed" mt={4}>
+          Look for ◉ at the top of your screen — it opens these settings. In any app, tap{' '}
+          {KEY_LABELS[data.gestureKey]} {data.tapCount - 1}× and hold to talk.
+        </Text>
+      </Box>
+      {missing.length > 0 && (
+        <Box className={shell.glass} p="md">
+          <Text size="sm" fw={600} mb="xs">
+            Still to do
+          </Text>
+          <DataList withDivider labelWidth={130}>
+            {missing.map(row => (
+              <MissingRow
+                key={row.label}
+                label={row.label}
+                value={row.value}
+                onFix={() => goTo(row.step)}
+              />
+            ))}
+          </DataList>
+        </Box>
+      )}
+      <StepFoot>
+        <Pressable>
+          <Button variant="subtle" onClick={replayTour}>
+            Take the tour
+          </Button>
+        </Pressable>
+        <Pressable>
+          <Button size="md" className={shell.primary} onClick={complete}>
+            Start using Parley
+          </Button>
+        </Pressable>
+      </StepFoot>
+    </Stack>
   );
 }

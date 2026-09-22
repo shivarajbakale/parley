@@ -13,3 +13,15 @@ export const KEY_LABELS: Record<GestureKey, string> = {
   MetaRight: 'Right Command',
   Meta: 'Left Command',
 };
+
+/** The key-cap glyph for each gesture key, as printed on a Mac keyboard. */
+export const KEY_GLYPHS: Record<GestureKey, string> = {
+  AltRight: '⌥',
+  Alt: '⌥',
+  CtrlRight: '⌃',
+  Ctrl: '⌃',
+  ShiftRight: '⇧',
+  Shift: '⇧',
+  MetaRight: '⌘',
+  Meta: '⌘',
+};

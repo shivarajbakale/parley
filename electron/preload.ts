@@ -49,6 +49,7 @@ const parley: ParleyApi = {
       ipcRenderer.off('session:blocked', handler);
     };
   },
+  takeBlockedReason: () => ipcRenderer.invoke('session:take-blocked'),
 };
 
 contextBridge.exposeInMainWorld('parley', parley);

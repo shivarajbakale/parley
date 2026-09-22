@@ -10,7 +10,8 @@ import { DictateScene, EditScene, ExplainScene, TrustScene } from './illustratio
 import stage from './illustrations.module.css';
 
 /**
- * First-run product tour: four peer slides of literal mini-UI scenes. Manual
+ * Product tour, shown only when replayed from settings or the finale: four
+ * peer slides of literal mini-UI scenes. Manual
  * advance only — no autoplay — with Skip always one click away and dots for
  * progress. Only the visible slide's scene animates; the rest sit on their
  * static end-frames.
@@ -57,7 +58,7 @@ const SLIDES: {
     eyebrow: 'Private by design',
     tone: 'neutral',
     title: 'Yours alone',
-    copy: 'Keys stay encrypted on your Mac, the mic is live only while you hold, and transcripts are never stored. Setup takes about two minutes.',
+    copy: 'Keys stay encrypted on your Mac, the mic is live only while you hold, and transcripts are never stored.',
     Scene: TrustScene,
   },
 ];
@@ -138,7 +139,7 @@ export function Tour({ onDone, initialSlide = 0 }: { onDone(): void; initialSlid
           <Pressable>
             {last ? (
               <Button size="md" className={shell.primary} onClick={onDone}>
-                Set up Parley
+                Done
               </Button>
             ) : (
               <Button className={shell.primary} onClick={() => api?.scrollNext()}>

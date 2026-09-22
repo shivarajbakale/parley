@@ -38,9 +38,12 @@ export function useOnboarding(): {
       if (data) update.mutate({ wizardStep: clampStep(data.wizardStep - 1) });
     },
     goTo: step => update.mutate({ wizardStep: clampStep(step) }),
-    finishTour: () => update.mutate({ tourSeen: true, wizardStep: 0 }),
+    finishTour: () => update.mutate({ tourSeen: true }),
     finishPractice: () => update.mutate({ wizardStep: DONE_STEP }),
-    complete: () => update.mutate({ onboardingComplete: true }),
-    replayTour: () => update.mutate({ tourSeen: false }),
+    // Finishing first run counts as having seen the tour: it only comes back
+    // when asked for.
+    complete: () => update.mutate({ onboardingComplete: true, tourSeen: true }),
+    // From the finale this also completes onboarding, so the tour can show.
+    replayTour: () => update.mutate({ onboardingComplete: true, tourSeen: false }),
   };
 }

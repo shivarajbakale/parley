@@ -45,6 +45,7 @@ import type {
   OrbPhasePayload,
   PermissionKind,
   Rect,
+  SessionBlockedReason,
   SessionMode,
   Settings,
 } from './types';
@@ -112,6 +113,8 @@ app.on('second-instance', () => openSettings());
 let orbWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
 let explainWindow: BrowserWindow | null = null;
+/** A refusal the settings window was not loaded to hear; see `takeBlockedReason`. */
+let pendingBlocked: SessionBlockedReason | null = null;
 let tray: Tray | null = null;
 let lastTranscript: string | null = null;
 let hookRunning = false;
@@ -413,7 +416,13 @@ async function startApp() {
     hasRewriteKey: () => store.hasRewriteKey(),
     getPermissions,
     openSettings,
-    onBlocked: (reason) => settingsWindow?.webContents.send('session:blocked', reason),
+    onBlocked: (reason) => {
+      // A loaded window hears it live; otherwise the refusal is about to
+      // create or finish loading it, and the page takes the reason on mount.
+      const contents = settingsWindow?.webContents;
+      if (contents && !contents.isLoading()) contents.send('session:blocked', reason);
+      else pendingBlocked = reason;
+    },
     onDictation: (text) => correctionWatcher.watch(text),
     onTranscript: (text) => {
       lastTranscript = text;
@@ -576,6 +585,12 @@ async function startApp() {
     const result = await rewriter.testKey(key.trim());
     if (result.ok) store.setRewriteKey(key.trim());
     return result;
+  });
+  ipcMain.handle('session:take-blocked', (event) => {
+    onlySettingsWindow(event);
+    const reason = pendingBlocked;
+    pendingBlocked = null;
+    return reason;
   });
   ipcMain.handle('permissions:get', (event) => {
     onlySettingsWindow(event);

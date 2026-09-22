@@ -214,6 +214,19 @@ const aurora = {
     'linear-gradient(120deg, var(--app-aurora-deep), var(--app-aurora-core))',
 };
 
+/*
+ * Mantine builds each ramp's dark `-light` and `-light-hover` variables with
+ * `darken()`, which parses hex, rgb and hsl only. Handed these oklch ramps it
+ * returns `rgba(0, 0, 0, 1)`, so every light Badge and Button in dark mode
+ * came out solid black. A tint of the filled shade is what Mantine meant.
+ */
+const darkLightVariants = Object.fromEntries(
+  ['brand', 'green', 'yellow', 'red'].flatMap(name => [
+    [`--mantine-color-${name}-light`, `color-mix(in oklab, var(--mantine-color-${name}-6) 18%, transparent)`],
+    [`--mantine-color-${name}-light-hover`, `color-mix(in oklab, var(--mantine-color-${name}-6) 26%, transparent)`],
+  ])
+);
+
 /**
  * Mantine paints Paper and Card with `--mantine-color-body`, which makes a card
  * the same tone as the page behind it. This starter's design separates them by
@@ -243,6 +256,7 @@ export const cssVariablesResolver: CSSVariablesResolver = t => ({
     '--app-glass-border': 'color-mix(in oklab, black 10%, transparent)',
   },
   dark: {
+    ...darkLightVariants,
     '--mantine-color-body': t.colors.dark[8],
     /*
      * Mantine's dimmed text is `dark[2]`; the ramp above reserves `dark[3]` for

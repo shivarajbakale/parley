@@ -162,7 +162,7 @@
       "area": "design",
       "title": "Revamp phase 1: mode-colored orb, scene backdrop, one progress ring",
       "user_visible_behavior": "The orb glows violet for dictation, amber for voice edit and teal for explain. Tour and wizard sit on a full-bleed tinted scene, the wizard shows progress as a single ring around a live orb, and only the primary button carries the gradient.",
-      "status": "in_progress",
+      "status": "blocked",
       "plan": "parley-008.feature-plan.json",
       "verification": [
         "make check",
@@ -173,7 +173,26 @@
         "2026-09-23 automated: make check exit 0; unit suite 554 passed incl. new OrbProgress.test.tsx and windows.test.ts titlebar case; ui-probe 121/121 incl. all Tour and Wizard stories; ui-lint 0; plan-lint 0.",
         "2026-09-23 visual: Storybook renders of wizard (fresh start, accessibility, done) and tour (voice edit, explain) at 760x560 in dark and light; ring orb centred, scene tone follows slide (amber edit, cyan explain), done ring teal."
       ],
-      "notes": "Plan approved 2026-09-23 with explain in cyan (teal stays the done flash). Stays in_progress until a human runs make dev: overlay orb hue per mode, the hiddenInset titlebar drag strip, and the Reduce Motion pass. Known leftover for phase 2: PermissionRow's Missing badge and Grant button render near-black on the dark scene."
+      "notes": "Plan approved 2026-09-23 with explain in cyan (teal stays the done flash). Stays in_progress until a human runs make dev: overlay orb hue per mode, the hiddenInset titlebar drag strip, and the Reduce Motion pass. Known leftover for phase 2: PermissionRow's Missing badge and Grant button render near-black on the dark scene. Moved to blocked on 2026-09-23: waiting on a human with make dev, no code change pending, so parley-009 can be in flight."
+    },
+    {
+      "id": "parley-009",
+      "priority": 11,
+      "area": "design",
+      "title": "Revamp phase 2: one first-run flow, gesture trainer, MiniMax on first use, menu-bar finale",
+      "user_visible_behavior": "First run is one six-screen flow on the Scene (Welcome, Microphone, Accessibility, Transcription, Gesture trainer, First words) that ends with the orb flying to the menu bar. The trainer lights a key cap per press and says why a try failed. MiniMax is asked for on the first voice edit or Explain gesture, not during setup. Light-variant badges and buttons no longer render black in dark mode.",
+      "status": "in_progress",
+      "plan": "parley-009.feature-plan.json",
+      "verification": [
+        "make check",
+        "make dev from a clean userData: Welcome to finale with no tour; the orb lands by the menu bar item.",
+        "make dev with no MiniMax key: the voice edit gesture opens the offer, with the settings window closed and open."
+      ],
+      "evidence": [
+        "2026-09-23 automated: make check exit 0; unit suite 572 passed incl. new trainer.test.ts (9), MiniMaxOffer.test.tsx (5) and the rewritten onboarding.test.tsx (29); ui-probe 125/125 incl. Wizard Welcome, GestureTrainer, Finale, FinaleWithMissing and the three MiniMaxOffer stories; ui-lint 0; plan-lint 0; storybook-lint OK; doc-lint 0.",
+        "2026-09-23 visual: Storybook renders at 760x560 in dark and light of Welcome, Accessibility, GestureTrainer, Finale, FinaleWithMissing and the MiniMax offer. The Missing badge and Grant button are tinted, no longer black; the finale orb docks in the drawn menu bar and the column centres."
+      ],
+      "notes": "Plan written 2026-09-23; the user asked for phase 2 end to end. Stays in_progress until a human walks the First-run flow and MiniMax on first use sections of docs/MANUAL_CHECKLIST.md with make dev: the real ◉ tray item, the take-blocked path when the refusal itself opens the window, trainer timing against a physical key, and Reduce Motion. The dark light-variant fix in theme.ts is app-wide, so every light Badge and Button in the settings tabs changed too."
     }
   ]
 }

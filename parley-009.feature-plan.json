@@ -1,0 +1,330 @@
+{
+  "feature": {
+    "id": "parley-009",
+    "title": "Revamp phase 2: one first-run flow, gesture trainer, MiniMax on first use, menu-bar finale",
+    "problem": "First run is two flows back to back. A four-slide tour explains features before anything works, then a six-step wizard sets them up, and the MiniMax step asks for a second API key that most people cannot use yet. The practice step shows three dots and a ring, so a failed gesture gets no reason. The Done screen is a table of settings and never says where Parley lives afterwards, and people forget the menu bar icon. On the dark Scene every light-variant Badge and Button (Missing, Grant …) renders solid black: Mantine's dark light-variant calls darken(), which cannot parse the theme's oklch colors and returns rgba(0,0,0,1). Phase 2 merges everything into one six-screen flow on the Scene: Welcome, Microphone, Accessibility, Transcription, Gesture trainer and First words, then a finale where the orb flies to the ◉ menu bar item. MiniMax leaves first run: the first voice edit or Explain gesture without a key opens a mode-colored offer instead of a toast. The tour stays, reachable only as a replay. Frame note: the settings window is not PageShell, so the archetypes below are illustrative and not probe-enforced, as in parley-007 and parley-008.",
+    "nonGoals": [
+      "Native grouped-list settings, a status header or a time-saved stat — that is phase 3.",
+      "Validating a key on paste with no Save button — Test and save stays.",
+      "An orb that pulses to key presses in the real overlay — the trainer lights key caps only.",
+      "Animating across the real screen to the macOS menu bar — the flight stays inside the window, onto a drawn menu bar strip.",
+      "Migrating a stored mid-wizard step: indices keep their count (0–5, Done 6), so a resumed user may land one screen off, which is harmless."
+    ]
+  },
+  "app": "Parley",
+  "nav": [
+    "Setup",
+    "Gesture",
+    "General"
+  ],
+  "surfaces": [
+    {
+      "id": "welcome",
+      "name": "Welcome (screen 1 of 6)",
+      "route": "settings.html · first run 1/6",
+      "archetype": "centered-card",
+      "purpose": "Replaces the tour on first run. One line of promise, the three modes each with its orb color, a privacy line and one button.",
+      "primaryAction": "Get started →",
+      "panels": [
+        {
+          "id": "hero",
+          "kind": "card",
+          "title": "Talk to any text field",
+          "badge": "ring 1/6",
+          "subtitle": "Welcome to Parley",
+          "rows": [
+            [
+              "● violet  Dictate — hold, speak, release"
+            ],
+            [
+              "● amber   Voice edit — say how to change it"
+            ],
+            [
+              "● cyan    Explain — ask about a selection"
+            ]
+          ],
+          "footer": "Mic is live only while you hold · about two minutes",
+          "actions": [
+            "Get started →"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "The Scene paints first and a Loader sits on it until settings resolve, as in phase 1.",
+        "empty": "No empty state: the screen is static content.",
+        "error": "Save failed on Get started: the red Alert shows above the column and the screen stays put.",
+        "success": "Get started advances to Microphone and the ring sweeps on SPRING."
+      }
+    },
+    {
+      "id": "trainer",
+      "name": "Gesture trainer (screen 5 of 6)",
+      "route": "settings.html · first run 5/6",
+      "archetype": "form",
+      "purpose": "Replaces the Hotkeys step. One Kbd cap per press lights as you press, the last one fills while held, and a missed attempt says why in words from the real detector's constants. Capture sets the key, and the edit and explain keys plus the press count sit behind a More keys toggle.",
+      "primaryAction": "Continue →",
+      "panels": [
+        {
+          "id": "caps",
+          "kind": "Detail",
+          "title": "Learn the gesture",
+          "subtitle": "Right Option · Capture",
+          "rows": [
+            [
+              "[⌥ tap] [⌥ tap] [⌥ hold ▓▓░]"
+            ],
+            [
+              "Too slow between taps — keep them within 0.3 s"
+            ]
+          ],
+          "fields": [
+            {
+              "label": "More keys",
+              "value": "▸ Voice edit, Explain, Presses"
+            }
+          ],
+          "actions": [
+            "Back",
+            "Continue →"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "Settings resolve with the flow, so the caps draw with the stored key at once.",
+        "empty": "Nothing pressed yet: every cap is unlit and the hint reads ‘Tap ⌥ twice, then hold it’.",
+        "error": "A missed attempt resets the caps and names the reason: a tap held too long, too long a gap, or the hold let go early.",
+        "success": "The hold completes: every cap turns teal and the live line reads ‘That’s the gesture ✓’. Continue is never gated on it."
+      }
+    },
+    {
+      "id": "finale",
+      "name": "Finale (after screen 6)",
+      "route": "settings.html · first run done",
+      "archetype": "centered-card",
+      "purpose": "Replaces the Done table. The orb flies from the middle of the window onto a drawn menu bar strip next to ◉, and the copy says where Parley lives. Only missing items are listed, each with a fix.",
+      "primaryAction": "Start using Parley",
+      "panels": [
+        {
+          "id": "menubar",
+          "kind": "card",
+          "title": "Parley lives in your menu bar",
+          "subtitle": "Wi‑Fi  ◉  9:41",
+          "rows": [
+            [
+              "Hold ⌥ in any app to talk."
+            ],
+            [
+              "Click ◉ up top for settings."
+            ],
+            [
+              "(only if missing) Microphone · Re-open step"
+            ]
+          ],
+          "actions": [
+            "Take the tour",
+            "Start using Parley"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "Same Scene and Loader as the flow.",
+        "empty": "Nothing missing: no rows, only the two lines of copy.",
+        "error": "A missing permission or key shows as a row with Re-open step, which jumps back to that screen.",
+        "success": "The orb lands on the strip after a beat, the Scene turns teal, and Start using Parley opens the tabbed settings. Under reduced motion the orb is already in place."
+      }
+    },
+    {
+      "id": "minimax-offer",
+      "name": "MiniMax first-use offer (modal over any stage)",
+      "route": "settings.html · session blocked: rewriteKey",
+      "archetype": "centered-card",
+      "purpose": "The first voice edit or Explain gesture with no MiniMax key opens the settings window with this modal in place of a toast: what the two modes do, in their colors, and the key form.",
+      "primaryAction": "Test and save MiniMax key",
+      "panels": [
+        {
+          "id": "offer",
+          "kind": "card",
+          "title": "Voice edit and Explain need MiniMax",
+          "rows": [
+            [
+              "● amber  Voice edit rewrites the field"
+            ],
+            [
+              "● cyan   Explain answers about a selection"
+            ],
+            [
+              "[ MiniMax API key ••••• ] Test and save"
+            ]
+          ],
+          "actions": [
+            "Not now",
+            "Test and save MiniMax key"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "The key test shows the button's loading state.",
+        "empty": "Opened with no key stored: the form is empty.",
+        "error": "A key that fails its test shows the reason in red under the field, and the modal stays open.",
+        "success": "The key stores, the modal says ‘Try the gesture again’ and closes itself."
+      }
+    }
+  ],
+  "overlays": [
+    {
+      "id": "minimax-offer-modal",
+      "kind": "dialog",
+      "surface": "minimax-offer",
+      "title": "Voice edit and Explain need MiniMax",
+      "trigger": "session blocked with reason rewriteKey, pushed live or taken on mount"
+    }
+  ],
+  "components": [
+    {
+      "surface": "welcome",
+      "control": "ColorSwatch per mode, colored from the --app-*-core tokens",
+      "why": "It teaches the orb's three colors before the user ever sees the overlay, using a Mantine primitive rather than a hand-drawn dot.",
+      "rejected": "The four-slide Carousel tour on first run (explains before anything works)"
+    },
+    {
+      "surface": "trainer",
+      "control": "Kbd caps with a data-state (idle, lit, holding, done) styled by a CSS module, driven by a pure trainer reducer",
+      "why": "The keys you press are the thing drawn, and the reducer mirrors gesture-detector's TAP_MAX_MS, GAP_MAX_MS and HOLD_MIN_MS, so a failure names a real reason.",
+      "rejected": "Dots plus RingProgress (shows progress but never why a try failed)"
+    },
+    {
+      "surface": "trainer",
+      "control": "Collapse behind a subtle ‘More keys’ Button holding GestureTab bare",
+      "why": "Most people keep the default edit and explain keys, so progressive disclosure keeps the trainer the focus.",
+      "rejected": "GestureTab always open under the trainer"
+    },
+    {
+      "surface": "finale",
+      "control": "motion layoutId shared between the centered orb and the menu bar strip slot",
+      "why": "One spring flight with no measuring code, and MotionConfig reducedMotion=user already makes it instant.",
+      "rejected": "Measured x/y keyframes (brittle at other widths)"
+    },
+    {
+      "surface": "minimax-offer",
+      "control": "Modal with ApiKeySection",
+      "why": "Asking at the moment of need is a confirmation-shaped interruption, and the key form is already built.",
+      "rejected": "A wizard step (asks before anyone needs it) or a toast (no way to act on it)"
+    },
+    {
+      "surface": "all",
+      "control": "cssVariablesResolver dark overrides for --mantine-color-{brand,green,yellow,red}-light and -light-hover as color-mix of the filled shade",
+      "why": "Fixes every light-variant Badge and Button app-wide at the root, not per call site.",
+      "rejected": "Switching the PermissionRow badge and button to another variant (leaves the bug everywhere else)"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Trainer state",
+      "fields": [
+        {
+          "name": "taps",
+          "type": "number",
+          "note": "quick presses so far"
+        },
+        {
+          "name": "phase",
+          "type": "'idle' | 'tapping' | 'holding' | 'done'"
+        },
+        {
+          "name": "miss",
+          "type": "'tapTooLong' | 'gapTooLong' | 'releasedEarly' | null",
+          "note": "why the last try reset"
+        }
+      ],
+      "relations": [
+        "mirrors electron/gesture-detector.ts timing constants"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "IPC invoke",
+      "path": "session:take-blocked",
+      "note": "Returns and clears the reason a gesture was refused while the settings window was closed or loading, so the offer survives the window being created by the refusal itself. Settings window only."
+    }
+  ],
+  "integration": [
+    {
+      "from": "src/settings/wizard/stage.ts",
+      "to": "stageFor: wizard until onboarding completes, then the tour only if replayed",
+      "note": "complete() also sets tourSeen, so a new user never sees the tour unasked"
+    },
+    {
+      "from": "src/settings/wizard/steps.tsx",
+      "to": "WelcomeStep, TranscriptionStep (renamed Groq), TrainerStep, FinaleStep; MinimaxStep and HotkeysStep removed",
+      "note": "Mic, Accessibility and First words keep their behaviour"
+    },
+    {
+      "from": "src/settings/wizard/trainer.ts",
+      "to": "pure reducer used by TrainerStep",
+      "note": "unit-tested without timers"
+    },
+    {
+      "from": "electron/main.ts + preload.ts + types.ts",
+      "to": "pending blocked reason and takeBlockedReason()",
+      "note": "live push unchanged when the window is loaded"
+    },
+    {
+      "from": "src/settings/MiniMaxOffer.tsx",
+      "to": "SettingsApp, over every stage",
+      "note": "rewriteKey no longer toasts; the other reasons still do"
+    },
+    {
+      "from": "src/theme.ts",
+      "to": "dark light-variant variables",
+      "note": "all four custom ramps"
+    },
+    {
+      "from": "src/settings/tour/Tour.tsx",
+      "to": "replay only: last button reads Done, trust copy drops the setup line",
+      "note": "slides unchanged"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "src/settings/wizard/trainer.ts",
+      "src/settings/wizard/Trainer.module.css",
+      "src/settings/MiniMaxOffer.tsx",
+      "src/settings/__tests__/trainer.test.ts",
+      "src/settings/__tests__/MiniMaxOffer.test.tsx",
+      "src/settings/MiniMaxOffer.stories.tsx"
+    ],
+    "changed": [
+      "src/settings/wizard/steps.tsx",
+      "src/settings/wizard/WizardShell.tsx",
+      "src/settings/wizard/stage.ts",
+      "src/settings/wizard/useOnboarding.ts",
+      "src/settings/SettingsApp.tsx",
+      "src/settings/tour/Tour.tsx",
+      "src/settings/Scene.module.css",
+      "src/theme.ts",
+      "electron/types.ts",
+      "electron/preload.ts",
+      "electron/main.ts",
+      "src/settings/__tests__/onboarding.test.tsx",
+      "src/settings/__tests__/SettingsApp.test.tsx",
+      "src/settings/__tests__/SettingsShell.test.tsx",
+      "src/settings/Wizard.stories.tsx",
+      "src/settings/Tour.stories.tsx",
+      "docs/MANUAL_CHECKLIST.md",
+      "feature_list.json",
+      "src/settings/gesture-keys.ts",
+      "docs/storybook-taxonomy.json",
+      ".storybook/sections/parley-onboarding.mdx",
+      ".storybook/Introduction.mdx"
+    ]
+  },
+  "verification": [
+    "make check",
+    "npm run test -- src/settings",
+    "npm run ui-probe (Wizard stories: Welcome, Trainer, Finale; Tour stories)",
+    "Storybook screenshots at 760x560, dark and light: no black Badge or Button on the Scene",
+    "Manual: make dev from a clean userData — Welcome to finale without the tour; the orb lands by ◉",
+    "Manual: with no MiniMax key, the voice edit gesture opens the settings window on the offer, both when the window was closed and when it was open"
+  ]
+}

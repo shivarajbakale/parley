@@ -56,6 +56,7 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
     copyExplain: vi.fn(),
     dismissExplain: vi.fn(),
     onSessionBlocked: vi.fn(() => () => {}),
+    takeBlockedReason: vi.fn(async () => null),
   };
   return api;
 }
@@ -75,19 +76,19 @@ function mount(init: { settings?: Partial<SettingsView>; permissions?: Permissio
 }
 
 describe('onboarding stage', () => {
-  it('shows the tour until it has been seen', () => {
-    expect(stageFor({ tourSeen: false, onboardingComplete: false })).toBe('tour');
+  it('opens a fresh install on the first-run flow, not the tour', () => {
+    expect(stageFor({ tourSeen: false, onboardingComplete: false })).toBe('wizard');
   });
 
-  it('shows the wizard once the tour is seen and setup is unfinished', () => {
-    expect(stageFor({ tourSeen: true, onboardingComplete: false })).toBe('wizard');
+  it('shows the tour only as a replay once onboarding is complete', () => {
+    expect(stageFor({ tourSeen: false, onboardingComplete: true })).toBe('tour');
   });
 
   it('lands on settings once onboarding completes', () => {
     expect(stageFor({ tourSeen: true, onboardingComplete: true })).toBe('settings');
   });
 
-  it('clamps the persisted step into the wizard', () => {
+  it('clamps the persisted step into the flow', () => {
     expect(clampStep(2)).toBe(2);
     expect(clampStep(DONE_STEP)).toBe(DONE_STEP);
     expect(clampStep(9)).toBe(DONE_STEP);
@@ -97,32 +98,38 @@ describe('onboarding stage', () => {
   });
 });
 
-describe('onboarding tour', () => {
+describe('onboarding tour (replay)', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('opens a fresh launch on the first tour slide', async () => {
-    mount();
+  const replaying = () =>
+    mount({
+      settings: { tourSeen: false, onboardingComplete: true, hasApiKey: true },
+      permissions: { microphone: true, accessibility: true },
+    });
+
+  it('opens a replay on the first tour slide', async () => {
+    replaying();
     expect(
       await screen.findByRole('heading', { name: 'Hold to talk, release to paste' })
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Skip tour' })).toBeInTheDocument();
   });
 
-  it('skipping the tour lands in the wizard', async () => {
-    mount();
+  it('skipping the replay returns to settings', async () => {
+    replaying();
     await userEvent.click(await screen.findByRole('button', { name: 'Skip tour' }));
-    expect(await screen.findByRole('heading', { name: 'Let Parley hear you' })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Gesture' })).toBeInTheDocument();
   });
 
   it('advances slides with Next', async () => {
-    mount();
+    replaying();
     await userEvent.click(await screen.findByRole('button', { name: 'Next' }));
     expect(
       await screen.findByRole('heading', { name: 'Say how to change it' })
     ).toBeInTheDocument();
   });
 
-  it('finishes the last slide into the wizard', async () => {
+  it('closes from the last slide with Done', async () => {
     const onDone = vi.fn();
     window.parley = mockApi();
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -133,28 +140,42 @@ describe('onboarding tour', () => {
         </ThemeProvider>
       </QueryClientProvider>
     );
-    await userEvent.click(await screen.findByRole('button', { name: 'Set up Parley' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Done' }));
     expect(onDone).toHaveBeenCalledOnce();
   });
 });
 
-describe('onboarding wizard', () => {
+describe('first-run flow', () => {
   beforeEach(() => vi.clearAllMocks());
 
   const wizardAt = (wizardStep: number, extra: Partial<SettingsView> = {}) =>
     mount({
-      settings: { tourSeen: true, onboardingComplete: false, wizardStep, ...extra },
+      settings: { onboardingComplete: false, wizardStep, ...extra },
       permissions: { microphone: false, accessibility: false },
     });
 
-  it('requests the microphone from step 1', async () => {
-    const api = wizardAt(0);
+  it('opens a fresh launch on Welcome with the three modes', async () => {
+    mount();
+    expect(await screen.findByRole('heading', { name: 'Talk to any text field' })).toBeInTheDocument();
+    expect(screen.getByText('Voice edit')).toBeInTheDocument();
+    expect(screen.getByText('Explain')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+  });
+
+  it('gets started into the microphone screen', async () => {
+    wizardAt(0);
+    await userEvent.click(await screen.findByRole('button', { name: 'Get started →' }));
+    expect(await screen.findByRole('heading', { name: 'Let Parley hear you' })).toBeInTheDocument();
+  });
+
+  it('requests the microphone', async () => {
+    const api = wizardAt(1);
     await userEvent.click(await screen.findByRole('button', { name: 'Grant Microphone' }));
     expect(api.requestPermission).toHaveBeenCalledWith('microphone');
   });
 
   it('answers a mic grant with the proof, or its error line when capture fails', async () => {
-    wizardAt(0);
+    wizardAt(1);
     // Granting flips the polled permission; jsdom cannot open a mic, so the
     // step lands on the same error line the orb uses in the real app.
     await userEvent.click(await screen.findByRole('button', { name: 'Grant Microphone' }));
@@ -162,15 +183,22 @@ describe('onboarding wizard', () => {
     expect(screen.getByRole('button', { name: 'Continue →' })).toBeEnabled();
   });
 
+  it('goes back from the microphone to Welcome', async () => {
+    wizardAt(1);
+    await userEvent.click(await screen.findByRole('button', { name: 'Back' }));
+    expect(await screen.findByRole('heading', { name: 'Talk to any text field' })).toBeInTheDocument();
+  });
+
   it('guides accessibility through System Settings', async () => {
-    const api = wizardAt(1, {});
+    const api = wizardAt(2);
     await userEvent.click(await screen.findByRole('button', { name: 'Grant Accessibility' }));
     expect(api.requestPermission).toHaveBeenCalledWith('accessibility');
   });
 
   it('tests the Groq key and gates Continue on a stored one', async () => {
-    const api = wizardAt(2);
-    const keyInput = await screen.findByLabelText('Groq API key');
+    const api = wizardAt(3);
+    expect(await screen.findByRole('heading', { name: 'Connect transcription' })).toBeInTheDocument();
+    const keyInput = screen.getByLabelText('Groq API key');
     expect(screen.getByRole('button', { name: 'Continue →' })).toBeDisabled();
     await userEvent.type(keyInput, 'gsk_abc');
     await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
@@ -178,18 +206,11 @@ describe('onboarding wizard', () => {
     expect(await screen.findByText('Key works')).toBeInTheDocument();
   });
 
-  it('continues past Groq once a key is stored', async () => {
-    wizardAt(2, { hasApiKey: true });
+  it('continues past transcription straight to the trainer, with no MiniMax screen', async () => {
+    wizardAt(3, { hasApiKey: true });
     await userEvent.click(await screen.findByRole('button', { name: 'Continue →' }));
-    expect(
-      await screen.findByRole('heading', { name: 'Add MiniMax? (optional)' })
-    ).toBeInTheDocument();
-  });
-
-  it('skips MiniMax straight to hotkeys', async () => {
-    wizardAt(3);
-    await userEvent.click(await screen.findByRole('button', { name: 'Skip for now' }));
-    expect(await screen.findByRole('heading', { name: 'Choose your keys' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Learn the gesture' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('MiniMax API key')).not.toBeInTheDocument();
   });
 
   it('captures a modifier as the gesture key', async () => {
@@ -211,7 +232,7 @@ describe('onboarding wizard', () => {
     );
   });
 
-  it('completes the practice gesture: two taps and a hold', async () => {
+  it('completes the gesture in the trainer: two taps and a hold', async () => {
     wizardAt(4);
     expect(await screen.findByText(/Tap Right Option 2×, then hold it/)).toBeInTheDocument();
     const down = () => fireEvent.keyDown(window, { code: 'AltRight', key: 'Alt' });
@@ -226,12 +247,33 @@ describe('onboarding wizard', () => {
     expect(await screen.findByText('That’s the gesture ✓')).toBeInTheDocument();
   });
 
-  it('lands practice dictation in the sandbox and finishes to Done', async () => {
+  it('names a tap held too long', async () => {
+    wizardAt(4);
+    await screen.findByText(/Tap Right Option 2×, then hold it/);
+    fireEvent.keyDown(window, { code: 'AltRight', key: 'Alt' });
+    await new Promise(resolve => setTimeout(resolve, 280));
+    fireEvent.keyUp(window, { code: 'AltRight', key: 'Alt' });
+    expect(await screen.findByText(/That tap was a hold/)).toBeInTheDocument();
+  });
+
+  it('keeps the other keys behind More keys', async () => {
+    wizardAt(4);
+    const toggle = await screen.findByRole('button', { name: /More keys/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const inputs = await screen.findAllByLabelText('Voice edit key');
+    expect(inputs.find(node => node.tagName === 'INPUT')).toBeDefined();
+  });
+
+  it('lands practice dictation in the sandbox and finishes to the finale', async () => {
     wizardAt(5);
     await userEvent.type(await screen.findByLabelText('Sandbox'), 'hello parley');
     expect(await screen.findByText('It landed')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Finish →' }));
-    expect(await screen.findByRole('heading', { name: 'You’re ready' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Parley lives in your menu bar' })
+    ).toBeInTheDocument();
   });
 
   it('nudges instead of finishing an empty sandbox', async () => {
@@ -240,22 +282,34 @@ describe('onboarding wizard', () => {
     expect(await screen.findByText('Nothing landed yet')).toBeInTheDocument();
   });
 
-  it('completes from Done into the tabbed settings', async () => {
-    wizardAt(6, { hasApiKey: true });
-    await userEvent.click(await screen.findByRole('button', { name: 'Open Settings' }));
+  it('starts using Parley from the finale, marking the tour seen', async () => {
+    const api = wizardAt(6, { hasApiKey: true });
+    await userEvent.click(await screen.findByRole('button', { name: 'Start using Parley' }));
     expect(await screen.findByRole('tab', { name: 'Gesture' })).toBeInTheDocument();
+    expect(api.updateSettings).toHaveBeenCalledWith({ onboardingComplete: true, tourSeen: true });
   });
 
-  it('re-opens the right step from Done when a permission is missing', async () => {
+  it('lists only what is missing on the finale, each with a fix', async () => {
     wizardAt(6, { hasApiKey: true });
     const fixes = await screen.findAllByRole('button', { name: 'Re-open step' });
+    expect(fixes).toHaveLength(2);
+    expect(screen.queryByText('Transcription')).not.toBeInTheDocument();
     await userEvent.click(fixes[0]);
     expect(await screen.findByRole('heading', { name: 'Let Parley hear you' })).toBeInTheDocument();
   });
 
-  it('replays the tour from Done', async () => {
+  it('shows no missing list when everything is set', async () => {
+    mount({
+      settings: { onboardingComplete: false, wizardStep: 6, hasApiKey: true },
+      permissions: { microphone: true, accessibility: true },
+    });
+    await screen.findByRole('heading', { name: 'Parley lives in your menu bar' });
+    expect(screen.queryByText('Still to do')).not.toBeInTheDocument();
+  });
+
+  it('takes the tour from the finale', async () => {
     wizardAt(6, { hasApiKey: true });
-    await userEvent.click(await screen.findByRole('button', { name: 'Replay tour' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Take the tour' }));
     expect(
       await screen.findByRole('heading', { name: 'Hold to talk, release to paste' })
     ).toBeInTheDocument();
@@ -263,15 +317,7 @@ describe('onboarding wizard', () => {
 
   it('resumes a persisted step after a relaunch', async () => {
     wizardAt(4);
-    expect(await screen.findByRole('heading', { name: 'Choose your keys' })).toBeInTheDocument();
-  });
-
-  it('goes back from step 1 to the tour', async () => {
-    wizardAt(0);
-    await userEvent.click(await screen.findByRole('button', { name: 'Back' }));
-    expect(
-      await screen.findByRole('heading', { name: 'Hold to talk, release to paste' })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Learn the gesture' })).toBeInTheDocument();
   });
 
   it('replays the tour from General settings', async () => {
