@@ -70,8 +70,9 @@ void main() {
     expect(find.text('Copied'), findsOneWidget);
   });
 
-  testWidgets('a missing entry says so', (tester) async {
+  testWidgets('a missing entry says so in a snack bar', (tester) async {
     await pumpParley(tester, HistoryDetailPage(id: 404, now: parleyTestNow));
-    expect(find.text('This transcript no longer exists'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('That transcript no longer exists'), findsOneWidget);
   });
 }

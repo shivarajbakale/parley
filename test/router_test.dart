@@ -84,15 +84,14 @@ void main() {
     );
   });
 
-  testWidgets('an unknown transcript id says so instead of a blank page', (
-    tester,
-  ) async {
+  testWidgets('an unknown transcript id says so and goes back', (tester) async {
     final container = await pumpApp(tester);
 
     container.read(routerProvider).go(AppRoutes.historyEntryAt(999));
     await tester.pumpAndSettle();
 
-    expect(find.text('This transcript no longer exists'), findsOneWidget);
+    expect(find.text('That transcript no longer exists'), findsOneWidget);
+    expect(find.byType(HistoryDetailPage), findsNothing);
   });
 
   testWidgets('the API keys route opens the form', (tester) async {

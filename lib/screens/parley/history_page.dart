@@ -18,6 +18,9 @@ import 'package:parley_android/design_system/ds_text.dart';
 import 'package:parley_android/models/parley.dart';
 import 'package:parley_android/providers/parley_providers.dart';
 import 'package:parley_android/screens/parley/aurora_orb.dart';
+import 'package:parley_android/screens/parley/empty_scene.dart';
+import 'package:parley_android/screens/parley/parley_blocker.dart';
+import 'package:parley_android/screens/parley/practice_sheet.dart';
 import 'package:parley_android/screens/parley/parley_format.dart';
 import 'package:parley_android/theme/parley_type.dart';
 import 'package:parley_android/theme/spec/design_spec.dart';
@@ -109,19 +112,16 @@ class HistoryPage extends ConsumerWidget {
           hasScrollBody: false,
           child: query.isFiltered
               ? DSEmptyState(
-                  icon: Icons.search_off_outlined,
+                  iconSlot: const EmptyScene.noMatch(),
                   title: query.text.trim().isEmpty
-                      ? 'Nothing under ${query.filter.label}.'
-                      : 'No transcripts match "${query.text.trim()}".',
-                  message: 'Clear the search or pick another filter.',
-                  actionLabel: 'Clear filters',
+                      ? 'Nothing under ${query.filter.label}'
+                      : 'No match for “${query.text.trim()}”',
+                  actionLabel: query.filter == const HistoryQuery().filter
+                      ? 'Clear search'
+                      : 'Clear filters',
                   onAction: clear,
                 )
-              : const DSEmptyState(
-                  icon: Icons.graphic_eq,
-                  title: 'Things you dictate show up here',
-                  message: 'Hold the orb in any app to start.',
-                ),
+              : const _FirstRun(),
         ),
       ];
     }
@@ -179,6 +179,32 @@ class _FilterStrip extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// History before anything has been dictated. Says why it is empty: either
+/// Parley cannot run yet, and the button clears the first blocker, or it is
+/// ready and waiting, and the button opens a field to try it in.
+class _FirstRun extends ConsumerWidget {
+  const _FirstRun();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(parleyStatusProvider).value;
+    if (status != null && !status.listening) {
+      return DSEmptyState(
+        iconSlot: const EmptyScene.asleep(),
+        title: status.paused ? 'Parley is paused' : 'Parley is off',
+        actionLabel: blockerOf(status).short,
+        onAction: () => fixBlocker(context, ref, status),
+      );
+    }
+    return DSEmptyState(
+      iconSlot: const EmptyScene.dictate(),
+      title: 'Nothing yet',
+      actionLabel: 'Try it',
+      onAction: () => showPracticeSheet(context),
     );
   }
 }

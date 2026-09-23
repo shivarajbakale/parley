@@ -6,10 +6,15 @@
 - Standard startup path: `./init.sh`
 - Standard verification path: `make check` (analyze, lints, Flutter tests, probe, goldens, `native-test` for the Kotlin core)
 - Device evidence: `make run-capture RUN_CAPTURE_ARGS="-d emulator-5554 -o <png>"`
-- Passing: parley-a01 (service + orb), a03 (volume gesture), a05 (Aurora), r01–r06 (all six screens)
+- Passing: parley-a01 (service + orb), a03 (volume gesture), a05 (Aurora), r01–r06 (all six screens), r07 (Nunito type + animated empty states)
 - In progress: parley-a02 (dictation) — proven live on the Oppo CPH2791 into Settings search; chat app + browser field still to try
 - Blocked: parley-a04 (voice edit) — needs a MiniMax key on the phone
 - Device: Oppo CPH2791 (Android 16) over USB, release build installed (`flutter build apk --release`, debug-signed)
+
+## Notes
+
+- Type is Nunito Sans + Nunito (parley-r07); the overlay's capsule label and timer in `OrbView.kt` read `NunitoSans-600.ttf` / `Nunito-600.ttf` from the Flutter asset bundle.
+- Known, not fixed: Overview hero chips read "Orb on" while the service is off.
 
 ## Session Log
 

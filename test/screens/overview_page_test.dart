@@ -65,7 +65,7 @@ void main() {
     expect(find.text('Ready'), findsOneWidget);
   });
 
-  testWidgets('empty history: the last-entry card says how to start', (
+  testWidgets('empty history: a setup ring replaces the zero figures', (
     tester,
   ) async {
     await pumpParley(
@@ -73,6 +73,27 @@ void main() {
       screen(),
       bridge: FakeParleyBridge.ready(history: const [], now: parleyTestNow),
     );
-    expect(find.text('Nothing dictated yet'), findsOneWidget);
+    expect(find.text('Next: say something'), findsOneWidget);
+    expect(find.text('Words this week'), findsNothing);
+
+    await tester.ensureVisible(find.text('Try it'));
+    await tester.tap(find.text('Try it'));
+    await tester.pumpAndSettle();
+    expect(find.text('Practice'), findsOneWidget);
+  });
+
+  testWidgets('empty history before setup counts the steps and defers to '
+      'the hero for the fix', (tester) async {
+    await pumpParley(
+      tester,
+      screen(),
+      bridge: FakeParleyBridge(
+        now: parleyTestNow,
+        history: const [],
+        status: const ParleyStatus(serviceBound: true, groqKeySet: true),
+      ),
+    );
+    expect(find.text('Next: allow the mic'), findsOneWidget);
+    expect(find.text('Try it'), findsNothing);
   });
 }

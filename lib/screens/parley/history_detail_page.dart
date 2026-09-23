@@ -19,6 +19,7 @@ import 'package:parley_android/screens/parley/aurora_orb.dart';
 import 'package:parley_android/screens/parley/parley_format.dart';
 import 'package:parley_android/theme/parley_type.dart';
 import 'package:parley_android/theme/spec/design_spec.dart';
+import 'package:parley_android/utils/app_routes.dart';
 import 'package:parley_android/utils/error_copy.dart';
 
 /// One transcript — the **Detail** archetype.
@@ -94,17 +95,46 @@ class HistoryDetailPage extends ConsumerWidget {
           message: errorCopyFor(error).message,
           onRetry: () => ref.invalidate(historyEntryProvider(id)),
         ),
-        AsyncData(value: null) => DSEmptyState(
-          icon: Icons.delete_sweep_outlined,
-          title: 'This transcript no longer exists',
-          actionLabel: 'Back to History',
-          onAction: () => context.pop(),
-        ),
+        AsyncData(value: null) => const _Gone(),
         AsyncValue(:final value?) => _Body(entry: value),
         _ => DSSkeleton(child: _Body(entry: _placeholder)),
       },
     );
   }
+}
+
+/// A transcript that no longer exists is not a screen worth stopping on:
+/// say so in a snack bar and go back to where the user came from.
+class _Gone extends StatefulWidget {
+  const _Gone();
+
+  @override
+  State<_Gone> createState() => _GoneState();
+}
+
+class _GoneState extends State<_Gone> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDSSnackBar(
+        context,
+        message: 'That transcript no longer exists',
+        icon: Icons.delete_sweep_outlined,
+      );
+      final router = GoRouter.maybeOf(context);
+      if (router == null) return;
+      if (router.canPop()) {
+        router.pop();
+      } else {
+        router.go(AppRoutes.home);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
 final _placeholder = HistoryEntry(

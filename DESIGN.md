@@ -49,101 +49,101 @@ colors:
   dark-chart-5: "#409366"
 typography:
   display-large:
-    fontFamily: Instrument Serif
-    fontSize: 42.604px
-    fontWeight: 400
+    fontFamily: Nunito
+    fontSize: 37.142px
+    fontWeight: 800
     lineHeight: 1.12
-    letterSpacing: -0.415px
+    letterSpacing: -0.533px
   display-medium:
-    fontFamily: Instrument Serif
-    fontSize: 38.731px
-    fontWeight: 400
+    fontFamily: Nunito
+    fontSize: 33.766px
+    fontWeight: 800
     lineHeight: 1.12
-    letterSpacing: -0.345px
+    letterSpacing: -0.444px
   display-small:
-    fontFamily: Instrument Serif
-    fontSize: 35.009px
-    fontWeight: 400
+    fontFamily: Nunito
+    fontSize: 30.521px
+    fontWeight: 800
     lineHeight: 1.12
-    letterSpacing: -0.278px
+    letterSpacing: -0.358px
   headline-large:
-    fontFamily: Instrument Serif
-    fontSize: 32.316px
-    fontWeight: 400
+    fontFamily: Nunito
+    fontSize: 28.173px
+    fontWeight: 700
     lineHeight: 1.12
-    letterSpacing: -0.23px
+    letterSpacing: -0.296px
   headline-medium:
-    fontFamily: Instrument Serif
-    fontSize: 29.744px
-    fontWeight: 400
+    fontFamily: Nunito
+    fontSize: 25.931px
+    fontWeight: 700
     lineHeight: 1.12
-    letterSpacing: -0.184px
+    letterSpacing: -0.236px
   headline-small:
-    fontFamily: Instrument Serif
-    fontSize: 27.221px
-    fontWeight: 400
+    fontFamily: Nunito
+    fontSize: 23.731px
+    fontWeight: 700
     lineHeight: 1.12
-    letterSpacing: -0.139px
+    letterSpacing: -0.178px
   title-large:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 17.954px
-    fontWeight: 500
+    fontWeight: 600
     lineHeight: 1.45
-    letterSpacing: -0.096px
+    letterSpacing: -0.124px
   title-medium:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 16.075px
-    fontWeight: 500
+    fontWeight: 600
     lineHeight: 1.45
-    letterSpacing: -0.05px
+    letterSpacing: -0.064px
   title-small:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 14.767px
-    fontWeight: 500
+    fontWeight: 600
     lineHeight: 1.45
-    letterSpacing: -0.017px
+    letterSpacing: -0.022px
   body-large:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 14.767px
     fontWeight: 400
     lineHeight: 1.45
-    letterSpacing: -0.017px
+    letterSpacing: -0.022px
   body-medium:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 14.08px
     fontWeight: 400
     lineHeight: 1.45
     letterSpacing: 0px
   body-small:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 12.679px
     fontWeight: 400
     lineHeight: 1.45
-    letterSpacing: 0.035px
+    letterSpacing: 0.045px
   label-large:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 14.08px
     fontWeight: 500
     lineHeight: 1.45
     letterSpacing: 0.15px
   label-medium:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 12.679px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: 0.185px
+    letterSpacing: 0.195px
   label-small:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 11.94px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: 0.203px
+    letterSpacing: 0.218px
   micro:
-    fontFamily: Geist
+    fontFamily: Nunito Sans
     fontSize: 9.791px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: 0.203px
+    letterSpacing: 0.218px
 rounded:
   card: 20px
   control: 14px
@@ -355,28 +355,28 @@ Fifteen roles cover every surface in the app; the brand moment — buttons, the 
 
 ## Typography
 
-`Geist` for text, `Instrument Serif` for display and headline, falling back to Roboto.
+`Nunito Sans` for text, `Nunito` for display and headline, falling back to Roboto.
 
-Sizes are not typed. They are powers of 1.1 around two anchors — 14.08px for running text, labels and controls, 19.5px for display and headline. Two anchors because "make the text smaller" means one thing for a dense list and the opposite for the one title on the page. Moving an anchor re-proportions its half of the scale and leaves every relationship inside it where it was.
+Sizes are not typed. They are powers of 1.1 around two anchors — 14.08px for running text, labels and controls, 17px for display and headline. Two anchors because "make the text smaller" means one thing for a dense list and the opposite for the one title on the page. Moving an anchor re-proportions its half of the scale and leaves every relationship inside it where it was.
 
 | Role | Size | Weight | Line height | Tracking |
 | --- | --- | --- | --- | --- |
-| `display-large` | 42.604px | 400 | 1.12 | -0.415px |
-| `display-medium` | 38.731px | 400 | 1.12 | -0.345px |
-| `display-small` | 35.009px | 400 | 1.12 | -0.278px |
-| `headline-large` | 32.316px | 400 | 1.12 | -0.23px |
-| `headline-medium` | 29.744px | 400 | 1.12 | -0.184px |
-| `headline-small` | 27.221px | 400 | 1.12 | -0.139px |
-| `title-large` | 17.954px | 500 | 1.45 | -0.096px |
-| `title-medium` | 16.075px | 500 | 1.45 | -0.05px |
-| `title-small` | 14.767px | 500 | 1.45 | -0.017px |
-| `body-large` | 14.767px | 400 | 1.45 | -0.017px |
+| `display-large` | 37.142px | 800 | 1.12 | -0.533px |
+| `display-medium` | 33.766px | 800 | 1.12 | -0.444px |
+| `display-small` | 30.521px | 800 | 1.12 | -0.358px |
+| `headline-large` | 28.173px | 700 | 1.12 | -0.296px |
+| `headline-medium` | 25.931px | 700 | 1.12 | -0.236px |
+| `headline-small` | 23.731px | 700 | 1.12 | -0.178px |
+| `title-large` | 17.954px | 600 | 1.45 | -0.124px |
+| `title-medium` | 16.075px | 600 | 1.45 | -0.064px |
+| `title-small` | 14.767px | 600 | 1.45 | -0.022px |
+| `body-large` | 14.767px | 400 | 1.45 | -0.022px |
 | `body-medium` | 14.08px | 400 | 1.45 | 0px |
-| `body-small` | 12.679px | 400 | 1.45 | 0.035px |
+| `body-small` | 12.679px | 400 | 1.45 | 0.045px |
 | `label-large` | 14.08px | 500 | 1.45 | 0.15px |
-| `label-medium` | 12.679px | 500 | 1.45 | 0.185px |
-| `label-small` | 11.94px | 500 | 1.45 | 0.203px |
-| `micro` | 9.791px | 500 | 1.45 | 0.203px |
+| `label-medium` | 12.679px | 500 | 1.45 | 0.195px |
+| `label-small` | 11.94px | 500 | 1.45 | 0.218px |
+| `micro` | 9.791px | 500 | 1.45 | 0.218px |
 
 Every weight above ships in the bundled face. A `TextStyle` that asks for a weight the font does not have is not an error — the engine substitutes a neighbour, and which neighbour is a property of the font matcher rather than a decision anybody made. `test/theme/type_manifest_test.dart` reads the manifest out of `pubspec.yaml` and fails the build on it.
 

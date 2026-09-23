@@ -227,11 +227,11 @@ class OrbView(context: Context) : View(context) {
     private val labelPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         color = TEXT
         textSize = 13f * resources.displayMetrics.scaledDensity
-        typeface = face(context, "Geist-500.ttf", Typeface.DEFAULT_BOLD)
+        typeface = face(context, "NunitoSans-600.ttf", Typeface.DEFAULT_BOLD)
     }
     private val timerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = 13f * resources.displayMetrics.scaledDensity
-        typeface = face(context, "GeistMono-500.ttf", Typeface.MONOSPACE)
+        typeface = face(context, "Nunito-600.ttf", Typeface.MONOSPACE)
         fontFeatureSettings = "'tnum'"
     }
     private val rect = RectF()

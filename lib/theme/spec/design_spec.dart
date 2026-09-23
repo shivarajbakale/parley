@@ -271,8 +271,10 @@ class DesignSpec {
   ///
   /// An ink ground with one indigo voice, carried over from the Mac app's orb
   /// (hue 277) so the two apps read as one product. The orb is the only glow;
-  /// everything here is flat tone and hairlines. Titles and the user's own
-  /// words are set in Instrument Serif, interface text in Geist.
+  /// everything here is flat tone and hairlines. Titles and figures are set
+  /// in rounded Nunito, interface text and the user's own words in Nunito
+  /// Sans — the owner asked for a rounded, Avenir-like face in place of the
+  /// serif (DECISIONS.md).
   ///
   /// Dark is the default brightness (`settingsProvider`); light is held to
   /// the same K-gates. Mockups:
@@ -280,16 +282,19 @@ class DesignSpec {
   factory DesignSpec.aurora() => DesignSpec(
     name: 'aurora',
     type: const TypeSpec(
-      family: 'Geist',
-      displayFamily: 'Instrument Serif',
-      // Instrument Serif ships one weight. Asking for more makes the engine
-      // synthesise a smeared bold.
-      displayWeight: FontWeight.w400,
-      headlineWeight: FontWeight.w400,
-      emphasisWeight: FontWeight.w600,
-      // A serif display reads smaller than a grotesque at the same size.
-      displayBase: 19.5,
-      trackingTightening: 0.35,
+      family: 'Nunito Sans',
+      displayFamily: 'Nunito',
+      // Nunito's rounded terminals read as childish above 800, and thin
+      // below 700 at headline size.
+      displayWeight: FontWeight.w800,
+      headlineWeight: FontWeight.w700,
+      titleWeight: FontWeight.w600,
+      labelWeight: FontWeight.w500,
+      emphasisWeight: FontWeight.w700,
+      // Nunito is wide and round: a notch smaller than the default anchor
+      // keeps two-line titles on two lines.
+      displayBase: 17,
+      trackingTightening: 0.45,
     ),
     space: const SpaceSpec(gutter: 20),
     palette: PaletteSpec.fromSeeds(

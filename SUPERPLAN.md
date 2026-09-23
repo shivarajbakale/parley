@@ -27,7 +27,7 @@ Floating-orb voice dictation and voice edit for any Android text field.
 | **assumed** | Who owns history and settings storage? | The native side. SQLite for history, EncryptedSharedPreferences for keys and settings. Flutter reads and writes only through the bridge. | One writer, no sync: the service writes history while the app is closed, and two stores (Drift + native) would drift |
 | **assumed** | How is text inserted into another app's field? | ACTION_SET_TEXT on the focused editable node, splicing at the selection; fallback is clipboard + ACTION_PASTE; last resort is clipboard + a 'copied' state on the orb. | SET_TEXT keeps the clipboard untouched and works in native and Compose fields; Chrome web fields and some custom editors only accept paste |
 | you | How much should the look matter? | A lot: the UI should look amazing, with a very good theme. | — |
-| **assumed** | Which visual identity? | Aurora: dark-first ink ground, the Mac app's indigo/amber/green mode colours, Instrument Serif + Geist + Geist Mono, the orb as the only glow. | Carries the Mac orb palette over so both apps read as one product, and a serif for the user's own words sets transcripts apart from interface text |
+| **assumed** | Which visual identity? | Aurora: dark-first ink ground, the Mac app's indigo/amber/green mode colours, Nunito + Nunito Sans (was Instrument Serif + Geist + Geist Mono), the orb as the only glow. | Carries the Mac orb palette over so both apps read as one product, and a serif for the user's own words sets transcripts apart from interface text |
 
 ## MVP cut
 
@@ -88,7 +88,7 @@ Outside Flutter (native)
 - Dark is the default theme; light is fully supported. Dark: ground #0E0E14, surface #17171F, raised #1F1F2A, border #23232F, text #EDEDF5, muted #9C9CB2, action fill #5555E0, action text #8B8BFF
 - Light: ground #F5F5F8, surface #FFFFFF, raised #EFEFF5, border #E6E6EE, text #15151D, muted #5C5C70, action #4646D6
 - Mode colours shared by orb, status dots and history dots: dictation #8B8BFF (indigo, hue 277 as on the Mac), voice edit #F4B942 (amber), inserted #4CD38A (green), error #FF6E6E. Light-mode text variants darken to pass 4.5:1
-- Typefaces: Instrument Serif for titles and for the user's own words (transcripts, instructions, italic in quotes); Geist for interface text; Geist Mono for figures. Four sizes: 40 / 22 / 16 / 13, plus 32 mono for stats
+- Typefaces: rounded Nunito for titles and figures; Nunito Sans for interface text and, in italic, for the user's own words (transcripts, instructions). Four sizes: 40 / 22 / 16 / 13, plus 32 for stats. Changed from Instrument Serif + Geist + Geist Mono on 2026-09-24 at the owner's request (DECISIONS.md)
 - Shape: cards 24 radius (hero 28), buttons 18, chips pill. 8-point spacing. Borders instead of shadows in dark; soft tinted shadows in light
 - The orb is the only glow in the app: layered radial gradient in the mode colour, breathing 4.2 s when idle, 1.1 s pulse plus expanding ring while listening, spinning arc while working. No gradient washes on backgrounds
 - Motion: 200 ms cross-fades, springy orb state changes, respects reduce-motion (orb stops breathing, keeps colour)
