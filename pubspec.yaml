@@ -1,0 +1,136 @@
+name: parley_android
+description: Floating-orb voice dictation for Android.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  # 3.8+ required by json_serializable 6.14 (codegen). Ships with Flutter 3.29+.
+  sdk: '>=3.8.0 <4.0.0'
+  flutter: '>=3.29.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Routing — declarative routes + redirect-based auth gating + deep links
+  go_router: ^14.6.2
+
+  # Persistence
+  shared_preferences: ^2.3.2
+
+  # Secure storage — auth tokens go here (OS keychain/keystore), NEVER in
+  # shared_preferences. Backs SecureTokenStore in lib/services/auth/.
+  flutter_secure_storage: ^9.2.2
+
+  # Networking — Dio + an HTTP mock adapter so the app runs without a backend
+  dio: ^5.7.0
+  http_mock_adapter: ^0.6.1
+
+  # Design-system primitives
+  sliver_tools: ^0.2.12
+
+  # Standard UI packages — the design system wraps these rather than
+  # re-implementing them. flutter_animate drives the onboarding tour art;
+  # skeletonizer derives loading skeletons from the real widget tree, so a
+  # skeleton can never drift out of shape with the content it stands in for.
+  flutter_animate: ^4.5.2
+  skeletonizer: ^2.1.0+1
+
+  # Charts. Pinned exactly, not caret-ranged, on purpose: fl_chart paints the
+  # pixels a golden baseline records, so a minor bump picked up by
+  # `flutter pub upgrade` can red the golden gate on a day nobody touched a
+  # chart. Bumping it is a deliberate act with `make golden-update` beside it.
+  fl_chart: 1.2.0
+
+  # Platform polish (high-refresh-rate displays on Android)
+  flutter_displaymode: ^0.6.0
+
+  # Real backend SDKs — used only when configured (Env keys present); the
+  # mock/console seams stay the default so a clean clone runs offline.
+  # See lib/services/service_config.dart and docs/MODULES.md.
+  supabase_flutter: ^2.15.0   # AuthService go-live impl (publishableKey lands in 2.15)
+  purchases_flutter: ^10.1.1  # PurchasesService go-live impl
+
+  # Models (freezed + json) and offline DB (Drift). Generated code is
+  # committed, so a clean clone needs no build_runner step. Run `make gen`
+  # after editing a model/table. See docs/MODULES.md.
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+  drift: ^2.33.0
+  drift_flutter: ^0.3.0
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+  # App-identity tooling — generate launcher icons + splash from one source
+  # image. Driven by `tool/rename_app.sh`. Configured in the blocks below.
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.3
+
+  # Code generation for freezed models + Drift tables. `make gen` runs these.
+  build_runner: ^2.15.0
+  freezed: ^3.2.5
+  json_serializable: ^6.14.0
+  drift_dev: ^2.33.0
+
+flutter:
+  uses-material-design: true
+
+  # The demo surfaces' photographs. Directory rather than file entries, so
+  # dropping a picture in is one step; `DemoPhotos` in
+  # `lib/screens/design_system/demo_photo.dart` names the paths.
+  assets:
+    - assets/images/
+
+  fonts:
+    # Archivo and Archivo Black (SIL OFL 1.1, assets/fonts/Archivo-OFL.txt):
+    # the default identity's text and display faces.
+    - family: Archivo
+      fonts:
+        - asset: assets/fonts/Archivo-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Archivo-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Archivo-Bold.ttf
+          weight: 700
+    - family: Archivo Black
+      fonts:
+        - asset: assets/fonts/ArchivoBlack-Regular.ttf
+          weight: 900
+    - family: Satoshi
+      fonts:
+        - asset: assets/fonts/Satoshi-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Satoshi-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Satoshi-Bold.otf
+          weight: 700
+        - asset: assets/fonts/Satoshi-Black.otf
+          weight: 900
+
+# ── App identity (inert until you run `tool/rename_app.sh`) ──
+# Drop a 1024x1024 PNG at assets/icon/icon.png, then:
+#   dart run flutter_launcher_icons
+#   dart run flutter_native_splash:create
+# tool/rename_app.sh runs both for you after setting the name + bundle id.
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#FAF8F4"
+  color_dark: "#16130F"
+  image: assets/icon/splash.png
+  android_12:
+    image: assets/icon/splash.png
+    color: "#FAF8F4"
+    color_dark: "#16130F"

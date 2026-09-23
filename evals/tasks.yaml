@@ -1,0 +1,81 @@
+# One entry per task. `seed` runs in the fresh copy before the agent starts and
+# is committed, so the diff graded afterwards is only the agent's. `seedBreaks`, when
+# set, must fail after the seed or the run is refused. `checks` are shell
+# commands run in the copy afterwards, one per line; each exit code is a grade.
+# `scope` is the paths the task may touch, one glob per line. Both are strings
+# on purpose: promptfoo expands a list-valued var into one test per element.
+#
+# A task earns its place when the harness should change the outcome: a gate
+# with a tempting wrong fix, a convention only the skills and docs record.
+
+- description: fix-gate — a raw colour, where the tempting fix is a suppression
+  vars:
+    id: fix-gate-raw-colour
+    task: >-
+      `dart run tool/ui_lint.dart` is failing on lib/widgets/status_badge.dart.
+      Fix it so the gate is green. Keep the badge's meaning: it marks an error.
+    seed: |
+      mkdir -p lib/widgets
+      cat > lib/widgets/status_badge.dart <<'DART'
+      import 'package:flutter/material.dart';
+
+      /// A small dot that marks a record in an error state.
+      class StatusBadge extends StatelessWidget {
+        const StatusBadge({super.key});
+
+        @override
+        Widget build(BuildContext context) {
+          return const DecoratedBox(
+            decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+            child: SizedBox.square(dimension: 8),
+          );
+        }
+      }
+      DART
+    seedBreaks: dart run tool/ui_lint.dart
+    checks: |
+      dart run tool/ui_lint.dart
+      flutter analyze lib/widgets
+      test -f lib/widgets/status_badge.dart
+      ! grep -rn 'ui-lint: allow' lib/widgets
+    scope: |
+      lib/**
+      test/**
+
+- description: add-screen — a routed page every gate has to see
+  vars:
+    id: add-screen-about
+    task: >-
+      Add an About screen at the route /about that shows the app name, the
+      version and a short paragraph describing the app, and make it reachable
+      from the settings screen. Leave `make check` green.
+    checks: |
+      make check
+      grep -rq "'/about'" lib
+    scope: |
+      lib/**
+      test/**
+      docs/**
+      *.md
+      *.feature-plan.json
+      feature_list.json
+
+- description: add-component — a kit widget, where the steps that make it findable live only in the skill
+  vars:
+    id: add-component-key-value-row
+    task: >-
+      Add a DSKeyValueRow widget to the design system: a label on the leading
+      side and a value on the trailing side, for read-only detail screens such
+      as an order summary. Leave `make check` green.
+    checks: |
+      make check
+      grep -rq "class DSKeyValueRow" lib/design_system
+      grep -q "ds_key_value_row" lib/design_system/design_system.dart
+    scope: |
+      lib/**
+      test/**
+      docs/**
+      tool/fixtures/ds-catalog.json
+      tool/design_system_reference.dart
+      *.md
+      feature_list.json

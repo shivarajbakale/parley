@@ -1,0 +1,6 @@
+# Plug in via env (CI secrets). Prefer an App Store Connect API key over
+# apple_id for CI (set ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY in the workflow).
+app_identifier(ENV["IOS_BUNDLE_ID"] || "com.shivarajbakale.parley")
+apple_id(ENV["APPLE_ID"]) if ENV["APPLE_ID"]
+itc_team_id(ENV["ITC_TEAM_ID"]) if ENV["ITC_TEAM_ID"]
+team_id(ENV["DEVELOPER_TEAM_ID"]) if ENV["DEVELOPER_TEAM_ID"]

@@ -1,0 +1,251 @@
+{
+  "note": [
+    "The corpus both implementations of loop-lint are run against.",
+    "",
+    "`tool/loop_lint.dart` in this project and `scripts/loop-lint.mjs` in every",
+    "Node scaffolder are the same seven rules written twice, in two languages.",
+    "Two implementations of one contract drift; these cases are what stops them",
+    "drifting silently.",
+    "",
+    "Each case names a tree of files written to a temp dir before the linter",
+    "runs. Both implementations run against the same bytes; `violations[].rule`",
+    "and `violations[].match` are the contract — `match` is a substring that must",
+    "appear in the rejection message, deliberately a phrase both implementations",
+    "word identically, so the prose can still improve on either side without",
+    "breaking the corpus.",
+    "",
+    "L2 is the one rule whose vocabulary is genuinely per-dialect: this project",
+    "runs `dart run` and `flutter test`, the Node scaffolders run `npm run`. The",
+    "corpus therefore only uses `make <target>`, which both halves resolve the",
+    "same way against the same Makefile, and each side's own test covers its own",
+    "dialect. A case here that passed in one language because of a form the other",
+    "cannot parse would be a corpus that hides the drift it exists to catch."
+  ],
+  "cases": [
+    {
+      "case": "inert-on-a-fresh-scaffold",
+      "expect": "pass",
+      "why": "The shipped templates are not contracts. A gate that failed on the seed the harness itself installed would be red in every project on day one.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-001\",\"status\":\"not_started\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/goal-template.json": "{\"feature\":\"ignored\"}\n",
+        "docs/loops/maker-prompt.md": "# maker\n",
+        "docs/loops/checker-prompt.md": "# checker\n"
+      },
+      "violations": []
+    },
+    {
+      "case": "a-contract-and-a-converged-loop",
+      "expect": "pass",
+      "why": "The shape every rule agrees is right: a contract with an outcome, a scope, exclusions and three checks; a loop that failed once, was fixed, and passed with a result for every check.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n\ntest:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"A merchant can archive an order without opening it.\",\"scope\":[\"the archive action on the list\"],\"exclusions\":[\"bulk archive\"],\"verification\":[{\"id\":\"suite\",\"check\":\"the reducer is covered\",\"command\":\"make test\"},{\"id\":\"eye\",\"check\":\"a person looked at the row\",\"observation\":\"note in the evidence file\"}]}\n",
+        "docs/loops/feature-002.loop-state.json": "{\"feature\":\"feature-002\",\"satisfied\":true,\"cycles\":[{\"n\":1,\"maker\":\"added the action\",\"checker\":{\"verdict\":\"fail\",\"results\":[{\"id\":\"suite\",\"exit\":1}]}},{\"n\":2,\"maker\":\"fixed the reducer\",\"checker\":{\"verdict\":\"pass\",\"results\":[{\"id\":\"suite\",\"exit\":0},{\"id\":\"eye\",\"note\":\"the row keeps its checkbox\"}]}}]}\n"
+      },
+      "violations": []
+    },
+    {
+      "case": "L1-no-outcome",
+      "expect": "violation",
+      "why": "A contract with scope and checks but no outcome describes activity, not a result.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"scope\":[\"a thing\"],\"exclusions\":[\"another thing\"],\"verification\":[{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n"
+      },
+      "violations": [{ "rule": "L1", "match": "has no `outcome`" }]
+    },
+    {
+      "case": "L1-excludes-nothing",
+      "expect": "violation",
+      "why": "The field everyone skips, and the one that settles the scope argument three days later.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[],\"verification\":[{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n"
+      },
+      "violations": [{ "rule": "L1", "match": "has no `exclusions`" }]
+    },
+    {
+      "case": "L1-check-with-no-instrument",
+      "expect": "violation",
+      "why": "A check with neither a command nor an observation names nobody and nothing to run it.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"gate\",\"check\":\"green\"}]}\n"
+      },
+      "violations": [
+        { "rule": "L1", "match": "has neither a `command` nor an `observation`" }
+      ]
+    },
+    {
+      "case": "L1-filename-and-feature-disagree",
+      "expect": "violation",
+      "why": "Nothing else would notice, and every other rule pairs the two by filename.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"},{\"id\":\"feature-009\",\"status\":\"not_started\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-009.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n"
+      },
+      "violations": [{ "rule": "L1", "match": "is named for `feature-009`" }]
+    },
+    {
+      "case": "L2-a-target-that-does-not-exist",
+      "expect": "violation",
+      "why": "The rule the artifact exists for. Verification nobody can run reads as rigour and grades nothing.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"shape\",\"check\":\"the layout holds\",\"command\":\"make ui-probe\"}]}\n"
+      },
+      "violations": [{ "rule": "L2", "match": "the Makefile has no `ui-probe` target" }]
+    },
+    {
+      "case": "L2-an-observation-is-not-asked-to-be-runnable",
+      "expect": "pass",
+      "why": "The escape hatch is the honest option for anything a script cannot see, and pretending otherwise is how a gate becomes decoration.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"eye\",\"check\":\"someone opened it and looked\",\"observation\":\"screenshot in the evidence file\"}]}\n"
+      },
+      "violations": []
+    },
+    {
+      "case": "L3-a-contract-nobody-registered",
+      "expect": "violation",
+      "why": "A contract for a feature the register has never heard of is a contract nothing will ever verify.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-404.goal.json": "{\"feature\":\"feature-404\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n"
+      },
+      "violations": [{ "rule": "L3", "match": "nothing will ever verify it" }]
+    },
+    {
+      "case": "L3-an-archived-feature-still-counts",
+      "expect": "pass",
+      "why": "Finished work leaves the register on purpose — the prelude does not pay for it — and its contract stays a legitimate record.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/history/completed-features.md": "# archive\n\n- feature-404 — landed last week.\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-404.goal.json": "{\"feature\":\"feature-404\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n"
+      },
+      "violations": []
+    },
+    {
+      "case": "L4-cycles-numbered-out-of-order",
+      "expect": "violation",
+      "why": "What a loop state looks like when it was written at the end from memory rather than after each cycle.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n",
+        "docs/loops/feature-002.loop-state.json": "{\"feature\":\"feature-002\",\"satisfied\":false,\"cycles\":[{\"n\":3,\"maker\":\"did a thing\",\"checker\":{\"verdict\":\"fail\",\"results\":[]}}]}\n"
+      },
+      "violations": [{ "rule": "L4", "match": "expected 1" }]
+    },
+    {
+      "case": "L5-a-pass-that-never-ran-a-check",
+      "expect": "violation",
+      "why": "The rule the whole file exists to make possible: a verdict is a claim, and a result per check is the evidence for it.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n\ntest:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"suite\",\"check\":\"covered\",\"command\":\"make test\"},{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n",
+        "docs/loops/feature-002.loop-state.json": "{\"feature\":\"feature-002\",\"satisfied\":true,\"cycles\":[{\"n\":1,\"maker\":\"did a thing\",\"checker\":{\"verdict\":\"pass\",\"results\":[{\"id\":\"suite\",\"exit\":0}]}}]}\n"
+      },
+      "violations": [{ "rule": "L5", "match": "passed without running `gate`" }]
+    },
+    {
+      "case": "L5-a-pass-over-a-non-zero-exit",
+      "expect": "violation",
+      "why": "The number the process returned is the whole point of recording it.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n",
+        "docs/loops/feature-002.loop-state.json": "{\"feature\":\"feature-002\",\"satisfied\":true,\"cycles\":[{\"n\":1,\"maker\":\"did a thing\",\"checker\":{\"verdict\":\"pass\",\"results\":[{\"id\":\"gate\",\"exit\":1}]}}]}\n"
+      },
+      "violations": [{ "rule": "L5", "match": "passed while `gate` exited 1" }]
+    },
+    {
+      "case": "L5-an-observation-passed-with-no-note",
+      "expect": "violation",
+      "why": "Nobody said what they saw, which is the only thing an observation carries.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"eye\",\"check\":\"someone looked\",\"observation\":\"in the evidence file\"}]}\n",
+        "docs/loops/feature-002.loop-state.json": "{\"feature\":\"feature-002\",\"satisfied\":true,\"cycles\":[{\"n\":1,\"maker\":\"did a thing\",\"checker\":{\"verdict\":\"pass\",\"results\":[{\"id\":\"eye\"}]}}]}\n"
+      },
+      "violations": [{ "rule": "L5", "match": "with no note" }]
+    },
+    {
+      "case": "L5-a-loop-with-no-contract",
+      "expect": "violation",
+      "why": "Cycles recorded against nothing. There is no set of checks a verdict here could refer to.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.loop-state.json": "{\"feature\":\"feature-002\",\"satisfied\":false,\"cycles\":[{\"n\":1,\"maker\":\"did a thing\",\"checker\":{\"verdict\":\"fail\",\"results\":[]}}]}\n"
+      },
+      "violations": [{ "rule": "L5", "match": "a loop with no contract checked nothing" }]
+    },
+    {
+      "case": "L6-the-register-says-done-and-the-loop-does-not",
+      "expect": "violation",
+      "why": "Two artifacts, one question, opposite answers — and the register is the one people read.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"passing\"}]\n",
+        "docs/loops/loop-state.schema.json": "@schema",
+        "docs/loops/feature-002.goal.json": "{\"feature\":\"feature-002\",\"outcome\":\"It works.\",\"scope\":[\"a thing\"],\"exclusions\":[\"another\"],\"verification\":[{\"id\":\"gate\",\"check\":\"green\",\"command\":\"make check\"}]}\n",
+        "docs/loops/feature-002.loop-state.json": "{\"feature\":\"feature-002\",\"satisfied\":false,\"cycles\":[{\"n\":1,\"maker\":\"did a thing\",\"checker\":{\"verdict\":\"fail\",\"results\":[{\"id\":\"gate\",\"exit\":1}]}}]}\n"
+      },
+      "violations": [{ "rule": "L6", "match": "says `satisfied: false`" }]
+    },
+    {
+      "case": "L7-the-schema-drifts-from-the-gate",
+      "expect": "violation",
+      "why": "Two descriptions of one artifact, both correct on the day they were written. This repository has lost days to exactly that.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/loop-state.schema.json": "{\"type\":\"object\",\"required\":[\"feature\",\"cycles\"],\"properties\":{\"cycles\":{\"items\":{\"required\":[\"n\",\"maker\",\"checker\"],\"properties\":{\"checker\":{\"required\":[\"verdict\",\"results\"]}}}}}}\n"
+      },
+      "violations": [{ "rule": "L7", "match": "the schema and loop-lint have drifted" }]
+    },
+    {
+      "case": "L7-the-schema-is-missing",
+      "expect": "violation",
+      "why": "The shape these files are written against, absent. An editor completes nothing and a reader has only the gate's source.",
+      "files": {
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"feature-002\",\"status\":\"in_progress\"}]\n",
+        "docs/loops/maker-prompt.md": "# maker\n"
+      },
+      "violations": [{ "rule": "L7", "match": "is missing" }]
+    }
+  ]
+}

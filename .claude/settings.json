@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/harness-session-start.mjs",
+            "timeout": 10,
+            "statusMessage": "Loading project harness context..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/harness-stop-check.mjs",
+            "timeout": 900,
+            "statusMessage": "Running clean-state check..."
+          }
+        ]
+      }
+    ]
+  }
+}

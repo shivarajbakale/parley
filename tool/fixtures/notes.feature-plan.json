@@ -1,0 +1,278 @@
+{
+  "feature": {
+    "id": "notes",
+    "title": "Notes",
+    "problem": "A reader who finds something useful in the library has nowhere to put it. They screenshot the screen and lose it in the camera roll, so the app is where things are found and somewhere else is where they are kept.",
+    "nonGoals": [
+      "Sharing a note with another account \u2014 a note is private until there is a reason for it not to be.",
+      "Rich text. A note that needs formatting is a document, and this is not a document editor."
+    ]
+  },
+  "tabs": [
+    "Home",
+    "Library",
+    "Settings"
+  ],
+  "surfaces": [
+    {
+      "id": "notes-list",
+      "name": "Notes",
+      "route": "/notes",
+      "tab": "Library",
+      "archetype": "collection",
+      "purpose": "everything the reader kept, newest first",
+      "primaryAction": "New note",
+      "secondaryActions": [
+        "Sort",
+        "Select"
+      ],
+      "panels": [
+        {
+          "kind": "list",
+          "search": "Search notes",
+          "filters": [
+            "All",
+            "Pinned",
+            "Archived"
+          ],
+          "swipe": "Archive",
+          "swipeTwin": "the row's overflow menu",
+          "rows": [
+            [
+              "Shipping the gate",
+              "2d"
+            ],
+            [
+              "Why the bar is chrome",
+              "5d"
+            ],
+            [
+              "Text scale 2.0 notes",
+              "1w"
+            ]
+          ]
+        }
+      ],
+      "moments": {
+        "peak": "The list is already there \u2014 the note they came back for is the top row, not something they have to search for.",
+        "end": "A pull refreshes and the list settles without moving what they were reading."
+      },
+      "states": {
+        "loading": "Six skeleton rows, the same height as a real one.",
+        "empty": "Nothing kept yet. Save something from the library.",
+        "zeroResults": "No notes match that search.",
+        "error": "Notes could not be loaded.",
+        "success": "The list renders and a pull refreshes it."
+      }
+    },
+    {
+      "id": "note-detail",
+      "name": "Why the bar is chrome",
+      "route": "/notes/:id",
+      "archetype": "detail",
+      "purpose": "one note, read then edited",
+      "primaryAction": "Edit",
+      "secondaryActions": [
+        "Pin",
+        "Archive",
+        "Delete"
+      ],
+      "subtitle": "kept 5 days ago",
+      "panels": [
+        {
+          "kind": "section",
+          "title": "Note",
+          "rows": [
+            "extendBody runs the content under the",
+            "bar, which is what gives the glass",
+            "something to blur."
+          ]
+        },
+        {
+          "kind": "section",
+          "title": "From",
+          "rows": [
+            [
+              "Library \u00b7 Design",
+              "\u203a"
+            ]
+          ]
+        }
+      ],
+      "moments": {
+        "peak": "The note reads like a page, not a record: the text is the widest thing on the screen.",
+        "end": "The bar is still under their thumb when they reach the bottom, so editing is one tap away."
+      },
+      "states": {
+        "loading": "The title renders from the row that opened it; the body is bones.",
+        "empty": "An empty note reads Nothing written yet.",
+        "error": "This note could not be opened.",
+        "success": "The note renders and the pinned bar stays put while it scrolls."
+      }
+    },
+    {
+      "id": "note-edit",
+      "name": "Edit note",
+      "route": "/notes/:id/edit",
+      "archetype": "form",
+      "purpose": "write the note",
+      "primaryAction": "Save",
+      "panels": [
+        {
+          "kind": "field-set",
+          "fields": [
+            {
+              "label": "Title",
+              "placeholder": "Why the bar is chrome"
+            },
+            {
+              "label": "Body",
+              "placeholder": "",
+              "helper": "Plain text. 4000 characters."
+            }
+          ]
+        }
+      ],
+      "moments": {
+        "peak": "The cursor is already in the body \u2014 they type the first word without aiming at anything.",
+        "end": "Save returns to the note with their words on it, so the edit is visibly kept."
+      },
+      "states": {
+        "loading": "The fields render disabled until the note arrives.",
+        "empty": "A new note opens with the title focused.",
+        "error": "This note could not be saved. Nothing was lost.",
+        "success": "Save returns to the note with the new text on it."
+      }
+    }
+  ],
+  "overlays": [
+    {
+      "id": "confirm-delete",
+      "kind": "alert-dialog",
+      "title": "Delete this note?",
+      "body": "Deleting removes it from every device signed in to this account.",
+      "buttons": [
+        "Cancel",
+        "Delete"
+      ]
+    },
+    {
+      "id": "sort",
+      "kind": "bottom-sheet",
+      "title": "Sort notes",
+      "body": "Newest first, oldest first, or by title.",
+      "buttons": [
+        "Done"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "surface": "notes-list",
+      "control": "DSDismissibleTile",
+      "why": "Archive is the common action, and a swipe is the gesture a reader already has for it.",
+      "rejected": "a trailing icon button on every row"
+    },
+    {
+      "surface": "notes-list",
+      "control": "DSMenu",
+      "why": "The swipe's tappable twin. Without it the action is invisible to VoiceOver.",
+      "rejected": "nothing \u2014 the swipe alone"
+    },
+    {
+      "surface": "note-detail",
+      "control": "DSPinnedActionBar",
+      "why": "Edit must not scroll away on a long note.",
+      "rejected": "a FAB, which covers the last line of the body"
+    },
+    {
+      "surface": "note-edit",
+      "control": "DSTextField",
+      "why": "It owns the label-above/helper-below contract, so validation does not move the layout.",
+      "rejected": "TextFormField, which ui-lint refuses anyway"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Note",
+      "fields": [
+        {
+          "name": "id",
+          "type": "String"
+        },
+        {
+          "name": "title",
+          "type": "String"
+        },
+        {
+          "name": "body",
+          "type": "String"
+        },
+        {
+          "name": "sourceId",
+          "type": "String?",
+          "note": "the library item it was kept from"
+        },
+        {
+          "name": "pinned",
+          "type": "bool"
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime"
+        }
+      ],
+      "relations": [
+        "belongs to LibraryItem"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/notes",
+      "auth": true,
+      "purpose": "list the reader's notes"
+    },
+    {
+      "method": "POST",
+      "path": "/notes",
+      "auth": true,
+      "purpose": "create one"
+    },
+    {
+      "method": "PUT",
+      "path": "/notes/:id",
+      "auth": true,
+      "purpose": "save an edit"
+    }
+  ],
+  "integration": [
+    {
+      "from": "library_detail_page",
+      "to": "notesRepository.keep",
+      "note": "the Save action"
+    },
+    {
+      "from": "home_screen",
+      "to": "/notes",
+      "note": "a new row under Library"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "lib/models/note.dart",
+      "lib/data/notes_repository.dart",
+      "lib/screens/notes/notes_page.dart",
+      "lib/screens/notes/note_detail_page.dart",
+      "lib/screens/notes/note_edit_page.dart",
+      "test/screens/notes_test.dart"
+    ],
+    "changed": [
+      "lib/utils/app_routes.dart",
+      "lib/utils/app_router.dart",
+      "lib/data/mock/mock_routes.dart",
+      "lib/screens/library_detail_page.dart"
+    ]
+  }
+}

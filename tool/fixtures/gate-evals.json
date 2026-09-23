@@ -1,0 +1,15 @@
+{
+  "about": "Seeded defects, one per gate rule that had no test proving it can fail. test/harness/gate_evals_test.dart runs each case through the real rule and requires the named id to fire, then refuses any declared rule id that neither this corpus nor the gate's own test exercises. A gate that has never been seen failing is a gate that may never fail.",
+  "ui-lint": [
+    { "rule": "markdown-in-copy", "path": "lib/screens/thing_page.dart", "source": "  child: Text('Use `brand-500` here'),", "why": "a backtick paints as a backtick; Text is not a markdown renderer" },
+    { "rule": "raw-card", "path": "lib/screens/thing_page.dart", "source": "  child: Card(child: body),", "why": "DSCard owns the elevation contract" },
+    { "rule": "raw-dialog", "path": "lib/screens/thing_page.dart", "source": "  showDialog(context: context, builder: build);", "why": "showDSDialog carries the themed surface and action order" },
+    { "rule": "raw-dialog", "path": "lib/screens/thing_page.dart", "source": "  child: AlertDialog(title: title),", "why": "the widget form, not only the function" },
+    { "rule": "raw-haptic", "path": "lib/screens/thing_page.dart", "source": "  HapticFeedback.lightImpact();", "why": "AppHaptics is the only path the haptics setting reaches" },
+    { "rule": "raw-popup-menu", "path": "lib/screens/thing_page.dart", "source": "  child: PopupMenuButton<int>(itemBuilder: build),", "why": "DSMenu keeps menus and selects animating alike" },
+    { "rule": "raw-snackbar", "path": "lib/screens/thing_page.dart", "source": "  ScaffoldMessenger.of(context).showSnackBar(bar);", "why": "DSSnackBar has the brightness-correct variants" },
+    { "rule": "raw-tab-bar", "path": "lib/screens/thing_page.dart", "source": "  bottom: TabBar(tabs: tabs),", "why": "DSTabBar carries the selection haptic and edge fade" },
+    { "rule": "hardcoded-duration", "path": "lib/screens/thing_page.dart", "source": "  duration: const Duration(milliseconds: 250),", "why": "motion is an AppMotion token" },
+    { "rule": "hardcoded-radius", "path": "lib/screens/thing_page.dart", "source": "  borderRadius: BorderRadius.circular(12),", "why": "radius is an AppRadius token" }
+  ]
+}

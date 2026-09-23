@@ -1,0 +1,706 @@
+{
+  "note": [
+    "The corpus both implementations of the feature-plan validator are run against.",
+    "",
+    "`tool/feature_plan.dart` in this project and `scripts/feature-plan.mjs` in",
+    "create-react-app are the same validator written twice, in two languages, for",
+    "two dialects of the same schema. Two implementations of one contract drift;",
+    "these cases are what stops them drifting silently.",
+    "",
+    "Only cases both dialects must agree on live here. The archetype vocabularies",
+    "differ on purpose \u2014 this app's five are mobile shapes and React's four are",
+    "page shapes \u2014 so every case uses `form`, which both declare, and the",
+    "archetype-specific rules are tested separately on each side.",
+    "",
+    "`match` is a substring that must appear in the rejection message. It is",
+    "deliberately the part both implementations word identically: a shared corpus",
+    "that also fixes the prose would stop either side improving an error message."
+  ],
+  "cases": [
+    {
+      "case": "valid",
+      "expect": "accept",
+      "match": null,
+      "why": "The shape both dialects agree is a plan: a form surface, one column of fields, a named peak and end, all four states, a justified control and an overlay the kit owns.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            },
+            "moments": {
+              "peak": "The field they came to change is focused and its current value is already in it.",
+              "end": "Save returns to the record, so the change is visible where they will look for it."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "not-an-object",
+      "expect": "reject",
+      "match": "plan must be a",
+      "why": "A JSON document that is not an object is not a plan, whichever runtime reads it.",
+      "plan": "nope"
+    },
+    {
+      "case": "feature-missing",
+      "expect": "reject",
+      "match": "feature: required",
+      "why": "No feature block at all.",
+      "plan": {
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "feature-id-not-kebab",
+      "expect": "reject",
+      "match": "feature.id: required kebab-case string",
+      "why": "The id becomes a filename and a feature_list.json key, so its shape is not a preference.",
+      "plan": {
+        "feature": {
+          "id": "Shared_Case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "feature-title-empty",
+      "expect": "reject",
+      "match": "feature.title: required",
+      "why": "An empty string is present but says nothing, which is the case a truthiness check misses.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "feature-problem-missing",
+      "expect": "reject",
+      "match": "feature.problem: required",
+      "why": "A plan with no problem statement cannot be reviewed, only implemented.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case"
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "surfaces-empty",
+      "expect": "reject",
+      "match": "surfaces: at least one required",
+      "why": "A plan that draws nothing is a note.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "surface-name-missing",
+      "expect": "reject",
+      "match": "surfaces[0].name: required",
+      "why": "Every frame is titled with it.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "surface-archetype-unknown",
+      "expect": "reject",
+      "match": "surfaces[0].archetype: must be one of",
+      "why": "The archetype vocabularies differ between the dialects, but an archetype in neither is rejected by both.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "carousel",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "surface-panels-empty",
+      "expect": "reject",
+      "match": "surfaces[0].panels: at least one required",
+      "why": "A surface with no panels cannot be drawn.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "surface-state-missing",
+      "expect": "reject",
+      "match": "surfaces[0].states.error: required",
+      "why": "Every async surface owes all four states. Missing one is a bug, not a shortcut.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "surface-state-blank",
+      "expect": "reject",
+      "match": "surfaces[0].states.empty: required",
+      "why": "Declared and left empty is the same screen as never declared.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "component-why-blank",
+      "expect": "reject",
+      "match": "components[0].why: required",
+      "why": "An unjustified control choice is the thing this plan exists to surface.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": ""
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "overlay-kind-unknown",
+      "expect": "reject",
+      "match": "overlays[0].kind: must be",
+      "why": "A plan may not name an overlay neither kit ships.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "tooltip",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    },
+    {
+      "case": "surface-moments-missing",
+      "expect": "reject",
+      "match": "moments",
+      "why": "A surface whose author cannot say which moment the user came for and which one they leave with is a surface with neither \u2014 the peak and the end are named before the layout is drawn.",
+      "plan": {
+        "feature": {
+          "id": "shared-case",
+          "title": "Shared case",
+          "problem": "The two implementations of this validator have to agree, and nothing checked that they did."
+        },
+        "surfaces": [
+          {
+            "id": "s1",
+            "name": "Details",
+            "archetype": "form",
+            "primaryAction": "Save",
+            "panels": [
+              {
+                "fields": [
+                  {
+                    "label": "Name",
+                    "placeholder": "Ada"
+                  }
+                ]
+              }
+            ],
+            "states": {
+              "loading": "The fields render disabled.",
+              "empty": "A new record opens with the first field focused.",
+              "error": "This could not be saved. Nothing was lost.",
+              "success": "Save returns to the record."
+            }
+          }
+        ],
+        "components": [
+          {
+            "surface": "s1",
+            "control": "TextField",
+            "why": "It owns the label/helper contract."
+          }
+        ],
+        "overlays": [
+          {
+            "id": "o1",
+            "kind": "dialog",
+            "title": "Discard changes?"
+          }
+        ]
+      }
+    }
+  ]
+}

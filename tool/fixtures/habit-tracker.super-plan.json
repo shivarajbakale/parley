@@ -1,0 +1,1184 @@
+{
+  "app": {
+    "name": "Habit Tracker",
+    "oneLiner": "A daily habit tracker with streaks, daily check-in, and reminders.",
+    "problem": "People who want to build a habit forget to do it on day two. The reminder fires, they snooze, and the streak they were excited about the day before is gone before week one ends. They need a single screen that says what to do today, what they did yesterday, and what is at risk if they skip today — and they need it to be the first thing they see.",
+    "targetUsers": "Adults forming one to three new habits at a time, comfortable with a phone, not comfortable with a journal.",
+    "industry": "health-wellness",
+    "nonGoals": [
+      "Social features. A streak that belongs to your friend group is a different product.",
+      "Analytics dashboards beyond a streak counter and a weekly completion ring.",
+      "Habit libraries. The user names their own habits, period."
+    ],
+    "mvp": {
+      "in": [
+        "Today's habits list, with check-off and current streak per row",
+        "Add / edit / delete a habit",
+        "Stats tab with weekly completion ring and per-habit streak history",
+        "Local notifications: one per habit, daily at the user's chosen time"
+      ],
+      "out": [
+        "Cloud sync / cross-device",
+        "Apple HealthKit / Google Fit integration",
+        "Premium tier or paywall (free for MVP)"
+      ]
+    }
+  },
+  "decisions": [
+    {
+      "question": "Does a habit need an account, or does it live on the device?",
+      "answer": "On the device. No auth in the MVP.",
+      "source": "user"
+    },
+    {
+      "question": "Does a missed day break the streak, or is there a grace day?",
+      "answer": "A missed day breaks it. No grace day.",
+      "source": "user"
+    },
+    {
+      "question": "Can a habit repeat more than once a day?",
+      "answer": "No — one check-in per habit per day.",
+      "source": "assumed",
+      "why": "Multiple check-ins turns the ring into a counter and the streak into an average; that is a different app"
+    },
+    {
+      "question": "Do reminders fire locally or from a server?",
+      "answer": "Locally, via the notifications seam.",
+      "source": "assumed",
+      "why": "A server-side reminder needs accounts and a scheduler, and auth is already out of the MVP"
+    }
+  ],
+  "navigation": {
+    "tabs": [
+      "Today",
+      "Stats",
+      "Settings"
+    ],
+    "ascii": "Home shell\n  ├─ /habits           Today (tab 1)\n  ├─ /habits/new       New habit (pushed)\n  ├─ /habits/:id       Habit detail (pushed from row)\n  ├─ /habits/:id/edit  Edit habit (pushed from detail)\n  ├─ /stats            Stats (tab 2)\n  └─ /settings         Settings (tab 3)"
+  },
+  "modules": {
+    "auth": "none",
+    "onboarding": "required",
+    "paywall": "none",
+    "analytics": "required",
+    "push": "required"
+  },
+  "theme": {
+    "palette": "default",
+    "typography": "default",
+    "tokens": [
+      "Habit ring colour reuses palette.action for completed streaks",
+      "Streak numbers use typography.headlineSmall for at-a-glance readability",
+      "Day cells in stats use spacing.half-step"
+    ]
+  },
+  "routes": [
+    {
+      "id": "home",
+      "route": "/",
+      "name": "Today",
+      "tab": "Today",
+      "archetype": "focal",
+      "purpose": "one hero (today's date + ring), then a bento of the three habits due",
+      "primaryAction": "Add habit",
+      "secondaryActions": [
+        "Filter"
+      ],
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "hero",
+            "title": "Mon · Mar 4",
+            "subtitle": "2 of 3 done"
+          },
+          {
+            "kind": "tile",
+            "title": "Read 10 pages",
+            "badge": "5d"
+          },
+          {
+            "kind": "tile",
+            "title": "Stretch"
+          },
+          {
+            "kind": "wide",
+            "title": "Drink water · 1l today"
+          }
+        ],
+        "header": "DSLargeAppBar with the date as title, the count as subtitle",
+        "motion": "Tap-to-check fires a 200ms ring-fill on the row, no other animation",
+        "darkMode": "Ring colour stays the same; tile surfaces use the surface ladder, not pure white"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Each row's checkbox announces habit name + streak ('Read 10 pages, 5 day streak')",
+          "The hero's ring is decorative and aria-hidden; the count is read from the subtitle"
+        ],
+        "designSystemRules": [
+          "Every checkbox uses DSTapTarget — VoiceOver users get the same hit area as everyone else",
+          "No inline Theme.of(context).primary — all colours come from tokens"
+        ],
+        "verification": [
+          "Text scale 2.0: every row's streak chip stays inside its tap target",
+          "Narrow width (390pt): the bento rows reflow to a single column without clipping"
+        ],
+        "nonGoals": [
+          "Streak history on the home screen — that lives in the Stats tab"
+        ]
+      },
+      "apis": {
+        "entities": [
+          "Habit",
+          "Completion"
+        ],
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/habits/today",
+            "auth": false,
+            "purpose": "list today's habits with completion state"
+          },
+          {
+            "method": "POST",
+            "path": "/habits/:id/check",
+            "auth": false,
+            "purpose": "mark habit complete for today"
+          }
+        ],
+        "providers": [
+          "habitsForTodayProvider",
+          "checkHabitProvider"
+        ],
+        "integration": [
+          {
+            "from": "home_screen",
+            "to": "/habits",
+            "note": "first tab"
+          },
+          {
+            "from": "habit_detail_page",
+            "to": "/habits/:id",
+            "note": "the row tap"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Six skeleton rows in the bento; the ring is half-painted until the count arrives.",
+        "empty": "No habits yet. The hero says 'Add your first habit'. One button: New habit.",
+        "error": "Habits could not be loaded. Pull to refresh.",
+        "success": "Today's list renders, the ring fills as rows check off."
+      },
+      "blastRadius": {
+        "new": [
+          "lib/screens/home/today_page.dart",
+          "lib/widgets/today_hero.dart",
+          "test/screens/today_page_test.dart"
+        ],
+        "changed": [
+          "lib/screens/home_screen.dart",
+          "lib/utils/app_router.dart"
+        ]
+      },
+      "sprint": {
+        "order": 1,
+        "depends": [],
+        "size": "M",
+        "gate": [
+          "flutter analyze --no-fatal-infos",
+          "dart run tool/ui_lint.dart",
+          "flutter test test/screens/today_page_test.dart",
+          "make ui-probe"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSLargeAppBar",
+          "region": "header",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "It carries the date+count subtitle and pushes back under scroll, which makes the bento the content rather than a header chrome strip",
+          "rejected": [
+            "a custom AppBar with a CircularProgressIndicator drawn in it"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSListTile",
+          "region": "body.bento",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "Row is the only pattern that supports a leading checkbox and trailing streak chip without hand-rolling layout",
+          "rejected": [
+            "Card with a Row of widgets, which ui-lint will reject anyway"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSLargeAppBar"
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSListTile",
+              "DSCard"
+            ]
+          },
+          {
+            "name": "fab",
+            "kit": "DSFab"
+          }
+        ],
+        "scrollStrategy": "scrollable_header_pinned_fab",
+        "pinned": [
+          "header",
+          "fab"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      },
+      "gestures": [
+        {
+          "selector": "DSCard (today’s habit)",
+          "event": "tap",
+          "behavior": "marks the habit complete for today",
+          "haptic": "selectionClick",
+          "transition": "checkmark scales in, streak count ticks up"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Check in and see the streak grow",
+          "trace": "/ → tap today’s card → streak +1",
+          "happy": true
+        }
+      ]
+    },
+    {
+      "id": "habit-list",
+      "route": "/habits",
+      "name": "All habits",
+      "archetype": "collection",
+      "purpose": "every habit the user has, filterable by status",
+      "primaryAction": "Add habit",
+      "secondaryActions": [
+        "Filter",
+        "Sort"
+      ],
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "list",
+            "search": "Search habits",
+            "filters": [
+              "All",
+              "Active",
+              "Paused",
+              "Archived"
+            ],
+            "swipe": "Archive",
+            "swipeTwin": "the row's overflow menu (three dots)",
+            "rows": [
+              [
+                "Read 10 pages",
+                "5d"
+              ],
+              [
+                "Stretch",
+                "12d"
+              ],
+              [
+                "Drink water · 1l",
+                "2d"
+              ]
+            ]
+          }
+        ],
+        "header": "Plain DSAppBar — no large variant, this is a pushed route so the back chevron matters",
+        "motion": "Swipe-archive animates a 240ms slide-out; no other motion",
+        "darkMode": "Filter chip selected state uses surface-2; non-selected uses surface-1"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Each row announces habit name + current streak + filter status",
+          "Swipe-to-archive has a confirm step so a misfire is recoverable"
+        ],
+        "designSystemRules": [
+          "Every control from the kit; no inline Theme.of(context) colours"
+        ],
+        "verification": [
+          "Text scale 2.0: filter chips do not overlap the search field",
+          "Pull-to-refresh works on every filter state"
+        ],
+        "nonGoals": [
+          "Bulk-edit across multiple habits"
+        ]
+      },
+      "apis": {
+        "entities": [
+          "Habit"
+        ],
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/habits",
+            "auth": false,
+            "purpose": "list every habit"
+          },
+          {
+            "method": "DELETE",
+            "path": "/habits/:id",
+            "auth": false,
+            "purpose": "archive a habit (soft delete)"
+          }
+        ],
+        "providers": [
+          "habitsRepositoryProvider"
+        ],
+        "integration": [
+          {
+            "from": "today_page",
+            "to": "/habits",
+            "note": "'See all' link in the bento's footer"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Six skeleton rows, same height as a real one.",
+        "empty": "No habits yet. 'Add your first habit' with a primary action.",
+        "zeroResults": "No habits match that filter or search. Clear filters.",
+        "error": "Habits could not be loaded.",
+        "success": "The list renders; pull-to-refresh updates it."
+      },
+      "blastRadius": {
+        "new": [
+          "lib/screens/habits/habit_list_page.dart",
+          "test/screens/habit_list_page_test.dart"
+        ],
+        "changed": [
+          "lib/utils/app_router.dart",
+          "lib/utils/app_routes.dart"
+        ]
+      },
+      "sprint": {
+        "order": 2,
+        "depends": [
+          "home"
+        ],
+        "size": "M",
+        "gate": [
+          "flutter test test/screens/habit_list_page_test.dart",
+          "make ui-probe"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSDismissibleTile",
+          "region": "body.list",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "Archive is a common destructive action and a swipe is the gesture users already have for it on iOS",
+          "rejected": [
+            "a trailing icon button on every row, which crowds the row"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSMenu",
+          "region": "body.list",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "The swipe's tappable twin — a swipe with no twin is invisible to a reader using VoiceOver",
+          "rejected": [
+            "nothing — the swipe alone"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSSearchBar",
+          "region": "body.scroll",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "Search in place, not a separate search route",
+          "rejected": [
+            "a search icon that pushes a full-screen search route"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSCompactAppBar"
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSDismissibleTile",
+              "DSSearchBar",
+              "DSChipGroup"
+            ]
+          }
+        ],
+        "scrollStrategy": "scrollable",
+        "pinned": [
+          "header"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      },
+      "gestures": [
+        {
+          "selector": "DSDismissibleTile",
+          "event": "swipe",
+          "behavior": "archives the habit, with undo in a snack bar",
+          "haptic": "mediumImpact",
+          "transition": "row collapses over 200ms"
+        },
+        {
+          "selector": "DSListTile",
+          "event": "tap",
+          "behavior": "pushes /habit/:id",
+          "haptic": "none",
+          "transition": "platform push"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Find a habit and open it",
+          "trace": "/habits → search → tap row → /habit/:id",
+          "happy": true
+        },
+        {
+          "name": "Archive the wrong habit",
+          "trace": "/habits → swipe → undo",
+          "happy": false
+        }
+      ]
+    },
+    {
+      "id": "habit-detail",
+      "route": "/habits/:id",
+      "name": "Habit detail",
+      "archetype": "detail",
+      "purpose": "one habit, with its streak history and edit access",
+      "primaryAction": "Edit",
+      "secondaryActions": [
+        "Pause",
+        "Archive"
+      ],
+      "subtitle": "12-day streak",
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "section",
+            "title": "This week",
+            "rows": [
+              [
+                "Mon · done",
+                "✓"
+              ],
+              [
+                "Tue · done",
+                "✓"
+              ],
+              [
+                "Wed · today",
+                "·"
+              ],
+              [
+                "Thu",
+                "·"
+              ],
+              [
+                "Fri",
+                "·"
+              ],
+              [
+                "Sat",
+                "·"
+              ],
+              [
+                "Sun",
+                "·"
+              ]
+            ]
+          },
+          {
+            "kind": "section",
+            "title": "History",
+            "rows": [
+              [
+                "Best streak",
+                "21d"
+              ],
+              [
+                "Completions",
+                "98"
+              ],
+              [
+                "Started",
+                "Nov 4"
+              ]
+            ]
+          }
+        ],
+        "header": "DSLargeAppBar; subtitle is the streak count; overflow menu holds Pause / Archive",
+        "motion": "Day cells highlight on tap with a 150ms fade, no other motion",
+        "darkMode": "Section background uses surface-1; the today cell uses action.tint at 10% alpha"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Day cells are tappable and announce the date + completion state",
+          "Edit button has the same hit area as the screen's primary tap targets"
+        ],
+        "designSystemRules": [
+          "No inline Theme.of(context).primary — every colour from tokens"
+        ],
+        "verification": [
+          "Long content (180-day history) still has the pinned bar above the safe area"
+        ],
+        "nonGoals": [
+          "Graphing the streak. Counts and a list are enough."
+        ]
+      },
+      "apis": {
+        "entities": [
+          "Habit",
+          "Completion"
+        ],
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/habits/:id",
+            "auth": false,
+            "purpose": "fetch one habit with its history"
+          }
+        ],
+        "providers": [
+          "habitDetailProvider"
+        ],
+        "integration": [
+          {
+            "from": "habit_list_page",
+            "to": "/habits/:id",
+            "note": "the row tap"
+          }
+        ]
+      },
+      "states": {
+        "loading": "The title renders from the row that opened it; the body is bones.",
+        "empty": "An archived habit reads 'Archived on <date>' and offers Unarchive.",
+        "error": "This habit could not be opened. Back to list.",
+        "success": "Detail renders and the pinned bar stays put while it scrolls."
+      },
+      "blastRadius": {
+        "new": [
+          "lib/screens/habits/habit_detail_page.dart",
+          "test/screens/habit_detail_page_test.dart"
+        ],
+        "changed": [
+          "lib/utils/app_router.dart",
+          "lib/utils/app_routes.dart"
+        ]
+      },
+      "sprint": {
+        "order": 3,
+        "depends": [
+          "habit-list"
+        ],
+        "size": "L",
+        "gate": [
+          "flutter test test/screens/habit_detail_page_test.dart",
+          "make ui-probe"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSPinnedActionBar",
+          "region": "footer",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "Edit must not scroll away on a long history; the pinned bar is what makes Detail the archetype it is",
+          "rejected": [
+            "a FAB, which covers the last row of the history"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSMenu",
+          "region": "header",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "Pause and Archive are destructive — they go in the overflow, not in a row of three buttons",
+          "rejected": [
+            "two more buttons next to Edit"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSLargeAppBar"
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSSettingsSection"
+            ]
+          },
+          {
+            "name": "footer",
+            "kit": "DSPinnedActionBar"
+          }
+        ],
+        "scrollStrategy": "scrollable_header_pinned_footer",
+        "pinned": [
+          "header",
+          "footer"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      },
+      "gestures": [
+        {
+          "selector": "edge of the detail page",
+          "event": "swipe",
+          "behavior": "pops back to the list (iOS edge-swipe)",
+          "haptic": "none",
+          "transition": "interactive pop"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Edit from the detail view",
+          "trace": "/habit/:id → Edit → /habit/:id/edit → save → back",
+          "happy": true
+        }
+      ]
+    },
+    {
+      "id": "habit-edit",
+      "route": "/habits/:id/edit",
+      "name": "Edit habit",
+      "archetype": "form",
+      "purpose": "create or edit a habit's name, time, and reminder",
+      "primaryAction": "Save",
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "field-set",
+            "fields": [
+              {
+                "label": "Name",
+                "placeholder": "Read 10 pages"
+              },
+              {
+                "label": "Reminder time",
+                "placeholder": "8:00 AM",
+                "helper": "Local notifications fire daily"
+              },
+              {
+                "label": "Days",
+                "placeholder": "Every day",
+                "helper": "Tap to change"
+              }
+            ]
+          }
+        ],
+        "header": "DSAppBar with title 'New habit' or 'Edit habit', cancel on the left",
+        "motion": "Field focus animates the helper label up; nothing else moves",
+        "darkMode": "Field background uses surface-2; helper uses textTheme.bodySmall"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Each field's label is read with the field, not above it",
+          "Validation errors replace the helper, not the label"
+        ],
+        "designSystemRules": [
+          "Field spacing uses spacing.field, not arbitrary gaps"
+        ],
+        "verification": [
+          "Keyboard avoidance: the pinned bar stays above the keyboard, the focused field stays visible"
+        ],
+        "nonGoals": [
+          "Inline habit icon picker. Ship a placeholder for the MVP."
+        ]
+      },
+      "apis": {
+        "entities": [
+          "Habit"
+        ],
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/habits",
+            "auth": false,
+            "purpose": "create a habit"
+          },
+          {
+            "method": "PUT",
+            "path": "/habits/:id",
+            "auth": false,
+            "purpose": "update a habit"
+          }
+        ],
+        "providers": [
+          "habitsRepositoryProvider"
+        ],
+        "integration": [
+          {
+            "from": "habit_detail_page",
+            "to": "/habits/:id/edit",
+            "note": "the pinned Edit button"
+          },
+          {
+            "from": "habit_list_page",
+            "to": "/habits/new",
+            "note": "the primary Add button"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Fields render disabled until the habit arrives.",
+        "empty": "A new habit opens with the name field focused.",
+        "error": "This habit could not be saved. Nothing was lost.",
+        "success": "Save returns to the detail page with the new values on it."
+      },
+      "blastRadius": {
+        "new": [
+          "lib/screens/habits/habit_edit_page.dart",
+          "lib/screens/habits/habit_new_page.dart",
+          "test/screens/habit_edit_page_test.dart"
+        ],
+        "changed": [
+          "lib/services/notifications/notification_service.dart"
+        ]
+      },
+      "sprint": {
+        "order": 4,
+        "depends": [
+          "habit-detail"
+        ],
+        "size": "L",
+        "gate": [
+          "flutter test test/screens/habit_edit_page_test.dart",
+          "make ui-probe"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSTextField",
+          "region": "body.form",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "It owns the label-above / helper-below contract — when validation fires, the layout does not jump",
+          "rejected": [
+            "TextFormField, which ui-lint rejects anyway"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSPinnedActionBar",
+          "region": "footer",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "Save is full-width and above the safe area, the Form archetype's only legal primary placement",
+          "rejected": [
+            "a floating Save button, which is the desktop pattern"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSCompactAppBar"
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSTextField"
+            ]
+          },
+          {
+            "name": "footer",
+            "kit": "DSPinnedActionBar"
+          }
+        ],
+        "scrollStrategy": "scrollable_header_pinned_footer",
+        "pinned": [
+          "header",
+          "footer"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      },
+      "gestures": [
+        {
+          "selector": "primary button",
+          "event": "tap",
+          "behavior": "saves the habit and pops",
+          "haptic": "lightImpact",
+          "transition": "pop after the write settles"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Create a habit from scratch",
+          "trace": "/habits → FAB → /habit/new → save → /habits",
+          "happy": true
+        }
+      ]
+    },
+    {
+      "id": "stats",
+      "route": "/stats",
+      "name": "Stats",
+      "tab": "Stats",
+      "archetype": "settings",
+      "purpose": "weekly completion ring per habit and a settings-style scroll list",
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "THIS WEEK",
+            "rows": [
+              [
+                "Read 10 pages",
+                "5 / 7"
+              ],
+              [
+                "Stretch",
+                "6 / 7"
+              ],
+              [
+                "Drink water",
+                "7 / 7"
+              ]
+            ]
+          },
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "STREAKS",
+            "rows": [
+              [
+                "Longest",
+                "21d"
+              ],
+              [
+                "Current best",
+                "12d"
+              ]
+            ]
+          }
+        ],
+        "header": "DSLargeAppBar with 'Stats' title, no subtitle",
+        "motion": "Ring fills on scroll-into-view, 300ms once, never again",
+        "darkMode": "Eyebrow uses textTheme.labelSmall; rows use surface-1"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Each ratio is also written as text ('5 of 7'), so a screen reader does not need to parse the ring"
+        ],
+        "designSystemRules": [
+          "Ring size follows DesignSpec.progressSize.large; no hand-coded dimensions"
+        ],
+        "verification": [
+          "Empty state: no habits yet, a 'Stats will appear once you start a habit' message"
+        ],
+        "nonGoals": [
+          "Charts beyond per-habit ratios. No line graphs, no heatmaps."
+        ]
+      },
+      "apis": {
+        "entities": [
+          "Habit",
+          "Completion"
+        ],
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/stats/weekly",
+            "auth": false,
+            "purpose": "completion counts per habit for the last 7 days"
+          }
+        ],
+        "providers": [
+          "weeklyStatsProvider"
+        ],
+        "integration": [
+          {
+            "from": "home_screen",
+            "to": "/stats",
+            "note": "second tab"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Skeleton rows in each section.",
+        "empty": "Stats will appear once you start a habit.",
+        "error": "Stats could not be loaded. Pull to refresh.",
+        "success": "Sections render with real ratios."
+      },
+      "blastRadius": {
+        "new": [
+          "lib/screens/stats/stats_page.dart",
+          "test/screens/stats_page_test.dart"
+        ],
+        "changed": [
+          "lib/screens/home_screen.dart"
+        ]
+      },
+      "sprint": {
+        "order": 5,
+        "depends": [
+          "home",
+          "habit-list"
+        ],
+        "size": "M",
+        "gate": [
+          "flutter test test/screens/stats_page_test.dart",
+          "make ui-probe"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSSettingsSection",
+          "region": "body.eyebrow",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "Settings-style grouped inset rows. Stats is a list of facts, not a hero page",
+          "rejected": [
+            "a Card per habit, which is the dashboard pattern"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSProgressRing",
+          "region": "body.scroll",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "The completion ratio is the dominant fact; a ring encodes ratio without a legend",
+          "rejected": [
+            "a progress bar, which encodes completion but not ratio visually"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSCompactAppBar"
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSSettingsSection"
+            ]
+          }
+        ],
+        "scrollStrategy": "scrollable",
+        "pinned": [
+          "header"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      },
+      "gestures": [],
+      "journeys": []
+    },
+    {
+      "id": "settings",
+      "route": "/settings",
+      "name": "Settings",
+      "tab": "Settings",
+      "archetype": "settings",
+      "purpose": "reminder defaults, theme, about",
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "REMINDERS",
+            "rows": [
+              [
+                "Default reminder time",
+                "8:00 AM ›"
+              ],
+              [
+                "Snooze length",
+                "5 min ›"
+              ]
+            ]
+          },
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "APPEARANCE",
+            "rows": [
+              [
+                "Theme",
+                "System ›"
+              ],
+              [
+                "Text size",
+                "Default ›"
+              ]
+            ]
+          },
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "ABOUT",
+            "rows": [
+              [
+                "Version",
+                "1.0.0"
+              ],
+              [
+                "Privacy policy",
+                "›"
+              ]
+            ]
+          }
+        ],
+        "header": "DSAppBar with 'Settings' title, plain (no large variant)",
+        "motion": "No animation; settings is a read-mostly list",
+        "darkMode": "Grouped rows use surface-1, eyebrows use textTheme.labelSmall"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Each row's right value is also the focusable tap target, not just the chevron"
+        ],
+        "designSystemRules": [
+          "Destructive actions would live in their own bottom group (none in MVP)"
+        ],
+        "verification": [
+          "Text scale 2.0: every row's right value stays inside its cell"
+        ],
+        "nonGoals": [
+          "Account / sign-in — auth is deferred to post-MVP"
+        ]
+      },
+      "apis": {
+        "entities": [],
+        "endpoints": [],
+        "providers": [
+          "settingsProvider"
+        ],
+        "integration": [
+          {
+            "from": "home_screen",
+            "to": "/settings",
+            "note": "third tab"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Skeleton rows until settings arrive.",
+        "empty": "Not applicable — settings has at least three rows.",
+        "error": "Settings could not be loaded. Try again.",
+        "success": "Settings render and every tap target is reachable."
+      },
+      "blastRadius": {
+        "new": [
+          "lib/screens/settings/settings_page.dart",
+          "test/screens/settings_page_test.dart"
+        ],
+        "changed": [
+          "lib/screens/home_screen.dart"
+        ]
+      },
+      "sprint": {
+        "order": 6,
+        "depends": [
+          "home"
+        ],
+        "size": "S",
+        "gate": [
+          "flutter test test/screens/settings_page_test.dart"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSSettingsSection",
+          "region": "body.eyebrow",
+          "purpose": "Carried forward from the legacy control/why/rejected triple. See the per-feature plan for the role of this kit on this route.",
+          "why": "Grouped inset rows by what the user is changing, not by which service owns it",
+          "rejected": [
+            "a ListView of ListTiles, which is what ui-lint forbids"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSCompactAppBar"
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSSettingsSection"
+            ]
+          }
+        ],
+        "scrollStrategy": "scrollable",
+        "pinned": [
+          "header"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      },
+      "gestures": [],
+      "journeys": []
+    }
+  ],
+  "sharedEntities": [
+    {
+      "name": "Habit",
+      "note": "id, name, createdAt, reminderTime (TimeOfDay), daysOfWeek (List<int>), archivedAt (DateTime?), pausedAt (DateTime?)"
+    },
+    {
+      "name": "Completion",
+      "note": "id, habitId (FK), date (DateOnly), createdAt"
+    }
+  ],
+  "sharedProviders": [
+    "habitsRepositoryProvider — owns CRUD + completion writes",
+    "notificationServiceProvider — schedules daily local notifications"
+  ],
+  "sharedMocks": [
+    "GET /habits → list of Habit",
+    "GET /habits/today → list of { habit, completion }",
+    "GET /habits/:id → Habit + last-30-days completions",
+    "POST /habits/:id/check → 204",
+    "POST /habits → Habit",
+    "PUT /habits/:id → Habit",
+    "DELETE /habits/:id → 204",
+    "GET /stats/weekly → list of { habit, completed, total }"
+  ],
+  "dependencies": [
+    {
+      "name": "flutter_local_notifications",
+      "note": "Daily reminders; iOS and Android both supported without Firebase"
+    },
+    {
+      "name": "intl",
+      "note": "Already a transitive dep; explicit pin for date formatting in stats"
+    }
+  ],
+  "openQuestions": [
+    "Notification time when user has set 'do not disturb': fall back silently or surface a setting? (deferred to post-MVP)",
+    "Should 'archive' be undoable for 5 seconds, or require an Unarchive from Settings? (default to undo)"
+  ],
+  "revision": "2026-09-15 initial"
+}

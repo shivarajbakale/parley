@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: Harness evals — each task with and without .claude/
+
+prompts:
+  - "{{task}}"
+
+providers:
+  - id: file://provider.mjs
+    label: harness
+    config:
+      arm: harness
+      # Pinned: an unpinned run grades whatever the login's default is today.
+      model: claude-opus-5
+  - id: file://provider.mjs
+    label: bare
+    config:
+      arm: bare
+      # Pinned: an unpinned run grades whatever the login's default is today.
+      model: claude-opus-5
+
+tests: file://tasks.yaml
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: file://assert.mjs:agentFinished
+    - type: javascript
+      value: file://assert.mjs:checksPass
+      weight: 3
+    - type: javascript
+      value: file://assert.mjs:inScope
+    - type: javascript
+      value: file://assert.mjs:rubric
+
+evaluateOptions:
+  # Every run is a whole agent plus `flutter` on one machine; in parallel they
+  # contend for the pub cache and the build lock, and time out instead of fail.
+  maxConcurrency: 1
