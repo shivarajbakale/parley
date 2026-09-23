@@ -199,9 +199,7 @@ void main() {
     /// same tokens).
     /// Adding a `lib/screens/design_system/*.dart` demo here is what makes
     /// it discoverable to a reader exploring this tab.
-    testWidgets('surfaces the nine demo tiles, in this order', (
-      tester,
-    ) async {
+    testWidgets('surfaces the nine demo tiles, in this order', (tester) async {
       await pump(tester, const Scaffold(body: DemosPage()));
       // Taller than a phone, after the pump that fixes the phone size: the
       // list is lazy, and a tile below the cache extent is never built — so

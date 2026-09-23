@@ -1,6 +1,6 @@
 {
   "project": "parley_android",
-  "last_updated": "TODO",
+  "last_updated": "2026-09-24",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -14,15 +14,217 @@
   },
   "features": [
     {
-      "id": "feature-001",
+      "id": "parley-a01",
       "priority": 1,
-      "area": "TODO",
-      "title": "TODO — populate from an approved BLUEPRINT.md",
-      "user_visible_behavior": "TODO",
-      "status": "not_started",
-      "verification": [],
-      "evidence": [],
-      "notes": "Created from BLUEPRINT.md screen #N once the blueprint is approved. See docs/BLUEPRINT.md."
+      "area": "native",
+      "title": "Accessibility service and orb overlay run on a device",
+      "user_visible_behavior": "With Parley enabled in Accessibility, the Aurora orb floats over every app, can be dragged and docks to an edge.",
+      "status": "passing",
+      "verification": [
+        "cd android && ./gradlew testDebugUnitTest",
+        "flutter build apk --debug",
+        "Install on emulator/phone, enable the service with adb, confirm onServiceConnected in logcat and the overlay window in dumpsys window",
+        "Screenshot of the orb over another app saved under docs/evidence/parley-a01/"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)",
+        "flutter build apk --debug -> ✓ Built build/app/outputs/flutter-apk/app-debug.apk",
+        "adb logcat (emulator-5554, API 36) -> ParleyRuntime: accessibility service connected; dumpsys window lists Window{… Parley orb}. Screenshots: docs/evidence/parley-a01/orb-over-messages.png, orb-error-no-key.png"
+      ],
+      "notes": "docs/plans/native-core.md build step 1. Built in parallel with the Flutter side by a delegated agent."
+    },
+    {
+      "id": "parley-a02",
+      "priority": 2,
+      "area": "native",
+      "title": "Hold the orb to dictate into any text field",
+      "user_visible_behavior": "Holding the orb records, releasing sends the audio to Groq, and the text lands at the cursor of the focused field (set text, then paste, then clipboard).",
+      "status": "blocked",
+      "verification": [
+        "Unit tests: splicing, WAV writer, GroqTranscriber against MockWebServer, session transitions",
+        "On device with a real Groq key: dictate into a chat app and a browser field; history records the insert method"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!"
+      ],
+      "notes": "docs/plans/native-core.md build step 2. BLOCKED: live transcription needs the user's Groq key. Pipeline is built and covered by Session and ProviderClients (MockWebServer) tests; on the emulator the session reaches Groq and errors with 'No Groq key'. Background mic and SET_TEXT per app (Spike A01) need a physical phone."
+    },
+    {
+      "id": "parley-a03",
+      "priority": 3,
+      "area": "native",
+      "title": "Volume-down tap-tap-hold starts dictation",
+      "user_visible_behavior": "Two taps and a held third press of volume-down dictates; single presses still change the volume.",
+      "status": "passing",
+      "verification": [
+        "Unit tests: VolumeGestureDetector timing table",
+        "On device: gesture dictates, single press changes volume"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "adb shell uinput virtual keyboard (emulator-5554) -> logcat: volume gesture: tap-tap-hold, session started; a single press replayed ~430 ms after key-down"
+      ],
+      "notes": "docs/plans/native-core.md build step 3."
+    },
+    {
+      "id": "parley-a05",
+      "priority": 4,
+      "area": "theme",
+      "title": "Aurora identity replaces the template theme",
+      "user_visible_behavior": "Every screen uses the Aurora palette (dark by default, light supported), Instrument Serif / Geist / Geist Mono, and the orb's mode colours.",
+      "status": "passing",
+      "verification": [
+        "make palette-lint",
+        "make design-md",
+        "flutter test",
+        "make golden (baselines regenerated deliberately with make golden-update)"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make check -> superplan-lint: 1 superplan valid, SUPERPLAN.md in sync (0 violations)"
+      ],
+      "notes": "SUPERPLAN.json theme; mockups https://claude.ai/artifact/KHuAChbQqTC4rzpxnreHBj"
+    },
+    {
+      "id": "parley-r01",
+      "priority": 5,
+      "area": "screen",
+      "title": "Setup sequence",
+      "user_visible_behavior": "First launch walks through keys, microphone, accessibility, battery and a practice dictation, then hands over to Overview.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/setup_page_test.dart",
+        "make ui-probe",
+        "make run-capture frame"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:setup"
+    },
+    {
+      "id": "parley-r02",
+      "priority": 6,
+      "area": "screen",
+      "title": "Overview",
+      "user_visible_behavior": "Shows whether Parley is ready, an on/off switch, words and time saved this week, and the last dictation.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/overview_page_test.dart",
+        "make ui-probe",
+        "make run-capture frame"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:overview"
+    },
+    {
+      "id": "parley-a04",
+      "priority": 7,
+      "area": "native",
+      "title": "Voice edit rewrites the selection or the field",
+      "user_visible_behavior": "Double-tap then hold the orb, speak an instruction, and MiniMax rewrites the selection (or the whole field); tapping the orb within 10 s undoes it.",
+      "status": "blocked",
+      "verification": [
+        "Unit tests: MiniMaxRewriter against MockWebServer, range replace",
+        "On device with a MiniMax key: rewrite a selection in a mail app and undo it"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!"
+      ],
+      "notes": "docs/plans/native-core.md build step 6. BLOCKED: voice edit needs the user's MiniMax key (and a Groq key). MiniMaxRewriter is covered by MockWebServer tests; not exercised live."
+    },
+    {
+      "id": "parley-r03",
+      "priority": 8,
+      "area": "screen",
+      "title": "History",
+      "user_visible_behavior": "Search and filter past dictations and edits, swipe to delete with undo, long-press to copy.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/history_page_test.dart",
+        "make ui-probe"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:history"
+    },
+    {
+      "id": "parley-r04",
+      "priority": 9,
+      "area": "screen",
+      "title": "Transcript detail",
+      "user_visible_behavior": "One entry in full with its details and a pinned Copy.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/history_detail_page_test.dart"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:history-detail"
+    },
+    {
+      "id": "parley-r05",
+      "priority": 10,
+      "area": "screen",
+      "title": "Settings",
+      "user_visible_behavior": "Triggers, dictation, keys, history retention and system rows; changes apply to the running service.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/parley_settings_page_test.dart",
+        "make ui-probe"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:settings"
+    },
+    {
+      "id": "parley-r06",
+      "priority": 11,
+      "area": "screen",
+      "title": "API keys",
+      "user_visible_behavior": "Replace or remove the Groq and MiniMax keys; each is verified before it is saved.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/api_keys_page_test.dart"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:api-keys"
     }
   ]
 }

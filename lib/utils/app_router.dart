@@ -3,12 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:parley_android/models/library_item.dart';
-import 'package:parley_android/providers/auth_provider.dart';
 import 'package:parley_android/providers/settings_provider.dart';
-import 'package:parley_android/screens/auth/forgot_password_page.dart';
-import 'package:parley_android/screens/auth/login_page.dart';
-import 'package:parley_android/screens/auth/reset_password_page.dart';
-import 'package:parley_android/screens/auth/signup_page.dart';
 import 'package:parley_android/screens/design_system/blog_article_page.dart';
 import 'package:parley_android/screens/design_system/blog_data.dart';
 import 'package:parley_android/screens/design_system/blog_page.dart';
@@ -23,151 +18,47 @@ import 'package:parley_android/screens/design_system/order_placed_page.dart';
 import 'package:parley_android/screens/design_system/profile_page.dart';
 import 'package:parley_android/screens/home_screen.dart';
 import 'package:parley_android/screens/library_detail_page.dart';
-import 'package:parley_android/screens/onboarding_page.dart';
+import 'package:parley_android/screens/parley/api_keys_page.dart';
+import 'package:parley_android/screens/parley/history_detail_page.dart';
+import 'package:parley_android/screens/parley/setup_page.dart';
 import 'package:parley_android/screens/paywall_page.dart';
 import 'package:parley_android/screens/settings/about_page.dart';
 import 'package:parley_android/screens/settings/license_detail_page.dart';
 import 'package:parley_android/screens/settings/licenses_page.dart';
 import 'package:parley_android/screens/settings/appearance_page.dart';
-import 'package:parley_android/screens/splash_page.dart';
-import 'package:parley_android/screens/welcome_page.dart';
 import 'package:parley_android/theme/app_platform.dart';
 import 'package:parley_android/theme/spec/design_spec.dart';
 import 'package:parley_android/utils/app_transitions.dart';
 import 'package:parley_android/utils/app_routes.dart';
 
-/// Routes the user may visit while signed out. `/reset` is here so a
-/// password-reset deep link works without a session. (`/welcome` and
-/// `/onboarding` are gated by shared-preferences flags, not by auth, so
-/// they're handled separately.)
-const _publicRoutes = {
-  AppRoutes.login,
-  AppRoutes.signup,
-  AppRoutes.forgot,
-  AppRoutes.reset,
-};
-
-/// The app's [GoRouter]. Auth gating lives entirely in [redirect]; deep links
-/// (e.g. `/paywall`, `/reset?token=…`) survive the cold-start splash because
-/// the intended location is stashed in `?from=` and replayed once the session
-/// resolves.
+/// The app's [GoRouter].
+///
+/// One gate: until setup has been finished once (`onboardingComplete`), every
+/// location lands on `/setup`. After that `/setup` is only reachable as
+/// Settings' "Run setup again" (`?again=1`). Parley has no accounts, so there
+/// is no auth gate; the template's auth screens stay in the tree unrouted.
 final routerProvider = Provider<GoRouter>((ref) {
-  final refresh = _AuthRefresh(ref);
+  final refresh = _SetupRefresh(ref);
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
     initialLocation: AppRoutes.home,
     refreshListenable: refresh,
     redirect: (context, state) {
-      final status = ref.read(authProvider).status;
-      final onboardingDone = ref.read(settingsProvider).onboardingComplete;
-      final uri = state.uri;
-      final loc = uri.path;
-
-      // 1. Boot: we don't yet know if there's a session. Park on the splash,
-      //    remembering where the user was headed.
-      if (status == AuthStatus.unknown) {
-        if (loc == AppRoutes.splash) return null;
-        final from = Uri.encodeComponent(uri.toString());
-        return '${AppRoutes.splash}?from=$from';
+      final setupDone = ref.read(settingsProvider).onboardingComplete;
+      final loc = state.uri.path;
+      if (!setupDone) return loc == AppRoutes.setup ? null : AppRoutes.setup;
+      if (loc == AppRoutes.setup && state.uri.queryParameters['again'] != '1') {
+        return AppRoutes.home;
       }
-
-      // 2. Deliberate replay — the Components tab's Welcome tile pushes
-      //    `/welcome?demo=1`, and Settings' "Replay the tour" row pushes
-      //    `/onboarding?demo=1`. The query parameter is the opt-in: someone
-      //    who asked for the screen wants it regardless of their history,
-      //    and these are the two surfaces that ask.
-      //
-      //    The flags stay untouched. Resetting `onboardingComplete` to show
-      //    the tour again would make the *router* the thing that decides,
-      //    and a user who then killed the app would be back in first-run.
-      //    The replay is a push over the app, and it pops back.
-      //
-      //    Placed at the *top* of the resolve logic (above the welcome
-      //    / onboarding flag branches) so that a long-time reader of the
-      //    demo — `welcomeSeen=true` *and* `onboardingComplete=true` — still
-      //    reaches the welcome screen when they tap the tile. Without the
-      //    lift, the post-onboarding branch below sends `/welcome` straight
-      //    back to `/home`, which is the bug flutter-048 fixed after the
-      //    first commit. The cold-launch flow is unchanged: this opt-in
-      //    is local to the request, and no other arrival at /welcome carries
-      //    `?demo=1`.
-      if ((loc == AppRoutes.welcome || loc == AppRoutes.onboarding) &&
-          uri.queryParameters['demo'] == '1') {
-        return null;
-      }
-
-      // 3. First run: welcome precedes onboarding precedes auth.
-      if (!onboardingDone) {
-        final welcomeSeen = ref.read(settingsProvider).welcomeSeen;
-        // Welcome is shown *before* onboarding on a cold launch, and a
-        // returning user who finished onboarding never sees it again.
-        if (!welcomeSeen) {
-          return loc == AppRoutes.welcome ? null : AppRoutes.welcome;
-        }
-        // Welcome seen, onboarding not yet — go to the tour.
-        if (loc == AppRoutes.onboarding) return null;
-        if (loc == AppRoutes.welcome) {
-          // A user mid-tour who taps back falls here. The welcome is past,
-          // so send them on to onboarding (their last step) rather than to
-          // a welcome screen they already saw.
-          return AppRoutes.onboarding;
-        }
-        return AppRoutes.onboarding;
-      }
-      // Onboarding finished — don't let anyone sit on welcome or onboarding.
-      if (loc == AppRoutes.onboarding || loc == AppRoutes.welcome) {
-        return status == AuthStatus.authenticated
-            ? AppRoutes.home
-            : AppRoutes.login;
-      }
-
-      // 4. Resolved while on the splash → replay the intended destination,
-      //    re-checked against the auth rules below.
-      if (loc == AppRoutes.splash) {
-        final from = uri.queryParameters['from'];
-        final dest = (from != null && from.isNotEmpty)
-            ? Uri.decodeComponent(from)
-            : AppRoutes.home;
-        final destPath = Uri.parse(dest).path;
-        // `/welcome` is not in `_publicRoutes` because a signed-out user
-        // does not have a session to "introduce" — send them to sign in
-        // instead of to the welcome.
-        if (status == AuthStatus.unauthenticated) {
-          return destPath == AppRoutes.welcome
-              ? AppRoutes.login
-              : (_publicRoutes.contains(destPath) ? dest : AppRoutes.login);
-        }
-        return destPath == AppRoutes.welcome
-            ? AppRoutes.welcome
-            : (_publicRoutes.contains(destPath) ? AppRoutes.home : dest);
-      }
-
-      // 5. Normal auth gating.
-      final onPublicRoute = _publicRoutes.contains(loc);
-      if (status == AuthStatus.unauthenticated) {
-        return onPublicRoute ? null : AppRoutes.login;
-      }
-      // Authenticated: keep signed-in users out of the auth screens.
-      return onPublicRoute ? AppRoutes.home : null;
+      return null;
     },
     routes: [
-      GoRoute(path: AppRoutes.splash, builder: (_, __) => const SplashPage()),
-      GoRoute(path: AppRoutes.welcome, builder: (_, __) => const WelcomePage()),
       GoRoute(
-        path: AppRoutes.onboarding,
-        builder: (_, __) => const OnboardingPage(),
-      ),
-      GoRoute(path: AppRoutes.login, builder: (_, __) => const LoginPage()),
-      GoRoute(path: AppRoutes.signup, builder: (_, __) => const SignupPage()),
-      GoRoute(
-        path: AppRoutes.forgot,
-        builder: (_, __) => const ForgotPasswordPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.reset,
-        builder: (_, state) =>
-            ResetPasswordPage(token: state.uri.queryParameters['token']),
+        path: AppRoutes.setup,
+        builder: (_, state) => SetupPage(
+          initialStep: state.uri.queryParameters['again'] == '1' ? 0 : null,
+        ),
       ),
       GoRoute(
         path: AppRoutes.home,
@@ -175,6 +66,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           // Children stack on top of home, so Back from a deep-linked page
           // returns to the app rather than exiting it.
+          GoRoute(
+            path: 'history/:id',
+            pageBuilder: (context, state) => _sharedAxisPage(
+              key: state.pageKey,
+              context: context,
+              child: HistoryDetailPage(
+                id: int.tryParse(state.pathParameters['id'] ?? '') ?? -1,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: 'settings/keys',
+            pageBuilder: (context, state) => _sharedAxisPage(
+              key: state.pageKey,
+              context: context,
+              child: const ApiKeysPage(),
+            ),
+          ),
           GoRoute(
             path: 'paywall',
             pageBuilder: (_, __) => const MaterialPage(
@@ -382,14 +291,9 @@ Page<T> _sharedAxisPage<T>({
   );
 }
 
-/// Bridges Riverpod to go_router's `refreshListenable`, so the router re-runs
-/// [GoRouter.redirect] whenever auth status or the onboarding flag changes.
-class _AuthRefresh extends ChangeNotifier {
-  _AuthRefresh(Ref ref) {
-    ref.listen<AuthStatus>(
-      authProvider.select((s) => s.status),
-      (_, __) => notifyListeners(),
-    );
+/// Re-runs [GoRouter.redirect] when setup completes.
+class _SetupRefresh extends ChangeNotifier {
+  _SetupRefresh(Ref ref) {
     ref.listen<bool>(
       settingsProvider.select((s) => s.onboardingComplete),
       (_, __) => notifyListeners(),

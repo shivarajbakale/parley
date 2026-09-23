@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:parley_android/theme/app_theme.dart';
+import 'package:parley_android/theme/parley_type.dart';
 import 'package:parley_android/design_system/ds_text_style.dart';
 import 'package:parley_android/theme/spec/design_spec.dart';
 
@@ -92,6 +93,7 @@ void main() {
     // call site can ask for, so a weight reachable from a role is a weight
     // the app can actually draw.
     for (final (name, spec) in [
+      ('aurora', DesignSpec.aurora()),
       ('halo', DesignSpec.halo()),
       ('ledger', DesignSpec.ledger()),
       ('signal', DesignSpec.signal()),
@@ -113,6 +115,16 @@ void main() {
                     if (weight != null) {
                       drawn.add('${style.fontFamily} ${weight.value}');
                     }
+                  }
+                  // Parley's two faces outside the role table: the user's
+                  // own words and figures (lib/theme/parley_type.dart).
+                  for (final style in [
+                    ParleyType.voice(context),
+                    ParleyType.voiceRow(context),
+                    ParleyType.figure(context),
+                    ParleyType.mono(context),
+                  ]) {
+                    drawn.add('${style.fontFamily} ${style.fontWeight!.value}');
                   }
                   return const SizedBox();
                 },
@@ -141,8 +153,8 @@ void main() {
       };
       expect(
         _drawnByIdentity,
-        hasLength(3),
-        reason: 'run the whole group — this reads what the three above found',
+        hasLength(4),
+        reason: 'run the whole group — this reads what the four above found',
       );
       expect(
         bundled.difference(drawn),

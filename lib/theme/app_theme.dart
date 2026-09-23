@@ -9,7 +9,7 @@ class AppTheme {
   /// Built once rather than per access: a `DesignSpec` grows its palette in
   /// OKLCH at construction, and `lightTheme` is read on every rebuild of the
   /// `MaterialApp`.
-  static final DesignSpec spec = DesignSpec.halo();
+  static final DesignSpec spec = DesignSpec.aurora();
 
   static ThemeData get lightTheme => spec.themeFor(Brightness.light);
   static ThemeData get darkTheme => spec.themeFor(Brightness.dark);

@@ -28,7 +28,7 @@ class AppSettings {
   final bool welcomeSeen;
 
   const AppSettings({
-    this.themeMode = ThemeMode.system,
+    this.themeMode = ThemeMode.dark,
     this.hapticFeedback = true,
     this.confirmBeforeDelete = true,
     this.onboardingComplete = false,

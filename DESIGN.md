@@ -1,149 +1,149 @@
 ---
 version: alpha
-name: halo
-description: "The shipped identity. Warm neutral background, a single primary that carries every affordance, and a brand gradient plus a five-colour chart scale that read as one family because both are grown from the same seeds: the gradient's far stop sits 28 degrees round the wheel from the primary, and the chart is five separate hues spaced evenly from there, held to a shared lightness and chroma."
+name: aurora
+description: "A design identity of this app."
 colors:
-  background: "#EDEEF1"
-  foreground: "#161920"
+  background: "#EEEEF1"
+  foreground: "#17171F"
   card: "#FFFFFF"
-  muted: "#D3D6DB"
-  muted-foreground: "#545860"
-  primary: "#3961C6"
-  primary-foreground: "#F9FAFD"
-  secondary: "#EAF0FD"
-  secondary-foreground: "#16274D"
-  border: "#DBDEE3"
-  ring: "#3961C6"
-  destructive: "#8B4E47"
-  success: "#3B6F47"
-  warning: "#7D5A23"
+  muted: "#D5D5DC"
+  muted-foreground: "#5A5A63"
+  primary: "#4D4BD1"
+  primary-foreground: "#FAFAFD"
+  secondary: "#EAEDFF"
+  secondary-foreground: "#1F2154"
+  border: "#DFDFE6"
+  ring: "#4D4BD1"
+  destructive: "#8D4C46"
+  success: "#397046"
+  warning: "#7F591F"
   overlay: "#000000"
-  primary-gradient-from: "#3961C6"
-  primary-gradient-to: "#446DD4"
-  chart-1: "#627EBE"
-  chart-2: "#9F6AA2"
-  chart-3: "#B66761"
-  chart-4: "#9C7B2E"
-  chart-5: "#579059"
-  dark-background: "#121417"
-  dark-foreground: "#EFF4FD"
-  dark-card: "#26282C"
-  dark-muted: "#07090D"
-  dark-muted-foreground: "#ADB1BA"
-  dark-primary: "#80A3F0"
-  dark-primary-foreground: "#0B0D13"
-  dark-secondary: "#29354F"
-  dark-secondary-foreground: "#D8E5FF"
-  dark-border: "#3C3F44"
-  dark-ring: "#80A3F0"
-  dark-destructive: "#D1776E"
-  dark-success: "#5CA86E"
-  dark-warning: "#BD893A"
+  primary-gradient-from: "#4D4BD1"
+  primary-gradient-to: "#914AD0"
+  chart-1: "#7079C0"
+  chart-2: "#A96697"
+  chart-3: "#B66851"
+  chart-4: "#928028"
+  chart-5: "#409366"
+  dark-background: "#0D0D12"
+  dark-foreground: "#EDEDF8"
+  dark-card: "#25252C"
+  dark-muted: "#040409"
+  dark-muted-foreground: "#A6A7B0"
+  dark-primary: "#8792FF"
+  dark-primary-foreground: "#0D0D12"
+  dark-secondary: "#262A4B"
+  dark-secondary-foreground: "#DDE3FF"
+  dark-border: "#32323A"
+  dark-ring: "#8792FF"
+  dark-destructive: "#E27E73"
+  dark-success: "#5FB474"
+  dark-warning: "#CB9238"
   dark-overlay: "#000000"
-  dark-primary-gradient-from: "#80A3F0"
-  dark-primary-gradient-to: "#95B6FF"
-  dark-chart-1: "#5B76B2"
-  dark-chart-2: "#956398"
-  dark-chart-3: "#AA605A"
-  dark-chart-4: "#92732A"
-  dark-chart-5: "#518753"
+  dark-primary-gradient-from: "#8792FF"
+  dark-primary-gradient-to: "#C896FF"
+  dark-chart-1: "#7079C0"
+  dark-chart-2: "#A96697"
+  dark-chart-3: "#B66851"
+  dark-chart-4: "#928028"
+  dark-chart-5: "#409366"
 typography:
   display-large:
-    fontFamily: Archivo Black
-    fontSize: 36.05px
-    fontWeight: 900
+    fontFamily: Instrument Serif
+    fontSize: 42.604px
+    fontWeight: 400
     lineHeight: 1.12
-    letterSpacing: -1.066px
+    letterSpacing: -0.415px
   display-medium:
-    fontFamily: Archivo Black
-    fontSize: 32.773px
-    fontWeight: 900
+    fontFamily: Instrument Serif
+    fontSize: 38.731px
+    fontWeight: 400
     lineHeight: 1.12
-    letterSpacing: -0.888px
+    letterSpacing: -0.345px
   display-small:
-    fontFamily: Archivo Black
-    fontSize: 29.623px
-    fontWeight: 900
+    fontFamily: Instrument Serif
+    fontSize: 35.009px
+    fontWeight: 400
     lineHeight: 1.12
-    letterSpacing: -0.716px
+    letterSpacing: -0.278px
   headline-large:
-    fontFamily: Archivo Black
-    fontSize: 27.344px
-    fontWeight: 900
+    fontFamily: Instrument Serif
+    fontSize: 32.316px
+    fontWeight: 400
     lineHeight: 1.12
-    letterSpacing: -0.592px
+    letterSpacing: -0.23px
   headline-medium:
-    fontFamily: Archivo Black
-    fontSize: 25.168px
-    fontWeight: 900
+    fontFamily: Instrument Serif
+    fontSize: 29.744px
+    fontWeight: 400
     lineHeight: 1.12
-    letterSpacing: -0.473px
+    letterSpacing: -0.184px
   headline-small:
-    fontFamily: Archivo Black
-    fontSize: 23.033px
-    fontWeight: 900
+    fontFamily: Instrument Serif
+    fontSize: 27.221px
+    fontWeight: 400
     lineHeight: 1.12
-    letterSpacing: -0.356px
+    letterSpacing: -0.139px
   title-large:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 17.954px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: -0.248px
+    letterSpacing: -0.096px
   title-medium:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 16.075px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: -0.127px
+    letterSpacing: -0.05px
   title-small:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 14.767px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: -0.044px
+    letterSpacing: -0.017px
   body-large:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 14.767px
     fontWeight: 400
     lineHeight: 1.45
-    letterSpacing: -0.044px
+    letterSpacing: -0.017px
   body-medium:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 14.08px
     fontWeight: 400
     lineHeight: 1.45
     letterSpacing: 0px
   body-small:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 12.679px
     fontWeight: 400
     lineHeight: 1.45
-    letterSpacing: 0.09px
+    letterSpacing: 0.035px
   label-large:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 14.08px
     fontWeight: 500
     lineHeight: 1.45
     letterSpacing: 0.15px
   label-medium:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 12.679px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: 0.24px
+    letterSpacing: 0.185px
   label-small:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 11.94px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: 0.287px
+    letterSpacing: 0.203px
   micro:
-    fontFamily: Archivo
+    fontFamily: Geist
     fontSize: 9.791px
     fontWeight: 500
     lineHeight: 1.45
-    letterSpacing: 0.287px
+    letterSpacing: 0.203px
 rounded:
   card: 20px
   control: 14px
@@ -298,17 +298,17 @@ components:
     ring-gap: 2px
 ---
 
-# halo
+# aurora
 
 ## Overview
 
-The shipped identity. Warm neutral background, a single primary that carries every affordance, and a brand gradient plus a five-colour chart scale that read as one family because both are grown from the same seeds: the gradient's far stop sits 28 degrees round the wheel from the primary, and the chart is five separate hues spaced evenly from there, held to a shared lightness and chroma.
+A design identity of this app.
 
 This is the identity the app ships. `AppTheme.spec` names it, and the line that decides the entire look is the one that wraps the app in a `DesignSpec`:
 
 ```dart
 Design(
-  spec: DesignSpec.halo(),
+  spec: DesignSpec.aurora(),
   child: child,
 )
 ```
@@ -328,55 +328,55 @@ Both palettes are grown in OKLCH from seeds rather than typed, so the steps stay
 
 | Role | Light | Dark | What it is for |
 | --- | --- | --- | --- |
-| `background` | `#EDEEF1` | `#121417` | The page behind everything. |
-| `foreground` | `#161920` | `#EFF4FD` | Primary reading colour. |
-| `card` | `#FFFFFF` | `#26282C` | A card, a sheet, a row — anything raised off the background. |
-| `muted` | `#D3D6DB` | `#07090D` | A recess: an input, a track, a skeleton, a pressed state. |
-| `muted-foreground` | `#545860` | `#ADB1BA` | Supporting copy, metadata, captions, hints. |
-| `primary` | `#3961C6` | `#80A3F0` | The one colour that means "this does something". Also info. |
-| `primary-foreground` | `#F9FAFD` | `#0B0D13` | Text and icons on primary and on the brand gradient. |
-| `secondary` | `#EAF0FD` | `#29354F` | Primary at container weight: a selected chip, a tinted slot. |
-| `secondary-foreground` | `#16274D` | `#D8E5FF` | Text and icons on secondary. |
-| `border` | `#DBDEE3` | `#3C3F44` | A border meant to be seen; dividers use it at 55%. |
-| `ring` | `#3961C6` | `#80A3F0` | The focus indicator. |
-| `destructive` | `#8B4E47` | `#D1776E` | Failed, destructive or invalid. |
-| `success` | `#3B6F47` | `#5CA86E` | Completed, saved, on track. |
-| `warning` | `#7D5A23` | `#BD893A` | Attention, not failure. |
+| `background` | `#EEEEF1` | `#0D0D12` | The page behind everything. |
+| `foreground` | `#17171F` | `#EDEDF8` | Primary reading colour. |
+| `card` | `#FFFFFF` | `#25252C` | A card, a sheet, a row — anything raised off the background. |
+| `muted` | `#D5D5DC` | `#040409` | A recess: an input, a track, a skeleton, a pressed state. |
+| `muted-foreground` | `#5A5A63` | `#A6A7B0` | Supporting copy, metadata, captions, hints. |
+| `primary` | `#4D4BD1` | `#8792FF` | The one colour that means "this does something". Also info. |
+| `primary-foreground` | `#FAFAFD` | `#0D0D12` | Text and icons on primary and on the brand gradient. |
+| `secondary` | `#EAEDFF` | `#262A4B` | Primary at container weight: a selected chip, a tinted slot. |
+| `secondary-foreground` | `#1F2154` | `#DDE3FF` | Text and icons on secondary. |
+| `border` | `#DFDFE6` | `#32323A` | A border meant to be seen; dividers use it at 55%. |
+| `ring` | `#4D4BD1` | `#8792FF` | The focus indicator. |
+| `destructive` | `#8D4C46` | `#E27E73` | Failed, destructive or invalid. |
+| `success` | `#397046` | `#5FB474` | Completed, saved, on track. |
+| `warning` | `#7F591F` | `#CB9238` | Attention, not failure. |
 | `overlay` | `#000000` | `#000000` | The dim behind a modal. Carries alpha. |
-| `primary-gradient-from` | `#3961C6` | `#80A3F0` | Brand gradient, first stop — buttons, hero, nav pill, progress. |
-| `primary-gradient-to` | `#446DD4` | `#95B6FF` | Brand gradient, last stop. |
-| `chart-1` | `#627EBE` | `#5B76B2` | Chart series 1 — data only. |
-| `chart-2` | `#9F6AA2` | `#956398` | Chart series 2 — data only. |
-| `chart-3` | `#B66761` | `#AA605A` | Chart series 3 — data only. |
-| `chart-4` | `#9C7B2E` | `#92732A` | Chart series 4 — data only. |
-| `chart-5` | `#579059` | `#518753` | Chart series 5 — data only. |
+| `primary-gradient-from` | `#4D4BD1` | `#8792FF` | Brand gradient, first stop — buttons, hero, nav pill, progress. |
+| `primary-gradient-to` | `#914AD0` | `#C896FF` | Brand gradient, last stop. |
+| `chart-1` | `#7079C0` | `#7079C0` | Chart series 1 — data only. |
+| `chart-2` | `#A96697` | `#A96697` | Chart series 2 — data only. |
+| `chart-3` | `#B66851` | `#B66851` | Chart series 3 — data only. |
+| `chart-4` | `#928028` | `#928028` | Chart series 4 — data only. |
+| `chart-5` | `#409366` | `#409366` | Chart series 5 — data only. |
 
 Fifteen roles cover every surface in the app; the brand moment — buttons, the hero card, the selected nav pill, a progress fill — is `primaryGradient`, and data visualisation draws from the five-colour `chart` scale, nowhere else.
 
 ## Typography
 
-`Archivo` for text, `Archivo Black` for display and headline, falling back to Roboto.
+`Geist` for text, `Instrument Serif` for display and headline, falling back to Roboto.
 
-Sizes are not typed. They are powers of 1.1 around two anchors — 14.08px for running text, labels and controls, 16.5px for display and headline. Two anchors because "make the text smaller" means one thing for a dense list and the opposite for the one title on the page. Moving an anchor re-proportions its half of the scale and leaves every relationship inside it where it was.
+Sizes are not typed. They are powers of 1.1 around two anchors — 14.08px for running text, labels and controls, 19.5px for display and headline. Two anchors because "make the text smaller" means one thing for a dense list and the opposite for the one title on the page. Moving an anchor re-proportions its half of the scale and leaves every relationship inside it where it was.
 
 | Role | Size | Weight | Line height | Tracking |
 | --- | --- | --- | --- | --- |
-| `display-large` | 36.05px | 900 | 1.12 | -1.066px |
-| `display-medium` | 32.773px | 900 | 1.12 | -0.888px |
-| `display-small` | 29.623px | 900 | 1.12 | -0.716px |
-| `headline-large` | 27.344px | 900 | 1.12 | -0.592px |
-| `headline-medium` | 25.168px | 900 | 1.12 | -0.473px |
-| `headline-small` | 23.033px | 900 | 1.12 | -0.356px |
-| `title-large` | 17.954px | 500 | 1.45 | -0.248px |
-| `title-medium` | 16.075px | 500 | 1.45 | -0.127px |
-| `title-small` | 14.767px | 500 | 1.45 | -0.044px |
-| `body-large` | 14.767px | 400 | 1.45 | -0.044px |
+| `display-large` | 42.604px | 400 | 1.12 | -0.415px |
+| `display-medium` | 38.731px | 400 | 1.12 | -0.345px |
+| `display-small` | 35.009px | 400 | 1.12 | -0.278px |
+| `headline-large` | 32.316px | 400 | 1.12 | -0.23px |
+| `headline-medium` | 29.744px | 400 | 1.12 | -0.184px |
+| `headline-small` | 27.221px | 400 | 1.12 | -0.139px |
+| `title-large` | 17.954px | 500 | 1.45 | -0.096px |
+| `title-medium` | 16.075px | 500 | 1.45 | -0.05px |
+| `title-small` | 14.767px | 500 | 1.45 | -0.017px |
+| `body-large` | 14.767px | 400 | 1.45 | -0.017px |
 | `body-medium` | 14.08px | 400 | 1.45 | 0px |
-| `body-small` | 12.679px | 400 | 1.45 | 0.09px |
+| `body-small` | 12.679px | 400 | 1.45 | 0.035px |
 | `label-large` | 14.08px | 500 | 1.45 | 0.15px |
-| `label-medium` | 12.679px | 500 | 1.45 | 0.24px |
-| `label-small` | 11.94px | 500 | 1.45 | 0.287px |
-| `micro` | 9.791px | 500 | 1.45 | 0.287px |
+| `label-medium` | 12.679px | 500 | 1.45 | 0.185px |
+| `label-small` | 11.94px | 500 | 1.45 | 0.203px |
+| `micro` | 9.791px | 500 | 1.45 | 0.203px |
 
 Every weight above ships in the bundled face. A `TextStyle` that asks for a weight the font does not have is not an error — the engine substitutes a neighbour, and which neighbour is a property of the font matcher rather than a decision anybody made. `test/theme/type_manifest_test.dart` reads the manifest out of `pubspec.yaml` and fails the build on it.
 

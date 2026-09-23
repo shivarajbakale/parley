@@ -11,12 +11,12 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = JavaVersion.VERSION_17
         freeCompilerArgs += ["-Xexpect-actual-classes"]
     }
 
@@ -25,7 +25,8 @@ android {
         applicationId = "com.shivarajbakale.parley"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // The accessibility overlay, AudioRecord and EncryptedSharedPreferences paths assume 26+.
+        minSdk = Math.max(flutter.minSdkVersion, 26)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -38,8 +39,32 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+
+    testOptions {
+        unitTests {
+            // Robolectric runs without the merged manifest: plugin receivers in it
+            // (e.g. Amazon IAP) fail bytecode verification, and no test needs resources.
+            includeAndroidResources = false
+            returnDefaultValues = true
+        }
+    }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation "androidx.core:core-ktx:1.13.1"
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "androidx.security:security-crypto:1.1.0-alpha06"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
+
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.robolectric:robolectric:4.14.1"
+    testImplementation "androidx.test:core:1.6.1"
+    testImplementation "com.squareup.okhttp3:mockwebserver:4.12.0"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1"
+    // android.jar's org.json is a stub under plain JVM tests; the real one runs the rewriter tests.
+    testImplementation "org.json:json:20250107"
 }

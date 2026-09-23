@@ -16,7 +16,7 @@ class AboutPage extends StatelessWidget {
     final schemePalette = context.palette;
 
     return DSPage(
-      title: 'Rocketship',
+      title: 'About Parley',
       leading: const BackButton(),
       slivers: [
         SliverToBoxAdapter(
@@ -38,7 +38,7 @@ class AboutPage extends StatelessWidget {
                       ),
                     ),
                     child: Icon(
-                      Icons.rocket_launch_rounded,
+                      Icons.graphic_eq_rounded,
                       color: schemePalette.secondaryForeground,
                       size: context.design.component.iconSizeLarge,
                     ),
@@ -50,14 +50,14 @@ class AboutPage extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Rocketship',
+                          'Parley',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: context.design.type.emphasisWeight,
                           ),
                         ),
                         SizedBox(height: context.design.space.hairline),
                         const DSText(
-                          'A premium Flutter boilerplate',
+                          'Floating-orb voice dictation for Android',
                           role: DSTextRole.bodySupport,
                         ),
                       ],

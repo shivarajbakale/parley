@@ -1,90 +1,75 @@
 # App Blueprint
 
-> **For the agent:** if this file is still in stub form (no `One-liner`
-> filled in, no `Approved` checkbox ticked), produce a real blueprint
-> from the user's brief BEFORE touching `feature_list.json`. Protocol:
-> [docs/BLUEPRINT.md](docs/BLUEPRINT.md). Do not start implementation
-> until the user ticks **Approved**.
->
-> **For the user:** describe the app you want (one paragraph is fine).
-> The agent fills in the sections below, you review, you tick
-> **Approved**, then features get queued. Change anything you like
-> first — this is a 5-minute alignment doc, not a contract.
+The at-a-glance version. The full plan is [SUPERPLAN.md](SUPERPLAN.md) (screens)
+and [docs/plans/native-core.md](docs/plans/native-core.md) (the orb and the
+dictation pipeline). The bridge between the two is
+[docs/plans/bridge-contract.md](docs/plans/bridge-contract.md).
 
----
-
-**One-liner:** _(filled by the agent from your brief)_
+**One-liner:** Floating-orb voice dictation and voice edit for any Android text field.
 
 **Status:**
-- [ ] drafted
-- [ ] approved
+- [x] drafted
+- [x] approved (2026-09-24, "go ahead with the end-to-end implementation")
 
-**Last updated:** _(YYYY-MM-DD)_
+**Last updated:** 2026-09-24
 
 ## Screens
 
 | # | Screen | Mount | Layout | Purpose |
 |---|--------|-------|--------|---------|
-| 1 | _name_ | tab-N / pushed / modal | 3a / 3b / 3c | one-sentence purpose |
+| 1 | Setup | full-screen, first run | sequence | keys, mic, accessibility, battery, practice |
+| 2 | Overview | tab-0 | focal | is Parley ready, words and time saved |
+| 3 | History | tab-1 | collection | find and copy past dictations |
+| 4 | Transcript | pushed from 3 | detail | one entry in full |
+| 5 | Settings | tab-2 | settings | triggers, dictation, keys, history, system |
+| 6 | API keys | pushed from 5 | form | verify and store Groq / MiniMax keys |
 
-> `Mount`: `tab-0..N` for bottom-nav tabs, `pushed` for Navigator.push,
-> `modal` for bottom sheet / dialog. `Layout` matches the templates in
-> [docs/FEATURES.md](docs/FEATURES.md#3-pick-a-page-layout).
+Outside Flutter: the orb overlay and the accessibility service (Kotlin).
 
 ## Navigation map
 
 ```
-HomeShell (PageView)
-├── _tab 0_
-├── _tab 1_  ─push→ _detail_
-└── _tab 2_  (Settings — boilerplate)
+/setup (until every grant and the Groq key are in place)
+HomeShell
+├── Overview    /
+├── History     /history ─push→ /history/:id
+└── Settings    /settings ─push→ /settings/keys
 ```
 
 ## Modules
 
-Pre-built slices that ship in the boilerplate behind a mock/console default.
-Tick the ones this app needs; pick the go-live backend (or leave the mock for
-v1). Details: [docs/MODULES.md](docs/MODULES.md).
-
 | Module     | Enable? | Go-live backend (or "mock for now") |
 |------------|---------|-------------------------------------|
-| Onboarding | [ ]     | _on / off (first-run carousel)_     |
-| Auth       | [ ]     | _Supabase / Firebase / HTTP / mock_ |
-| Paywall    | [ ]     | _RevenueCat / mock_                 |
-| Analytics  | [ ]     | _PostHog / Amplitude / console_     |
-| Crash      | [ ]     | _Sentry / Crashlytics / console_    |
-
-> - App identity (name + bundle id + icons): `tool/rename_app.sh "App Name" com.you.app`.
-> - Environment: dev/staging/prod via `--dart-define=ENV=…` ([lib/config/env.dart](lib/config/env.dart)).
-> - CI (analyze + test) ships in `.github/workflows/ci.yml`.
+| Onboarding | [x]     | replaced by the Setup sequence      |
+| Auth       | [ ]     | none — personal use, keys on device |
+| Paywall    | [ ]     | none                                |
+| Analytics  | [ ]     | none                                |
+| Crash      | [ ]     | console default                     |
 
 ## Data model
 
-- **EntityName:** field, field, field
-- …
+- **HistoryEntry:** id, createdAt, mode, text, instruction, beforeText, appPackage, appLabel, insertMethod, recordingMs, wordCount, savedMs
+- **ParleyStatus:** serviceBound, paused, micGranted, batteryUnrestricted, groqKeySet, minimaxKeySet, orbEnabled, volumeGestureEnabled
+- **ParleyConfig:** orbEnabled, orbSize, hideOrbWithoutField, volumeGestureEnabled, language, leadingSpace, haptics, historyRetentionDays, groqKeyLast4, minimaxKeyLast4
+- **UsageSummary:** weekWords, weekSavedMs, lastEntry
 
 ## Providers
 
-- `someProvider` — what it owns, why it survives navigation
+- `parleyBridgeProvider` — the platform channel, or `FakeParleyBridge` off-device and in tests
+- `parleyStatusProvider` — live status from the event channel
+- `parleyConfigProvider`, `usageSummaryProvider`, `historyProvider`
 
-## Backend (mock routes)
+## Backend
 
-- `GET /api/…` → shape
-- `POST /api/…` → shape
-
-> Real routes get registered in
-> [lib/data/mock/mock_routes.dart](lib/data/mock/mock_routes.dart) once
-> approved.
+None. Groq and MiniMax are called from the Kotlin service with the user's own keys.
 
 ## Open questions
 
-1. _question for the user to answer before approval_
+See `openQuestions` in [SUPERPLAN.json](SUPERPLAN.json).
 
 ---
 
-## Feature decomposition (filled after approval)
+## Feature decomposition
 
-Once **Approved** is ticked, the agent splits this blueprint into
-entries in [feature_list.json](feature_list.json), one feature per
-screen or per substantial behaviour. Reference the screen `#` from the
-table above in each feature's `notes`.
+Registered in [feature_list.json](feature_list.json): `parley-a01`..`parley-a05`
+for the native core and identity, one entry per route (`route:<id>` in notes).

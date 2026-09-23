@@ -24,8 +24,20 @@ abstract final class AppRoutes {
   /// Password-reset landing for the email deep link: `/reset?token=…`.
   static const reset = '/reset';
 
-  // Authenticated
+  // Parley
   static const home = '/';
+
+  /// First-run sequence: keys, microphone, accessibility, battery, practice.
+  /// `?again=1` is Settings' "Run setup again", which the router lets through
+  /// after setup is complete.
+  static const setup = '/setup';
+
+  /// One history entry. `:id` is the native store's row id.
+  static const historyEntry = '/history';
+  static String historyEntryAt(int id) => '/history/$id';
+
+  /// Replace or remove the Groq and MiniMax keys.
+  static const apiKeys = '/settings/keys';
 
   /// Subscription paywall. Deep-linkable; pushed as a full-screen dialog.
   static const paywall = '/paywall';

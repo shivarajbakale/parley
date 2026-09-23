@@ -1,0 +1,1366 @@
+{
+  "app": {
+    "name": "Parley",
+    "oneLiner": "Floating-orb voice dictation and voice edit for any Android text field.",
+    "problem": "Typing on a phone is slow and error-prone, and the built-in voice typing lives inside one keyboard, gets names wrong, and cannot rewrite what is already written. The Mac version of Parley fixed this with a system-wide gesture: tap-tap-hold, speak, release, and the text lands at the cursor, or say 'make it shorter' and the field is rewritten. On Android there is no equivalent that works in every app without replacing the keyboard.",
+    "targetUsers": "One person: the author of Parley for macOS, dictating into chat, mail and notes apps on their own Android phone, with their own Groq and MiniMax API keys.",
+    "industry": "productivity",
+    "nonGoals": [
+      "A keyboard (IME). The orb sits over whatever keyboard is already installed.",
+      "Google Play distribution. Personal use, sideloaded with adb, so no Play accessibility-policy work.",
+      "iOS. iOS has no API for an overlay that inserts text into other apps; the ios/ folder stays untouched.",
+      "Sync with the Mac app. The phone stands alone in v1."
+    ],
+    "mvp": {
+      "in": [
+        "Floating orb over every app, drawn by an accessibility overlay: hold it to dictate, release to insert",
+        "Volume-down tap-tap-hold as a second trigger, mirroring the Mac gesture",
+        "Dictation: Groq Whisper transcribes and the text is inserted at the cursor of the focused field",
+        "Voice edit: double-tap then hold the orb (orb-only in v1) and speak an instruction; MiniMax rewrites the selection or the whole field",
+        "History of dictations and edits, with the time saved on an Overview",
+        "First-run setup: API keys, microphone, accessibility service, battery exemption, one practice dictation"
+      ],
+      "out": [
+        "Personal dictionary (names and jargon) — v1.1, same Whisper-prompt approach as desktop",
+        "Explain-selection popover — v1.1, via the text-selection PROCESS_TEXT menu",
+        "Offline transcription with whisper.cpp",
+        "Dictionary or history sync with the Mac app",
+        "Play Store release and its prominent-disclosure flow"
+      ]
+    }
+  },
+  "decisions": [
+    {
+      "question": "How does it ship — Play Store, sideload for others, or personal use?",
+      "answer": "Personal use only. Sideloaded debug/release APK on the author's phone.",
+      "source": "user"
+    },
+    {
+      "question": "What starts a recording?",
+      "answer": "Both: hold the floating orb, or triple-press volume-down holding the third press.",
+      "source": "user"
+    },
+    {
+      "question": "What is in v1?",
+      "answer": "Dictation, voice edit, and history with time saved. Personal dictionary is not in v1.",
+      "source": "user"
+    },
+    {
+      "question": "Does the phone share data with the Mac app?",
+      "answer": "Not in v1.",
+      "source": "user"
+    },
+    {
+      "question": "Which rocketship scaffolder?",
+      "answer": "create-flutter-app. It is the mobile scaffolder with the full 13/13 harness and planning skills; create-react-native-app ships without the harness docs.",
+      "source": "assumed",
+      "why": "The user asked to use rocketship and to pick the boilerplate; Flutter is the only mobile one with the full harness"
+    },
+    {
+      "question": "Where does the dictation pipeline run — Dart or Kotlin?",
+      "answer": "Kotlin, inside the accessibility service process. Flutter owns only the app screens and talks to the service over one MethodChannel + one EventChannel.",
+      "source": "assumed",
+      "why": "The pipeline must run while the Flutter UI is closed; a headless Flutter engine per recording adds 30-40 MB and start-up latency to the one path that has to feel instant"
+    },
+    {
+      "question": "How is the orb drawn?",
+      "answer": "A native Kotlin Canvas view in a TYPE_ACCESSIBILITY_OVERLAY window, not a Flutter view.",
+      "source": "assumed",
+      "why": "The accessibility overlay type needs no SYSTEM_ALERT_WINDOW permission, and a native view animates mic levels without keeping a second Flutter engine alive"
+    },
+    {
+      "question": "Who owns history and settings storage?",
+      "answer": "The native side. SQLite for history, EncryptedSharedPreferences for keys and settings. Flutter reads and writes only through the bridge.",
+      "source": "assumed",
+      "why": "One writer, no sync: the service writes history while the app is closed, and two stores (Drift + native) would drift"
+    },
+    {
+      "question": "How is text inserted into another app's field?",
+      "answer": "ACTION_SET_TEXT on the focused editable node, splicing at the selection; fallback is clipboard + ACTION_PASTE; last resort is clipboard + a 'copied' state on the orb.",
+      "source": "assumed",
+      "why": "SET_TEXT keeps the clipboard untouched and works in native and Compose fields; Chrome web fields and some custom editors only accept paste"
+    },
+    {
+      "question": "How much should the look matter?",
+      "answer": "A lot: the UI should look amazing, with a very good theme.",
+      "source": "user"
+    },
+    {
+      "question": "Which visual identity?",
+      "answer": "Aurora: dark-first ink ground, the Mac app's indigo/amber/green mode colours, Instrument Serif + Geist + Geist Mono, the orb as the only glow.",
+      "source": "assumed",
+      "why": "Carries the Mac orb palette over so both apps read as one product, and a serif for the user's own words sets transcripts apart from interface text"
+    }
+  ],
+  "navigation": {
+    "tabs": [
+      "Overview",
+      "History",
+      "Settings"
+    ],
+    "ascii": "First run\n  └─ /setup              Setup (sequence, no tab) → /\nHome shell\n  ├─ /                   Overview (tab 1)\n  ├─ /history            History (tab 2)\n  ├─ /history/:id        Transcript (pushed from row)\n  ├─ /settings           Settings (tab 3)\n  └─ /settings/keys      API keys (pushed from Settings)\nOutside Flutter (native)\n  └─ Orb overlay + accessibility service, running over every app"
+  },
+  "modules": {
+    "auth": "none",
+    "onboarding": "required",
+    "paywall": "none",
+    "analytics": "none",
+    "push": "none"
+  },
+  "theme": {
+    "palette": "aurora",
+    "typography": "aurora",
+    "tokens": [
+      "Identity name: aurora (docs/design/aurora.md), swapped in for the shipped halo identity through lib/theme/spec; palette-lint K1..K7 must pass in both themes",
+      "Dark is the default theme; light is fully supported. Dark: ground #0E0E14, surface #17171F, raised #1F1F2A, border #23232F, text #EDEDF5, muted #9C9CB2, action fill #5555E0, action text #8B8BFF",
+      "Light: ground #F5F5F8, surface #FFFFFF, raised #EFEFF5, border #E6E6EE, text #15151D, muted #5C5C70, action #4646D6",
+      "Mode colours shared by orb, status dots and history dots: dictation #8B8BFF (indigo, hue 277 as on the Mac), voice edit #F4B942 (amber), inserted #4CD38A (green), error #FF6E6E. Light-mode text variants darken to pass 4.5:1",
+      "Typefaces: Instrument Serif for titles and for the user's own words (transcripts, instructions, italic in quotes); Geist for interface text; Geist Mono for figures. Four sizes: 40 / 22 / 16 / 13, plus 32 mono for stats",
+      "Shape: cards 24 radius (hero 28), buttons 18, chips pill. 8-point spacing. Borders instead of shadows in dark; soft tinted shadows in light",
+      "The orb is the only glow in the app: layered radial gradient in the mode colour, breathing 4.2 s when idle, 1.1 s pulse plus expanding ring while listening, spinning arc while working. No gradient washes on backgrounds",
+      "Motion: 200 ms cross-fades, springy orb state changes, respects reduce-motion (orb stops breathing, keeps colour)",
+      "Reference mockups: https://claude.ai/artifact/KHuAChbQqTC4rzpxnreHBj"
+    ]
+  },
+  "routes": [
+    {
+      "id": "setup",
+      "route": "/setup",
+      "name": "Setup",
+      "tab": null,
+      "archetype": "sequence",
+      "purpose": "Get from install to a working orb in one pass: keys, mic, accessibility, battery, one practice dictation",
+      "primaryAction": "Continue",
+      "progress": "DSSegmentedProgress across the top with six segments; the current step's title in the header",
+      "back": "Back returns to the previous step with its answer kept; keys already typed stay in the field, grants already given show as done",
+      "handover": "overview",
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "step",
+            "job": "brand",
+            "title": "Talk, and it types — in any app",
+            "subtitle": "Hold the orb or press volume-down twice and hold"
+          },
+          {
+            "kind": "step",
+            "job": "activation",
+            "title": "Your Groq key",
+            "subtitle": "Paste it; we check it with one request before moving on. MiniMax key is optional here."
+          },
+          {
+            "kind": "step",
+            "job": "trust",
+            "title": "Microphone",
+            "subtitle": "Only while you hold the orb. Android shows the green dot when it is on."
+          },
+          {
+            "kind": "step",
+            "job": "trust",
+            "title": "Turn on Parley in Accessibility",
+            "subtitle": "This draws the orb, reads the field you are typing in, and inserts text"
+          },
+          {
+            "kind": "step",
+            "job": "activation",
+            "title": "Keep Parley running",
+            "subtitle": "Set battery to Unrestricted so Android does not kill the service"
+          },
+          {
+            "kind": "step",
+            "job": "activation",
+            "title": "Try it",
+            "subtitle": "Hold the orb and say 'testing one two three'. The text lands in the box below."
+          }
+        ],
+        "header": "DSCompactAppBar with the step title; no close button until the accessibility step is done",
+        "motion": "Steps cross-fade 200ms; the progress segment fills as each step completes",
+        "darkMode": "Follows system; the practice field uses the surface ladder"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Each step's status (granted / not yet) is announced, not only shown by a check icon",
+          "The practice step works with the volume-key trigger too, for TalkBack users who cannot find the orb"
+        ],
+        "designSystemRules": [
+          "One primary per step, pinned; 'Open settings' deep links are the primary on grant steps"
+        ],
+        "verification": [
+          "Resume after returning from system Settings re-checks the grant and advances automatically",
+          "Killing the app mid-setup and reopening lands on the first incomplete step"
+        ],
+        "nonGoals": [
+          "Explaining every setting; the Settings tab owns that"
+        ]
+      },
+      "apis": {
+        "entities": [
+          "ServiceStatus",
+          "Config"
+        ],
+        "endpoints": [
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#getStatus",
+            "auth": false,
+            "purpose": "which grants are in place: mic, accessibility service bound, battery exemption, keys present"
+          },
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#openSystemSettings",
+            "auth": false,
+            "purpose": "deep link to accessibility, battery or app-permission settings"
+          },
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#verifyKey",
+            "auth": false,
+            "purpose": "one cheap request to Groq or MiniMax to prove the key works before saving it"
+          }
+        ],
+        "providers": [
+          "serviceStatusProvider",
+          "setupProgressProvider"
+        ],
+        "integration": [
+          {
+            "from": "app_router redirect",
+            "to": "/setup",
+            "note": "any launch where getStatus reports a missing grant or key"
+          },
+          {
+            "from": "setup last step",
+            "to": "/",
+            "note": "handover after the practice dictation succeeds"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Checking grants: the step body shows a skeleton row while getStatus returns.",
+        "empty": "Fresh install: step one, nothing granted, all segments empty.",
+        "error": "Key check failed: the field shows Groq's error message ('Invalid API key') and Continue stays disabled.",
+        "success": "All six segments filled; the practice field shows the dictated text and the primary becomes 'Done'."
+      },
+      "gestures": [
+        {
+          "selector": "Continue (DSPinnedActionBar)",
+          "event": "tap",
+          "behavior": "validates the step and advances",
+          "haptic": "selectionClick",
+          "transition": "cross-fade"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "First run to first dictation",
+          "trace": "/setup brand → key → mic → accessibility (system settings, back) → battery → try it → /",
+          "happy": true
+        },
+        {
+          "name": "Wrong key",
+          "trace": "/setup key → paste → verify fails → error under field → fix → continue",
+          "happy": false
+        }
+      ],
+      "blastRadius": {
+        "new": [
+          "lib/screens/setup/setup_page.dart",
+          "lib/services/parley_bridge.dart",
+          "lib/services/fake_parley_bridge.dart",
+          "test/screens/setup_page_test.dart"
+        ],
+        "changed": [
+          "lib/utils/app_router.dart"
+        ]
+      },
+      "sprint": {
+        "order": 3,
+        "depends": [],
+        "size": "M",
+        "gate": [
+          "flutter analyze --no-fatal-infos",
+          "flutter test test/screens/setup_page_test.dart",
+          "make ui-probe",
+          "Manual: fresh install on device reaches a working orb"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSSegmentedProgress",
+          "region": "header",
+          "purpose": "Shows which of the six setup steps the user is on",
+          "why": "Six discrete steps read better as segments than as a continuous bar, and segments show which grant is still missing",
+          "rejected": [
+            "DSStepper, whose vertical list makes each step a form section rather than a screen"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSPinnedActionBar",
+          "region": "footer",
+          "purpose": "Continue / Open settings primary for each step",
+          "why": "Grant steps send the user out to system Settings and back; a pinned primary is always where they left it",
+          "rejected": [
+            "an inline button under the text, which moves as step copy changes length"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kits": [
+              "DSCompactAppBar",
+              "DSSegmentedProgress"
+            ]
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSText",
+              "DSTextField"
+            ]
+          },
+          {
+            "name": "footer",
+            "kit": "DSPinnedActionBar"
+          }
+        ],
+        "scrollStrategy": "scrollable_header_pinned_footer",
+        "pinned": [
+          "header",
+          "footer"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      }
+    },
+    {
+      "id": "overview",
+      "route": "/",
+      "name": "Overview",
+      "tab": "Overview",
+      "archetype": "focal",
+      "purpose": "Is Parley ready right now, and what has it saved me",
+      "secondaryActions": [
+        "Parley on/off switch in the hero",
+        "Last dictation opens its transcript"
+      ],
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "hero",
+            "title": "Ready — hold the orb to talk",
+            "subtitle": "Orb on · Volume-down gesture armed"
+          },
+          {
+            "kind": "tile",
+            "title": "Words this week",
+            "badge": "2,318"
+          },
+          {
+            "kind": "tile",
+            "title": "Time saved",
+            "badge": "41 min"
+          },
+          {
+            "kind": "wide",
+            "title": "Last: “Running ten minutes late, start without me” · WhatsApp"
+          }
+        ],
+        "header": "Serif Parley wordmark, no app bar chrome; the hero card holds a live 112 dp orb with its halo, the status title, two status chips and the on/off switch",
+        "motion": "Status dot pulses once when the service reconnects; numbers tick up on new data",
+        "darkMode": "Status colours unchanged; tiles on the surface ladder"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "The hero announces the status sentence and what is armed, not the colour",
+          "Time saved is read as '41 minutes saved this week'"
+        ],
+        "designSystemRules": [
+          "Status colours come from the mode tokens shared with the orb"
+        ],
+        "verification": [
+          "Disable the accessibility service in system settings: the hero switches to 'Off — turn on Parley in Accessibility' with that as the action",
+          "Time saved matches the formula: words / 35 wpm typing minus recording seconds, floored at zero per entry"
+        ],
+        "nonGoals": [
+          "Charts over time; one number per tile is enough for personal use"
+        ]
+      },
+      "apis": {
+        "entities": [
+          "ServiceStatus",
+          "UsageSummary"
+        ],
+        "endpoints": [
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#getUsageSummary",
+            "auth": false,
+            "purpose": "words and time saved this week, plus the last entry"
+          },
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#setPaused",
+            "auth": false,
+            "purpose": "hide the orb and disarm the volume gesture without unbinding the service"
+          },
+          {
+            "method": "EVENT",
+            "path": "parley/events",
+            "auth": false,
+            "purpose": "status changes and new history entries pushed from the service"
+          }
+        ],
+        "providers": [
+          "serviceStatusProvider",
+          "usageSummaryProvider"
+        ],
+        "integration": [
+          {
+            "from": "home shell",
+            "to": "/",
+            "note": "first tab"
+          },
+          {
+            "from": "last-entry tile",
+            "to": "/history/:id",
+            "note": "tap opens the transcript"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Hero skeleton; tiles show skeleton numbers until getUsageSummary returns.",
+        "empty": "Nothing dictated yet: tiles read 0 and the wide tile says 'Hold the orb in any app to start'.",
+        "error": "Service not running: hero reads 'Off' in the danger colour with 'Turn on in Accessibility' as the action.",
+        "success": "Hero reads Ready, tiles filled, last transcript shown."
+      },
+      "gestures": [
+        {
+          "selector": "wide tile (last transcript)",
+          "event": "tap",
+          "behavior": "pushes /history/:id",
+          "haptic": "none",
+          "transition": "platform push"
+        },
+        {
+          "selector": "Pause Parley",
+          "event": "tap",
+          "behavior": "hides the orb and disarms the volume gesture until tapped again",
+          "haptic": "mediumImpact",
+          "transition": "status dot fades to muted"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Check it is ready",
+          "trace": "open app → / hero reads Ready",
+          "happy": true
+        },
+        {
+          "name": "Service was killed",
+          "trace": "open app → / hero reads Off → tap action → system Accessibility → back → Ready",
+          "happy": false
+        }
+      ],
+      "blastRadius": {
+        "new": [
+          "lib/screens/overview/overview_page.dart",
+          "lib/providers/parley_providers.dart",
+          "test/screens/overview_page_test.dart"
+        ],
+        "changed": [
+          "lib/screens/home_screen.dart",
+          "lib/utils/app_router.dart"
+        ]
+      },
+      "sprint": {
+        "order": 4,
+        "depends": [
+          "setup"
+        ],
+        "size": "S",
+        "gate": [
+          "flutter analyze --no-fatal-infos",
+          "flutter test test/screens/overview_page_test.dart",
+          "make ui-probe"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSLargeAppBar",
+          "region": "header",
+          "purpose": "App title over the status hero",
+          "why": "The hero is the content; a large bar that collapses leaves the tiles room on small phones",
+          "rejected": [
+            "a custom header drawing the orb, which would duplicate the overlay"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSStatTile",
+          "region": "body.bento",
+          "purpose": "Words this week and time saved",
+          "why": "A stat tile is one figure with a label, which is exactly what these two tiles are",
+          "rejected": [
+            "DSListTile rows, which bury the number at the trailing edge"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSLargeAppBar"
+          },
+          {
+            "name": "body.bento",
+            "kits": [
+              "DSCard",
+              "DSStatTile",
+              "DSListTile"
+            ]
+          }
+        ],
+        "scrollStrategy": "scrollable",
+        "pinned": [
+          "header"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      }
+    },
+    {
+      "id": "history",
+      "route": "/history",
+      "name": "History",
+      "tab": "History",
+      "archetype": "collection",
+      "purpose": "Find something I dictated earlier and copy it again",
+      "primaryAction": null,
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "list",
+            "search": "Search transcripts",
+            "filters": [
+              "All",
+              "Dictation",
+              "Edits",
+              "Not inserted"
+            ],
+            "swipe": "Delete",
+            "swipeTwin": "the row's overflow menu (three dots) with Copy and Delete",
+            "rows": [
+              [
+                "Running ten minutes late, start without me",
+                "WhatsApp · 9:41"
+              ],
+              [
+                "Edit: make it shorter",
+                "Gmail · 9:12"
+              ],
+              [
+                "Pick up milk and the dry cleaning",
+                "Keep · Yesterday"
+              ]
+            ]
+          }
+        ],
+        "header": "DSCompactAppBar titled History with the search bar under it",
+        "motion": "Deleted row collapses over 200ms with Undo in a snack bar",
+        "darkMode": "Rows on surface; mode chip uses the mode colour at low emphasis"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Row announces text, app and time; swipe has the overflow-menu twin"
+        ],
+        "designSystemRules": [
+          "Rows are DSDismissibleTile; filters are a DSChipGroup"
+        ],
+        "verification": [
+          "500 entries scroll without jank (paged from the bridge, 50 at a time)",
+          "'Not inserted' shows entries that fell back to clipboard"
+        ],
+        "nonGoals": [
+          "Editing a transcript; history is a record, not a notes app"
+        ]
+      },
+      "apis": {
+        "entities": [
+          "HistoryEntry"
+        ],
+        "endpoints": [
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#listHistory",
+            "auth": false,
+            "purpose": "paged, filtered, searched list of entries"
+          },
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#deleteHistory",
+            "auth": false,
+            "purpose": "delete one entry, or all when called from Settings"
+          }
+        ],
+        "providers": [
+          "historyListProvider"
+        ],
+        "integration": [
+          {
+            "from": "home shell",
+            "to": "/history",
+            "note": "second tab"
+          },
+          {
+            "from": "row tap",
+            "to": "/history/:id",
+            "note": "push"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Skeleton list of eight rows.",
+        "empty": "No history yet: 'Things you dictate show up here' with no action.",
+        "error": "Could not read history: error state with Retry.",
+        "success": "Newest first, grouped by day.",
+        "zeroResults": "No transcripts match 'invoice' — clear the search or change the filter."
+      },
+      "gestures": [
+        {
+          "selector": "DSDismissibleTile",
+          "event": "swipe",
+          "behavior": "deletes the entry, with Undo in a snack bar",
+          "haptic": "mediumImpact",
+          "transition": "row collapses over 200ms"
+        },
+        {
+          "selector": "DSListTile",
+          "event": "longPress",
+          "behavior": "copies the transcript to the clipboard",
+          "haptic": "selectionClick",
+          "transition": "snack bar 'Copied'"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Re-use an old dictation",
+          "trace": "/history → search 'address' → long-press row → Copied",
+          "happy": true
+        },
+        {
+          "name": "Delete by mistake",
+          "trace": "/history → swipe → Undo",
+          "happy": false
+        }
+      ],
+      "blastRadius": {
+        "new": [
+          "lib/screens/history/history_page.dart",
+          "test/screens/history_page_test.dart"
+        ],
+        "changed": [
+          "lib/screens/home_screen.dart"
+        ]
+      },
+      "sprint": {
+        "order": 6,
+        "depends": [
+          "overview"
+        ],
+        "size": "M",
+        "gate": [
+          "flutter analyze --no-fatal-infos",
+          "flutter test test/screens/history_page_test.dart",
+          "make ui-probe"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSDismissibleTile",
+          "region": "body.list",
+          "purpose": "One history entry with swipe-to-delete",
+          "why": "Delete is the only destructive action here and swipe is the platform idiom for it",
+          "rejected": [
+            "a selection mode with a bulk-delete bar, which is ceremony for a personal log"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSSearchBar",
+          "region": "body.scroll",
+          "purpose": "Search transcript text",
+          "why": "Finding a past dictation by a word in it is the main reason to open this tab",
+          "rejected": [
+            "a search icon that opens a separate route"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSChipGroup",
+          "region": "body.scroll",
+          "purpose": "Mode and outcome filters",
+          "why": "Four short, mutually exclusive filters fit one chip row",
+          "rejected": [
+            "DSSegmentedButton, which does not scroll if a fifth filter arrives"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSCompactAppBar"
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSSearchBar",
+              "DSChipGroup",
+              "DSDismissibleTile"
+            ]
+          }
+        ],
+        "scrollStrategy": "scrollable",
+        "pinned": [
+          "header"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      }
+    },
+    {
+      "id": "history-detail",
+      "route": "/history/:id",
+      "name": "Transcript",
+      "tab": null,
+      "archetype": "detail",
+      "purpose": "Read one entry in full and copy it",
+      "primaryAction": "Copy",
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "section",
+            "title": "Transcript",
+            "rows": [
+              [
+                "Running ten minutes late, start without me",
+                ""
+              ]
+            ]
+          },
+          {
+            "kind": "section",
+            "title": "Details",
+            "rows": [
+              [
+                "App",
+                "WhatsApp"
+              ],
+              [
+                "Mode",
+                "Dictation"
+              ],
+              [
+                "Inserted",
+                "Set text"
+              ],
+              [
+                "Length",
+                "0:06 · 8 words"
+              ],
+              [
+                "Saved",
+                "8 sec"
+              ]
+            ]
+          }
+        ],
+        "header": "DSCompactAppBar with the date as title and Delete in the overflow",
+        "motion": "None beyond the platform push",
+        "darkMode": "Transcript on surface, details in the muted ladder"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Transcript text is selectable and read as one block"
+        ],
+        "designSystemRules": [
+          "Copy is the pinned primary; Delete lives in the overflow menu"
+        ],
+        "verification": [
+          "Edit entries show the instruction, the before text and the after text as three sections"
+        ],
+        "nonGoals": [
+          "Re-inserting into another app from here; copy covers it"
+        ]
+      },
+      "apis": {
+        "entities": [
+          "HistoryEntry"
+        ],
+        "endpoints": [
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#getHistoryEntry",
+            "auth": false,
+            "purpose": "one entry with its metadata"
+          }
+        ],
+        "providers": [
+          "historyEntryProvider"
+        ],
+        "integration": [
+          {
+            "from": "history row / overview last tile",
+            "to": "/history/:id",
+            "note": "push"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Skeleton paragraph and five skeleton rows.",
+        "empty": "Entry was deleted: 'This transcript no longer exists' and Back.",
+        "error": "Could not read the entry: error state with Retry.",
+        "success": "Full transcript and details; Copy pinned."
+      },
+      "gestures": [
+        {
+          "selector": "Copy (DSPinnedActionBar)",
+          "event": "tap",
+          "behavior": "copies the transcript (for edits, the after text)",
+          "haptic": "selectionClick",
+          "transition": "snack bar 'Copied'"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Copy an old message",
+          "trace": "/history → row → /history/:id → Copy",
+          "happy": true
+        }
+      ],
+      "blastRadius": {
+        "new": [
+          "lib/screens/history/history_detail_page.dart",
+          "test/screens/history_detail_page_test.dart"
+        ],
+        "changed": [
+          "lib/utils/app_router.dart"
+        ]
+      },
+      "sprint": {
+        "order": 7,
+        "depends": [
+          "history"
+        ],
+        "size": "S",
+        "gate": [
+          "flutter analyze --no-fatal-infos",
+          "flutter test test/screens/history_detail_page_test.dart"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSPinnedActionBar",
+          "region": "footer",
+          "purpose": "Copy primary",
+          "why": "A long transcript scrolls; Copy must not scroll away with it",
+          "rejected": [
+            "a copy icon in the app bar, which is easy to miss"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSCompactAppBar"
+          },
+          {
+            "name": "body.scroll",
+            "kits": [
+              "DSText",
+              "DSSettingsSection"
+            ]
+          },
+          {
+            "name": "footer",
+            "kit": "DSPinnedActionBar"
+          }
+        ],
+        "scrollStrategy": "scrollable_header_pinned_footer",
+        "pinned": [
+          "header",
+          "footer"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      }
+    },
+    {
+      "id": "settings",
+      "route": "/settings",
+      "name": "Settings",
+      "tab": "Settings",
+      "archetype": "settings",
+      "purpose": "Change how the orb and the gesture behave, manage keys and history",
+      "primaryAction": null,
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "TRIGGERS",
+            "rows": [
+              [
+                "Floating orb",
+                "On"
+              ],
+              [
+                "Volume-down tap-tap-hold",
+                "On"
+              ],
+              [
+                "Orb size",
+                "Medium ›"
+              ],
+              [
+                "Hide orb when no text field is focused",
+                "On"
+              ]
+            ]
+          },
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "DICTATION",
+            "rows": [
+              [
+                "Language",
+                "Auto ›"
+              ],
+              [
+                "Add a space before inserted text",
+                "On"
+              ],
+              [
+                "Haptic on start and stop",
+                "On"
+              ]
+            ]
+          },
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "ACCOUNT KEYS",
+            "rows": [
+              [
+                "API keys",
+                "Groq ✓ · MiniMax ✓ ›"
+              ]
+            ]
+          },
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "HISTORY",
+            "rows": [
+              [
+                "Keep history for",
+                "30 days ›"
+              ],
+              [
+                "Clear history",
+                "›"
+              ]
+            ]
+          },
+          {
+            "kind": "eyebrow-row",
+            "eyebrow": "SYSTEM",
+            "rows": [
+              [
+                "Accessibility service",
+                "On ›"
+              ],
+              [
+                "Battery",
+                "Unrestricted ›"
+              ],
+              [
+                "Run setup again",
+                "›"
+              ]
+            ]
+          }
+        ],
+        "header": "DSLargeAppBar titled Settings",
+        "motion": "None",
+        "darkMode": "Grouped inset sections on the surface ladder"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Every switch row is a DSSwitchTile so the label is the tap target"
+        ],
+        "designSystemRules": [
+          "Grouped DSSettingsSection with eyebrows; no custom rows"
+        ],
+        "verification": [
+          "Turning the volume gesture off takes effect in the service without reopening the app",
+          "Clear history asks for confirmation in a DSDialog"
+        ],
+        "nonGoals": [
+          "Theme picker; the app follows the system"
+        ]
+      },
+      "apis": {
+        "entities": [
+          "Config"
+        ],
+        "endpoints": [
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#getConfig",
+            "auth": false,
+            "purpose": "current settings, with keys masked"
+          },
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#setConfig",
+            "auth": false,
+            "purpose": "change one setting; the service applies it live"
+          }
+        ],
+        "providers": [
+          "configProvider"
+        ],
+        "integration": [
+          {
+            "from": "home shell",
+            "to": "/settings",
+            "note": "third tab"
+          },
+          {
+            "from": "API keys row",
+            "to": "/settings/keys",
+            "note": "push"
+          },
+          {
+            "from": "Run setup again",
+            "to": "/setup",
+            "note": "replace"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Skeleton sections while getConfig returns.",
+        "empty": "Defaults shown; there is always a config.",
+        "error": "Could not read settings: error state with Retry.",
+        "success": "Sections rendered with current values."
+      },
+      "gestures": [
+        {
+          "selector": "DSSwitchTile",
+          "event": "tap",
+          "behavior": "toggles the setting and sends setConfig",
+          "haptic": "selectionClick",
+          "transition": "switch animates"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Turn off the volume gesture",
+          "trace": "/settings → Volume-down tap-tap-hold off → volume keys behave normally",
+          "happy": true
+        }
+      ],
+      "blastRadius": {
+        "new": [
+          "lib/screens/settings/parley_settings_page.dart",
+          "test/screens/parley_settings_page_test.dart"
+        ],
+        "changed": [
+          "lib/screens/home_screen.dart"
+        ]
+      },
+      "sprint": {
+        "order": 8,
+        "depends": [
+          "overview"
+        ],
+        "size": "M",
+        "gate": [
+          "flutter analyze --no-fatal-infos",
+          "flutter test test/screens/parley_settings_page_test.dart",
+          "make ui-probe"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSSettingsSection",
+          "region": "body.section",
+          "purpose": "Grouped settings with eyebrows",
+          "why": "Five small groups read as a native Android settings screen and match the archetype",
+          "rejected": [
+            "tabs inside Settings, which hide groups from a scroll"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSSwitchTile",
+          "region": "body.section",
+          "purpose": "On/off settings",
+          "why": "Makes the whole row the tap target for a binary setting",
+          "rejected": [
+            "DSCheckboxTile, which reads as selection, not a live toggle"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSLargeAppBar"
+          },
+          {
+            "name": "body.section",
+            "kits": [
+              "DSSettingsSection",
+              "DSSwitchTile",
+              "DSSettingsRow"
+            ]
+          }
+        ],
+        "scrollStrategy": "scrollable",
+        "pinned": [
+          "header"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      }
+    },
+    {
+      "id": "api-keys",
+      "route": "/settings/keys",
+      "name": "API keys",
+      "tab": null,
+      "archetype": "form",
+      "purpose": "Replace or remove the Groq and MiniMax keys",
+      "primaryAction": "Check and save",
+      "lookAndFeel": {
+        "panels": [
+          {
+            "kind": "field-set",
+            "fields": [
+              {
+                "label": "Groq API key",
+                "placeholder": "gsk_…",
+                "helper": "Used for transcription (whisper-large-v3-turbo). Required."
+              },
+              {
+                "label": "MiniMax API key",
+                "placeholder": "Paste key",
+                "helper": "Used for voice edit only. Leave empty to turn voice edit off."
+              }
+            ]
+          }
+        ],
+        "header": "DSCompactAppBar titled API keys",
+        "motion": "None",
+        "darkMode": "Default"
+      },
+      "bestPractices": {
+        "accessibility": [
+          "Fields are obscured with a show/hide toggle that announces its state"
+        ],
+        "designSystemRules": [
+          "Errors from verifyKey render under the field that failed"
+        ],
+        "verification": [
+          "A wrong key is refused and the old key stays in place",
+          "Keys never appear in logs or in the Flutter side after save; getConfig returns only the last four characters"
+        ],
+        "nonGoals": [
+          "Choosing models; the models are fixed in v1"
+        ]
+      },
+      "apis": {
+        "entities": [
+          "Config"
+        ],
+        "endpoints": [
+          {
+            "method": "CHANNEL",
+            "path": "parley/bridge#setKeys",
+            "auth": false,
+            "purpose": "verify then store keys in EncryptedSharedPreferences"
+          }
+        ],
+        "providers": [
+          "configProvider"
+        ],
+        "integration": [
+          {
+            "from": "/settings API keys row",
+            "to": "/settings/keys",
+            "note": "push; pops on save"
+          }
+        ]
+      },
+      "states": {
+        "loading": "Check and save shows a spinner while each key is verified.",
+        "empty": "No keys: both fields empty, Groq marked required.",
+        "error": "Verification failed: the provider's message under the field; nothing saved.",
+        "success": "Saved; pops back to Settings with a 'Keys saved' snack bar."
+      },
+      "gestures": [
+        {
+          "selector": "Check and save (DSPinnedActionBar)",
+          "event": "tap",
+          "behavior": "verifies each non-empty key, then saves",
+          "haptic": "selectionClick",
+          "transition": "pop"
+        }
+      ],
+      "journeys": [
+        {
+          "name": "Rotate the Groq key",
+          "trace": "/settings → API keys → paste → Check and save → /settings",
+          "happy": true
+        }
+      ],
+      "blastRadius": {
+        "new": [
+          "lib/screens/settings/api_keys_page.dart",
+          "test/screens/api_keys_page_test.dart"
+        ],
+        "changed": [
+          "lib/utils/app_router.dart"
+        ]
+      },
+      "sprint": {
+        "order": 9,
+        "depends": [
+          "settings"
+        ],
+        "size": "S",
+        "gate": [
+          "flutter analyze --no-fatal-infos",
+          "flutter test test/screens/api_keys_page_test.dart"
+        ]
+      },
+      "components": [
+        {
+          "kit": "DSTextField",
+          "region": "body.form",
+          "purpose": "Key inputs",
+          "why": "Obscured single-line inputs with helper and error slots under each",
+          "rejected": [
+            "a dialog per key, which hides the other key's state"
+          ],
+          "a11y": {},
+          "props": {}
+        },
+        {
+          "kit": "DSPinnedActionBar",
+          "region": "footer",
+          "purpose": "Check and save",
+          "why": "The keyboard covers the lower half; the pinned bar stays above it",
+          "rejected": [
+            "an app-bar Save action, which does not show verification progress"
+          ],
+          "a11y": {},
+          "props": {}
+        }
+      ],
+      "layout": {
+        "regions": [
+          {
+            "name": "header",
+            "kit": "DSCompactAppBar"
+          },
+          {
+            "name": "body.form",
+            "kits": [
+              "DSTextField"
+            ]
+          },
+          {
+            "name": "footer",
+            "kit": "DSPinnedActionBar"
+          }
+        ],
+        "scrollStrategy": "scrollable_header_pinned_footer",
+        "pinned": [
+          "header",
+          "footer"
+        ],
+        "safeAreaTop": true,
+        "safeAreaBottom": true
+      }
+    }
+  ],
+  "sharedEntities": [
+    {
+      "name": "ServiceStatus",
+      "note": "serviceBound, paused, micGranted, batteryUnrestricted, groqKeySet, minimaxKeySet, orbVisible, volumeGestureArmed"
+    },
+    {
+      "name": "Config",
+      "note": "orbEnabled, orbSize, hideOrbWithoutField, volumeGestureEnabled, language, leadingSpace, haptics, historyRetentionDays, groqKeyLast4, minimaxKeyLast4"
+    },
+    {
+      "name": "HistoryEntry",
+      "note": "id, createdAt, mode (dictation|edit), text, instruction?, beforeText?, appPackage, appLabel, insertMethod (setText|paste|clipboardOnly|failed), recordingMs, wordCount, savedMs"
+    },
+    {
+      "name": "UsageSummary",
+      "note": "weekWords, weekSavedMs, lastEntry (HistoryEntry?)"
+    }
+  ],
+  "sharedProviders": [
+    "parleyBridgeProvider — MethodChannel `parley/bridge` in the app, FakeParleyBridge in tests and when run on a desktop/emulator without the service",
+    "serviceStatusProvider — StreamProvider over the `parley/events` EventChannel, seeded by getStatus",
+    "configProvider — AsyncNotifier over getConfig/setConfig"
+  ],
+  "sharedMocks": [
+    "FakeParleyBridge — in-memory ServiceStatus, Config and 40 seeded HistoryEntry rows; replaces the boilerplate's Dio mock adapter as the offline seam"
+  ],
+  "dependencies": [
+    {
+      "name": "Kotlin: android.accessibilityservice.AccessibilityService",
+      "note": "ParleyAccessibilityService: overlay host, focused-field reader, text insertion, volume-key filter. See docs/plans/native-core.md"
+    },
+    {
+      "name": "Kotlin: OkHttp 4",
+      "note": "Groq transcription (multipart WAV) and MiniMax chat completions, called from the service"
+    },
+    {
+      "name": "Kotlin: androidx.security:security-crypto",
+      "note": "EncryptedSharedPreferences for API keys"
+    },
+    {
+      "name": "Kotlin test: JUnit 4, Robolectric, OkHttp MockWebServer",
+      "note": "Unit tests for gesture detector, text splicing, WAV writer, API clients; wired into make check via ./gradlew testDebugUnitTest"
+    }
+  ],
+  "openQuestions": [
+    "Android 14+ restricts starting a microphone foreground service from the background. Does a bound accessibility service with a visible accessibility overlay qualify for the while-in-use exemption on the author's phone? Spike parley-a01 answers this before anything else is built.",
+    "Consuming volume-down to detect tap-tap-hold means single presses must be replayed as volume changes after the gesture window (~350 ms). Is that lag acceptable, or should the gesture be volume-down + volume-up chord instead?",
+    "Which apps reject ACTION_SET_TEXT? Chrome and WebView fields are expected to need the paste fallback; the spike logs the insert method per app."
+  ],
+  "revision": "2026-09-24 aurora identity"
+}

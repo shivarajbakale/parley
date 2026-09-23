@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:parley_android/providers/parley_providers.dart';
+import 'package:parley_android/screens/parley/api_keys_page.dart';
+import 'package:parley_android/screens/parley/history_detail_page.dart';
+import 'package:parley_android/screens/parley/history_page.dart';
+import 'package:parley_android/screens/parley/overview_page.dart';
+import 'package:parley_android/screens/parley/parley_settings_page.dart';
+import 'package:parley_android/screens/parley/setup_page.dart';
+import 'package:parley_android/services/parley/fake_parley_bridge.dart';
 import 'package:parley_android/models/library_item.dart';
 import 'package:parley_android/screens/auth/login_page.dart';
 import 'package:parley_android/screens/design_system/blog_article_page.dart';
@@ -87,6 +96,59 @@ class ScreenFixture {
 
 /// Every screen a gate can mount, in the order a reader meets them.
 const List<AppScreen> appScreens = <AppScreen>[
+  // Parley's own screens first: these are the app. Each is mounted over a
+  // `FakeParleyBridge` pinned to [parleyFixtureNow], so "Today", the clock
+  // times and the figures are the same in every run.
+  AppScreen(
+    name: 'parley_overview',
+    source: 'lib/screens/parley/overview_page.dart',
+    build: _parleyOverview,
+  ),
+  AppScreen(
+    name: 'parley_history',
+    source: 'lib/screens/parley/history_page.dart',
+    build: _parleyHistory,
+  ),
+  AppScreen(
+    name: 'parley_history_detail',
+    source: 'lib/screens/parley/history_detail_page.dart',
+    build: _parleyHistoryDetail,
+  ),
+  AppScreen(
+    name: 'parley_history_edit',
+    source: 'lib/screens/parley/history_detail_page.dart',
+    build: _parleyHistoryEdit,
+  ),
+  AppScreen(
+    name: 'parley_settings',
+    source: 'lib/screens/parley/parley_settings_page.dart',
+    build: _parleySettings,
+  ),
+  AppScreen(
+    name: 'parley_api_keys',
+    source: 'lib/screens/parley/api_keys_page.dart',
+    build: _parleyApiKeys,
+  ),
+  AppScreen(
+    name: 'parley_setup_welcome',
+    source: 'lib/screens/parley/setup_page.dart',
+    build: _parleySetupWelcome,
+  ),
+  AppScreen(
+    name: 'parley_setup_key',
+    source: 'lib/screens/parley/setup_page.dart',
+    build: _parleySetupKey,
+  ),
+  AppScreen(
+    name: 'parley_setup_accessibility',
+    source: 'lib/screens/parley/setup_page.dart',
+    build: _parleySetupAccessibility,
+  ),
+  AppScreen(
+    name: 'parley_setup_practice',
+    source: 'lib/screens/parley/setup_page.dart',
+    build: _parleySetupPractice,
+  ),
   AppScreen(
     name: 'dashboard',
     source: 'lib/screens/home/dashboard_page.dart',
@@ -277,6 +339,46 @@ Widget _profileBadges(ScreenFixture f) =>
     const ProfilePage(initialSection: ProfileSection.badges);
 
 void _noop() {}
+
+/// The clock every Parley fixture is read against.
+final DateTime parleyFixtureNow = DateTime(2026, 9, 24, 10, 1);
+
+Widget _parley(Widget child, {FakeParleyBridge? bridge}) => ProviderScope(
+  overrides: [
+    parleyBridgeProvider.overrideWithValue(
+      bridge ?? FakeParleyBridge.ready(now: parleyFixtureNow),
+    ),
+  ],
+  child: child,
+);
+
+Widget _parleyOverview(ScreenFixture f) =>
+    _parley(const Scaffold(body: OverviewPage()));
+Widget _parleyHistory(ScreenFixture f) =>
+    _parley(Scaffold(body: HistoryPage(now: parleyFixtureNow)));
+Widget _parleyHistoryDetail(ScreenFixture f) =>
+    _parley(HistoryDetailPage(id: 12, now: parleyFixtureNow));
+Widget _parleyHistoryEdit(ScreenFixture f) =>
+    _parley(HistoryDetailPage(id: 11, now: parleyFixtureNow));
+Widget _parleySettings(ScreenFixture f) =>
+    _parley(const Scaffold(body: ParleySettingsPage()));
+Widget _parleyApiKeys(ScreenFixture f) => _parley(const ApiKeysPage());
+Widget _parleySetupWelcome(ScreenFixture f) => _parley(
+  const SetupPage(initialStep: 0),
+  bridge: FakeParleyBridge(now: parleyFixtureNow),
+);
+Widget _parleySetupKey(ScreenFixture f) => _parley(
+  const SetupPage(initialStep: 1),
+  bridge: FakeParleyBridge(now: parleyFixtureNow),
+);
+Widget _parleySetupAccessibility(ScreenFixture f) => _parley(
+  const SetupPage(initialStep: 3),
+  bridge: FakeParleyBridge(now: parleyFixtureNow),
+);
+Widget _parleySetupPractice(ScreenFixture f) => _parley(
+  const SetupPage(initialStep: 5),
+  bridge: FakeParleyBridge(now: parleyFixtureNow),
+);
 
 /// The screens no gate mounts yet, and why.
 ///

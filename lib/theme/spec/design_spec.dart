@@ -267,6 +267,73 @@ class DesignSpec {
     ),
   );
 
+  /// **Aurora** — Parley's identity, and the one the app ships.
+  ///
+  /// An ink ground with one indigo voice, carried over from the Mac app's orb
+  /// (hue 277) so the two apps read as one product. The orb is the only glow;
+  /// everything here is flat tone and hairlines. Titles and the user's own
+  /// words are set in Instrument Serif, interface text in Geist.
+  ///
+  /// Dark is the default brightness (`settingsProvider`); light is held to
+  /// the same K-gates. Mockups:
+  /// https://claude.ai/artifact/KHuAChbQqTC4rzpxnreHBj
+  factory DesignSpec.aurora() => DesignSpec(
+    name: 'aurora',
+    type: const TypeSpec(
+      family: 'Geist',
+      displayFamily: 'Instrument Serif',
+      // Instrument Serif ships one weight. Asking for more makes the engine
+      // synthesise a smeared bold.
+      displayWeight: FontWeight.w400,
+      headlineWeight: FontWeight.w400,
+      emphasisWeight: FontWeight.w600,
+      // A serif display reads smaller than a grotesque at the same size.
+      displayBase: 19.5,
+      trackingTightening: 0.35,
+    ),
+    space: const SpaceSpec(gutter: 20),
+    palette: PaletteSpec.fromSeeds(
+      light: const PaletteSeeds(
+        brightness: Brightness.light,
+        canvasHue: 285.0,
+        canvasChroma: 0.005,
+        canvasLadder: [0.949, 1.000, 0.875],
+        textLadder: [0.210, 0.470],
+        outlineLightness: 0.905,
+        accentHue: 277.0,
+        accentChroma: 0.200,
+        accentLightness: 0.500,
+        accentWellLightness: 0.950,
+        accentWellChroma: 0.025,
+        categoryStartHue: 277.0,
+        arcLightness: 0.600,
+        arcChroma: 0.20,
+        glyphLightness: 0.494,
+        glyphChroma: 0.20,
+        gradientHueShift: 28,
+      ),
+      dark: const PaletteSeeds(
+        brightness: Brightness.dark,
+        canvasHue: 285.0,
+        canvasChroma: 0.010,
+        canvasLadder: [0.162, 0.268, 0.114],
+        textLadder: [0.950, 0.730],
+        outlineLightness: 0.320,
+        accentHue: 277.0,
+        accentChroma: 0.160,
+        accentLightness: 0.700,
+        accentWellLightness: 0.300,
+        accentWellChroma: 0.060,
+        categoryStartHue: 277.0,
+        arcLightness: 0.600,
+        arcChroma: 0.20,
+        glyphLightness: 0.700,
+        glyphChroma: 0.20,
+        gradientHueShift: 28,
+      ),
+    ),
+  );
+
   /// **Ledger** — ink on paper, and the shortest proof that this is data.
   ///
   /// Nothing below is a widget. Every visible difference between this app and
@@ -482,6 +549,7 @@ class DesignSpec {
   /// Built once. A `DesignSpec` grows two palettes in OKLCH at construction,
   /// and a getter here would re-grow them on every read.
   static final List<DesignSpec> shipped = <DesignSpec>[
+    DesignSpec.aurora(),
     DesignSpec.halo(),
     DesignSpec.ledger(),
     DesignSpec.signal(),

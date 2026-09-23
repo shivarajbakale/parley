@@ -73,8 +73,11 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
         return ThemeMode.dark;
       case 'light':
         return ThemeMode.light;
-      default:
+      case 'system':
         return ThemeMode.system;
+      default:
+        // Aurora is dark-first; a fresh install opens dark.
+        return ThemeMode.dark;
     }
   }
 }
