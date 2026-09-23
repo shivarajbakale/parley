@@ -6,9 +6,15 @@
 - Standard startup path: `./init.sh`
 - Standard verification path: `make check` (analyze, lints, Flutter tests, probe, goldens, `native-test` for the Kotlin core)
 - Device evidence: `make run-capture RUN_CAPTURE_ARGS="-d emulator-5554 -o <png>"`
-- Passing: parley-a01 (service + orb), a03 (volume gesture), a05 (Aurora), r01–r06 (all six screens)
+- Passing: parley-a01 (service + orb), a03 (volume gesture), a05 (Aurora), r01–r06 (all six screens), r07 (Nunito type + animated empty states)
 - Blocked: parley-a02 (dictation) and parley-a04 (voice edit) — both need the user's real Groq / MiniMax keys to prove live
 - Current blocker: no API keys on this machine; no physical phone run yet
+
+## Branch note (parley-r07)
+
+- r07 was built on branch `nunito-empty-states` (worktree `../parley_android-r07`) while an orb/pill redesign was uncommitted in the main tree.
+- Merge hazard: r07 deletes Geist/GeistMono/InstrumentSerif and points `PillView.kt` at `NunitoSans-600.ttf` / `Nunito-600.ttf`. The redesign deletes `PillView.kt` and its `OrbView.kt` loads `Geist-500.ttf` / `GeistMono-500.ttf`. Whoever merges second: delete `PillView.kt`, and switch those two names in `OrbView.kt` to the Nunito files.
+- Known, not fixed: Overview hero chips read "Orb on" while the service is off.
 
 ## Session Log
 

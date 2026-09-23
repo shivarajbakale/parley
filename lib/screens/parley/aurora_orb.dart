@@ -142,33 +142,12 @@ class _OrbPainter extends CustomPainter {
       );
     }
 
-    final orbRect = Rect.fromCircle(center: center, radius: radius);
-    final opacity = dim ? 0.7 : 1.0;
-    canvas.drawCircle(
+    paintAuroraSphere(
+      canvas,
       center,
       radius,
-      Paint()
-        ..shader = RadialGradient(
-          center: OrbMotion.highlight,
-          radius: 0.95,
-          colors: [for (final c in palette.stops) c.withValues(alpha: opacity)],
-          stops: const [0, 0.24, 0.6, 1],
-        ).createShader(orbRect),
-    );
-    // The inner sheen: a white rim light that makes it read as a sphere
-    // rather than a gradient disc.
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [
-            OrbPalette.sheen.withValues(alpha: 0),
-            OrbPalette.sheen.withValues(alpha: 0),
-            OrbPalette.sheen.withValues(alpha: 0.22 * opacity),
-          ],
-          stops: const [0, 0.78, 1],
-        ).createShader(orbRect),
+      palette,
+      opacity: dim ? 0.7 : 1.0,
     );
   }
 
@@ -178,6 +157,44 @@ class _OrbPainter extends CustomPainter {
       old.haloStrength != haloStrength ||
       old.palette != palette ||
       old.dim != dim;
+}
+
+/// The orb's sphere without its halo: four radial stops from the highlight
+/// out, then a white rim light that makes it read as a sphere rather than a
+/// gradient disc. Shared with the empty-state scenes so every orb in the app
+/// is the same object.
+void paintAuroraSphere(
+  Canvas canvas,
+  Offset center,
+  double radius,
+  OrbPalette palette, {
+  double opacity = 1,
+}) {
+  final orbRect = Rect.fromCircle(center: center, radius: radius);
+  canvas.drawCircle(
+    center,
+    radius,
+    Paint()
+      ..shader = RadialGradient(
+        center: OrbMotion.highlight,
+        radius: 0.95,
+        colors: [for (final c in palette.stops) c.withValues(alpha: opacity)],
+        stops: const [0, 0.24, 0.6, 1],
+      ).createShader(orbRect),
+  );
+  canvas.drawCircle(
+    center,
+    radius,
+    Paint()
+      ..shader = RadialGradient(
+        colors: [
+          OrbPalette.sheen.withValues(alpha: 0),
+          OrbPalette.sheen.withValues(alpha: 0),
+          OrbPalette.sheen.withValues(alpha: 0.22 * opacity),
+        ],
+        stops: const [0, 0.78, 1],
+      ).createShader(orbRect),
+  );
 }
 
 /// A small dot in a mode's colour — the status chips, the history rows.

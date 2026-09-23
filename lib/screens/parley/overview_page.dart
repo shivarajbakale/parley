@@ -15,6 +15,9 @@ import 'package:parley_android/design_system/ds_text.dart';
 import 'package:parley_android/models/parley.dart';
 import 'package:parley_android/providers/parley_providers.dart';
 import 'package:parley_android/screens/parley/aurora_orb.dart';
+import 'package:parley_android/screens/parley/empty_scene.dart';
+import 'package:parley_android/screens/parley/parley_blocker.dart';
+import 'package:parley_android/screens/parley/practice_sheet.dart';
 import 'package:parley_android/screens/parley/parley_format.dart';
 import 'package:parley_android/theme/parley_modes.dart';
 import 'package:parley_android/theme/parley_type.dart';
@@ -71,14 +74,20 @@ class OverviewPage extends ConsumerWidget {
                   ),
                 },
                 space.verticalMd,
-                switch (summary) {
-                  AsyncError() => const SizedBox.shrink(),
-                  AsyncValue(:final value?) => _Figures(summary: value),
-                  _ => const _Figures(summary: null),
+                // Before the first dictation there is nothing to count: a
+                // setup ring stands in for the figures and the last entry.
+                ...switch (summary) {
+                  AsyncError() => const <Widget>[],
+                  AsyncValue(:final value?) when value.lastEntry == null => [
+                    _GettingStarted(status: status.value),
+                  ],
+                  AsyncValue(:final value?) => [
+                    _Figures(summary: value),
+                    space.verticalMd,
+                    _LastEntry(entry: value.lastEntry!),
+                  ],
+                  _ => const [_Figures(summary: null)],
                 },
-                space.verticalMd,
-                if (summary case AsyncValue(:final value?))
-                  _LastEntry(summary: value),
               ],
             ),
           ),
@@ -86,62 +95,6 @@ class OverviewPage extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// What is in the way, in the order the user has to fix it.
-({
-  String title,
-  String message,
-  OrbMode mode,
-  String? action,
-  SystemSettingsTarget? target,
-})
-_headline(ParleyStatus s) {
-  if (!s.serviceBound) {
-    return (
-      title: 'Off',
-      message: 'Turn on Parley in Accessibility settings to show the orb.',
-      mode: OrbMode.idle,
-      action: 'Open Accessibility settings',
-      target: SystemSettingsTarget.accessibility,
-    );
-  }
-  if (!s.micGranted) {
-    return (
-      title: 'Needs the microphone',
-      message: 'Parley only listens while you hold the orb.',
-      mode: OrbMode.idle,
-      action: 'Allow microphone',
-      target: null,
-    );
-  }
-  if (!s.groqKeySet) {
-    return (
-      title: 'Add your Groq key',
-      message: 'Transcription runs on your own Groq account.',
-      mode: OrbMode.idle,
-      action: 'Add key',
-      target: null,
-    );
-  }
-  if (s.paused) {
-    return (
-      title: 'Paused',
-      message: 'The orb is hidden and the volume gesture is off.',
-      mode: OrbMode.idle,
-      action: null,
-      target: null,
-    );
-  }
-  return (
-    title: 'Ready',
-    message: s.volumeGestureEnabled
-        ? 'Hold the orb, or press volume-down twice and hold.'
-        : 'Hold the orb in any app to talk.',
-    mode: OrbMode.dictation,
-    action: null,
-    target: null,
-  );
 }
 
 class _StatusHero extends ConsumerWidget {
@@ -152,19 +105,10 @@ class _StatusHero extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final space = context.design.space;
-    final h = _headline(status);
+    final h = blockerOf(status);
     final fixable = status.ready || status.paused;
 
-    Future<void> act() async {
-      final bridge = ref.read(parleyBridgeProvider);
-      if (h.target != null) {
-        await bridge.openSystemSettings(h.target!);
-      } else if (!status.micGranted) {
-        await ref.read(parleyStatusProvider.notifier).requestMic();
-      } else if (!status.groqKeySet) {
-        if (context.mounted) context.push(AppRoutes.apiKeys);
-      }
-    }
+    Future<void> act() => fixBlocker(context, ref, status);
 
     return DSCard(
       padding: EdgeInsets.fromLTRB(space.lg, space.xl, space.lg, space.md),
@@ -268,25 +212,46 @@ class _Figures extends StatelessWidget {
   }
 }
 
-class _LastEntry extends StatelessWidget {
-  const _LastEntry({required this.summary});
+/// Before the first dictation: a ring with one segment per setup step, lit
+/// as each is done, and the next step named under it. The hero above already
+/// fixes a blocker, so this card only acts once everything is ready.
+class _GettingStarted extends StatelessWidget {
+  const _GettingStarted({required this.status});
 
-  final UsageSummary summary;
+  final ParleyStatus? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = status ?? const ParleyStatus();
+    final steps = [s.serviceBound, s.micGranted, s.groqKeySet, false];
+    final done = steps.where((d) => d).length;
+    final ready = s.listening;
+    final next = !s.serviceBound || s.paused
+        ? 'turn on Parley'
+        : !s.micGranted
+        ? 'allow the mic'
+        : !s.groqKeySet
+        ? 'add your key'
+        : 'say something';
+    return DSCard(
+      child: DSEmptyState(
+        iconSlot: EmptyScene.progress(done: done, total: steps.length),
+        title: 'Next: $next',
+        actionLabel: ready ? 'Try it' : null,
+        onAction: ready ? () => showPracticeSheet(context) : null,
+      ),
+    );
+  }
+}
+
+class _LastEntry extends StatelessWidget {
+  const _LastEntry({required this.entry});
+
+  final HistoryEntry entry;
 
   @override
   Widget build(BuildContext context) {
     final space = context.design.space;
-    final entry = summary.lastEntry;
-    if (entry == null) {
-      return const DSCard(
-        variant: DSCardVariant.outlined,
-        child: DSEmptyState(
-          icon: Icons.graphic_eq,
-          title: 'Nothing dictated yet',
-          message: 'Hold the orb in any app and start talking.',
-        ),
-      );
-    }
     return DSCard(
       onTap: () => context.push(AppRoutes.historyEntryAt(entry.id)),
       child: Column(

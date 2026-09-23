@@ -10,6 +10,32 @@ Append-only. New entries go at the top. Each entry should answer:
 
 ---
 
+## 2026-09-24 — Nunito replaces the serif; empty states are drawn scenes
+
+**What.** Aurora's type is Nunito Sans for interface text and the user's own
+words (italic 500), and rounded Nunito for titles (800 display, 700 headline)
+and figures. Geist, Geist Mono and Instrument Serif are removed from the
+bundle, and the Kotlin pill reads the Nunito files. Parley's empty states
+(History first run, History while Parley cannot run, History with no match,
+Overview before the first dictation) show a looping `EmptyScene` and one
+line, with at most one action; a missing transcript returns with a snack bar.
+
+**Why.** The owner found the serif-and-mono mix unpleasant and asked for a
+rounded face, then for Avenir, and for animated empty states with far less
+text.
+
+**Rejected.** Avenir (a Monotype face; bundling it in an APK needs an
+app-embedding licence, and Apple's system copy may not be redistributed).
+Quicksand (no italic, thin at body size). Lottie or Rive files for the scenes
+(assets to source and license, and they could not share the orb's painter or
+hold still under `flutter test`).
+
+**Invariant.** Nunito has no `tnum` feature; figures line up because both
+families draw every digit on a 600-unit advance. A replacement face must keep
+that, or the counters jitter. `EmptyScene` loops on `OrbMotion.breathe` and
+holds a single chosen frame under reduce-motion and `flutter test`, like
+`AuroraOrb`.
+
 ## 2026-09-24 — Aurora identity; Parley shell replaces the template's
 
 **What.** `DesignSpec.aurora()` is the shipped identity (dark by default):

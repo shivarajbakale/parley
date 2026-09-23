@@ -53,7 +53,7 @@ data class PillContent(val label: String, val timer: String?, val tone: Tone) {
 /**
  * The small glass pill beside the orb: a mode dot, a label, and while
  * listening a tabular `m:ss` timer. Drawn on a Canvas like the orb, in the
- * app's own faces (Geist, Geist Mono) read from the Flutter asset bundle.
+ * app's own faces (Nunito Sans, Nunito) read from the Flutter asset bundle.
  */
 @SuppressLint("ViewConstructor")
 class PillView(context: Context) : View(context) {
@@ -89,12 +89,12 @@ class PillView(context: Context) : View(context) {
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = LABEL
         textSize = 13f * scaled
-        typeface = face(context, "Geist-500.ttf", Typeface.DEFAULT_BOLD)
+        typeface = face(context, "NunitoSans-600.ttf", Typeface.DEFAULT_BOLD)
     }
     private val timerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = TIMER
         textSize = 13f * scaled
-        typeface = face(context, "GeistMono-500.ttf", Typeface.MONOSPACE)
+        typeface = face(context, "Nunito-600.ttf", Typeface.MONOSPACE)
         fontFeatureSettings = "'tnum'"
     }
     private val rect = RectF()

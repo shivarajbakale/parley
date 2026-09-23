@@ -103,32 +103,37 @@ flutter:
       fonts:
         - asset: assets/fonts/ArchivoBlack-Regular.ttf
           weight: 900
-    # Aurora (the shipped identity): Geist for interface text, Geist Mono for
-    # figures, Instrument Serif for titles and the user's own words. SIL OFL
-    # 1.1 (assets/fonts/Geist-OFL.txt, InstrumentSerif-OFL.txt). Geist ships
+    # Aurora (the shipped identity): Nunito Sans for interface text and the
+    # user's own words (italic), rounded Nunito for titles and figures. SIL
+    # OFL 1.1 (assets/fonts/Nunito-OFL.txt; both families share it). Both ship
     # variable upstream; these are static instances cut with fonttools because
-    # Flutter does not map fontWeight onto a variable font's wght axis.
-    - family: Geist
+    # Flutter does not map fontWeight onto a variable font's wght axis. Nunito
+    # Sans is pinned at wdth 100, opsz 12, YTLC 500. Both draw every digit on
+    # a 600-unit advance, so figures line up without a tnum feature.
+    - family: Nunito Sans
       fonts:
-        - asset: assets/fonts/Geist-400.ttf
+        - asset: assets/fonts/NunitoSans-400.ttf
           weight: 400
-        - asset: assets/fonts/Geist-500.ttf
+        - asset: assets/fonts/NunitoSans-500.ttf
           weight: 500
-        - asset: assets/fonts/Geist-600.ttf
+        - asset: assets/fonts/NunitoSans-600.ttf
           weight: 600
-    - family: Geist Mono
-      fonts:
-        - asset: assets/fonts/GeistMono-400.ttf
-          weight: 400
-        - asset: assets/fonts/GeistMono-500.ttf
-          weight: 500
-    - family: Instrument Serif
-      fonts:
-        - asset: assets/fonts/InstrumentSerif-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/InstrumentSerif-Italic.ttf
+        - asset: assets/fonts/NunitoSans-700.ttf
+          weight: 700
+        - asset: assets/fonts/NunitoSans-Italic-400.ttf
           weight: 400
           style: italic
+        - asset: assets/fonts/NunitoSans-Italic-500.ttf
+          weight: 500
+          style: italic
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-600.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-700.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-800.ttf
+          weight: 800
     - family: Satoshi
       fonts:
         - asset: assets/fonts/Satoshi-Regular.otf

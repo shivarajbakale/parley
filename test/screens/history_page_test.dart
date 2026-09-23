@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:parley_android/models/parley.dart';
 import 'package:parley_android/screens/parley/history_page.dart';
 import 'package:parley_android/services/parley/fake_parley_bridge.dart';
 
@@ -44,8 +45,8 @@ void main() {
     await tester.enterText(find.byType(EditableText), 'invoice');
     await tester.pumpAndSettle();
 
-    expect(find.text('No transcripts match "invoice".'), findsOneWidget);
-    await tester.tap(find.text('Clear filters'));
+    expect(find.text('No match for “invoice”'), findsOneWidget);
+    await tester.tap(find.text('Clear search'));
     await tester.pumpAndSettle();
     expect(find.text('Today'), findsOneWidget);
   });
@@ -62,13 +63,27 @@ void main() {
     );
   });
 
-  testWidgets('no history at all says how to start', (tester) async {
+  testWidgets('no history at all offers a field to try it in', (tester) async {
     await pumpParley(
       tester,
       screen(),
       bridge: FakeParleyBridge.ready(history: const [], now: parleyTestNow),
     );
-    expect(find.text('Things you dictate show up here'), findsOneWidget);
+    expect(find.text('Nothing yet'), findsOneWidget);
+    await tester.tap(find.text('Try it'));
+    await tester.pumpAndSettle();
+    expect(find.text('Practice'), findsOneWidget);
+  });
+
+  testWidgets('no history while Parley is off fixes the first blocker', (
+    tester,
+  ) async {
+    final bridge = FakeParleyBridge(now: parleyTestNow, history: const []);
+    await pumpParley(tester, screen(), bridge: bridge);
+    expect(find.text('Parley is off'), findsOneWidget);
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    expect(bridge.openedSettings, [SystemSettingsTarget.accessibility]);
   });
 
   testWidgets('swipe deletes, and Undo puts it back', (tester) async {
