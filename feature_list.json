@@ -28,11 +28,12 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)",
         "flutter build apk --debug -> ✓ Built build/app/outputs/flutter-apk/app-debug.apk",
-        "adb logcat (emulator-5554, API 36) -> ParleyRuntime: accessibility service connected; dumpsys window lists Window{… Parley orb}. Screenshots: docs/evidence/parley-a01/orb-over-messages.png, orb-error-no-key.png"
+        "adb logcat (emulator-5554, API 36) -> ParleyRuntime: accessibility service connected; dumpsys window lists Window{… Parley orb}. Screenshots: docs/evidence/parley-a01/orb-over-messages.png, orb-error-no-key.png",
+        "adb input swipe hold on the orb (emulator-5554) -> dumpsys window lists Parley orb + Parley pill; docs/evidence/parley-a01/pill-listening.png shows \"Listening 0:04\""
       ],
       "notes": "docs/plans/native-core.md build step 1. Built in parallel with the Flutter side by a delegated agent."
     },
@@ -49,7 +50,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!"
       ],
       "notes": "docs/plans/native-core.md build step 2. BLOCKED: live transcription needs the user's Groq key. Pipeline is built and covered by Session and ProviderClients (MockWebServer) tests; on the emulator the session reaches Groq and errors with 'No Groq key'. Background mic and SET_TEXT per app (Spike A01) need a physical phone."
@@ -67,7 +68,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "adb shell uinput virtual keyboard (emulator-5554) -> logcat: volume gesture: tap-tap-hold, session started; a single press replayed ~430 ms after key-down"
       ],
@@ -88,7 +89,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make check -> superplan-lint: 1 superplan valid, SUPERPLAN.md in sync (0 violations)"
       ],
@@ -108,7 +109,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -128,7 +129,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -147,7 +148,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!"
       ],
       "notes": "docs/plans/native-core.md build step 6. BLOCKED: voice edit needs the user's MiniMax key (and a Groq key). MiniMaxRewriter is covered by MockWebServer tests; not exercised live."
@@ -165,7 +166,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -183,7 +184,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -202,7 +203,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -220,7 +221,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 85 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],

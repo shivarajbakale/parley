@@ -77,6 +77,7 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
                     if ((paused || !c.volumeGestureEnabled) && (detector.recording || consumingVolume)) detector.disarm()
                     orb.view.visual = visualFor(state)
                     updateOrbVisibility()
+                    refreshPill()
                 }
         }
         scope.launch(Dispatchers.IO) {
@@ -108,6 +109,7 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
         session.cancel()
         recorder.cancel()
         MicForegroundService.stop(this)
+        handler.removeCallbacks(pillTick)
         orb.destroy()
         handler.removeCallbacksAndMessages(null)
         scope.cancel()
@@ -177,6 +179,24 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
         val visible = c.orbEnabled && !store.paused.value &&
             (busy || !c.hideOrbWithoutField || editableFocused)
         orb.setVisible(visible)
+    }
+
+    // ---- pill -----------------------------------------------------------
+
+    private val pillTick = Runnable { refreshPill() }
+
+    /** Sets the pill from the session, and keeps its timer ticking while listening. */
+    private fun refreshPill() {
+        if (!ready) return
+        handler.removeCallbacks(pillTick)
+        val state = session.state.value
+        val now = System.currentTimeMillis()
+        orb.setPill(PillContent.forState(state, now))
+        if (state is SessionState.Listening) {
+            // Land just after the next whole second so the clock never skips one.
+            val elapsed = (now - state.startedAt).coerceAtLeast(0)
+            handler.postDelayed(pillTick, 1000 - elapsed % 1000 + 16)
+        }
     }
 
     private fun visualFor(state: SessionState): OrbView.Visual = when (state) {

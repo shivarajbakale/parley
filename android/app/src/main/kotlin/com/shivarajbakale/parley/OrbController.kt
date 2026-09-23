@@ -22,6 +22,9 @@ import kotlin.math.hypot
  * Owns the orb's overlay window: adding and removing it, dragging and docking
  * to the nearest side, remembering where it sits, staying above the keyboard,
  * and turning touches into hold / double-tap-hold / tap.
+ *
+ * Also owns the pill: a second, untouchable window that sits beside the orb on
+ * the side facing the screen and says what the orb is doing ("Listening 0:04").
  */
 class OrbController(
     private val context: Context,
@@ -40,6 +43,7 @@ class OrbController(
         const val DOUBLE_TAP_MS = 300L
         private const val EDGE_GAP_DP = 6f
         private const val DOCK_MS = 220L
+        private const val PILL_GAP_DP = 8f
     }
 
     private val wm = context.getSystemService(WindowManager::class.java)
@@ -62,6 +66,25 @@ class OrbController(
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
     }
+
+    private val pill = PillView(context)
+    private val pillParams = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+        PixelFormat.TRANSLUCENT,
+    ).apply {
+        gravity = Gravity.TOP or Gravity.START
+        title = "Parley pill"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+    }
+    private var pillContent: PillContent? = null
+    private var pillAttached = false
 
     private var attached = false
     private var size = OrbSize.MEDIUM
@@ -91,6 +114,47 @@ class OrbController(
         } catch (e: Exception) {
             Log.w(TAG, "overlay ${if (visible) "add" else "remove"} failed", e)
         }
+        syncPill()
+    }
+
+    /** What the pill says, or null to hide it. Cheap to call every tick. */
+    fun setPill(content: PillContent?) {
+        pillContent = content
+        syncPill()
+    }
+
+    /** The pill shows only beside a visible orb that is not being dragged. */
+    private fun syncPill() {
+        val content = pillContent
+        val want = content != null && attached && !dragging
+        pill.content = content
+        try {
+            if (want && content != null) {
+                placePill(content)
+                if (pillAttached) wm.updateViewLayout(pill, pillParams) else wm.addView(pill, pillParams)
+                pillAttached = true
+            } else if (pillAttached) {
+                wm.removeView(pill)
+                pillAttached = false
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "pill overlay failed", e)
+        }
+    }
+
+    /** Beside the orb, on the side that faces the middle of the screen, centred on it. */
+    private fun placePill(content: PillContent) {
+        val w = pill.measuredWidthFor(content)
+        val h = pill.pillHeight()
+        val gap = (PILL_GAP_DP * density).toInt()
+        val half = (view.diameterPx / 2f).toInt()
+        val cx = params.x + params.width / 2
+        val cy = params.y + params.height / 2
+        val onRight = cx > screen().width() / 2
+        pillParams.width = w
+        pillParams.height = h
+        pillParams.x = if (onRight) cx - half - gap - w else cx + half + gap
+        pillParams.y = cy - h / 2
     }
 
     fun applySize(orbSize: OrbSize) {
@@ -170,6 +234,7 @@ class OrbController(
         } catch (e: Exception) {
             Log.w(TAG, "updateViewLayout failed", e)
         }
+        syncPill()
     }
 
     private fun dock() {
@@ -244,6 +309,7 @@ class OrbController(
                 if (!holding && !dragging && hypot(dx, dy) > touchSlop) {
                     dragging = true
                     handler.removeCallbacks(holdRunnable)
+                    syncPill()
                 }
                 if (dragging) {
                     params.x = downParamX + dx.toInt()

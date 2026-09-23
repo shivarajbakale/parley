@@ -65,7 +65,10 @@ so there is no Play disclosure flow.
 screen edge; the position is saved. States: idle (dim), listening (mode colour +
 mic-level ring from RMS), working (spinner ring), done (tick), error (shake).
 When "hide without field" is on, it shows only while an editable node has
-focus. It moves above the IME using `WindowInsets` of the focused window.
+focus. Beside it, on the side facing the screen, an untouchable pill window
+says what it is doing: "Listening 0:04" / "Editing 0:04" with a tabular timer
+(red in the last 10 s before the 2-minute cap), then "Transcribing" or
+"Rewriting". It hides while the orb is dragged. It moves above the IME using `WindowInsets` of the focused window.
 
 **VolumeGestureDetector.** A pure Kotlin class that takes key down/up events
 with timestamps. Tap-tap-hold means two taps and a third press held longer
