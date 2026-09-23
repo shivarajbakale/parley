@@ -28,7 +28,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)",
         "flutter build apk --debug -> ✓ Built build/app/outputs/flutter-apk/app-debug.apk",
@@ -50,7 +50,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!"
       ],
       "notes": "docs/plans/native-core.md build step 2. On the Oppo CPH2791 (Android 16) with the user's Groq key, holding the orb recorded, transcribed and inserted text into the Settings search field (2026-09-24). Still to verify: a chat app and a browser field, and the insert method recorded in history."
@@ -68,7 +68,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "adb shell uinput virtual keyboard (emulator-5554) -> logcat: volume gesture: tap-tap-hold, session started; a single press replayed ~430 ms after key-down"
       ],
@@ -89,7 +89,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make check -> superplan-lint: 1 superplan valid, SUPERPLAN.md in sync (0 violations)"
       ],
@@ -109,7 +109,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -129,7 +129,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -148,7 +148,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!"
       ],
       "notes": "docs/plans/native-core.md build step 6. BLOCKED: voice edit needs the user's MiniMax key (and a Groq key). MiniMaxRewriter is covered by MockWebServer tests; not exercised live."
@@ -166,7 +166,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -184,7 +184,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -203,7 +203,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -221,7 +221,7 @@
       ],
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "make check -> All tests passed!",
         "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
       ],
@@ -262,7 +262,7 @@
       "evidence": [
         "make check -> ui-lint: 223 file(s) scanned, 0 violation(s)",
         "make check -> All tests passed! (unit, ui-probe 1915, goldens 131)",
-        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
         "adb install -r (emulator-5554) -> Success; docs/evidence/parley-r08/launcher.png shows the icon; notes in docs/evidence/parley-r08.md"
       ],
       "notes": "Source: parley/build/icon.svg copied to assets/icon/. Adaptive layers are SVGs in assets/icon/ rendered to PNG with headless Chrome; flutter_launcher_icons generates the mipmaps with adaptive_icon_foreground_inset 0. iOS left off. Built while parley-a02 was in_progress in another session; r08 is a self-contained asset change."

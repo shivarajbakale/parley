@@ -38,6 +38,10 @@ class OrbController(
     interface Listener {
         fun onHoldStart(mode: SessionMode)
         fun onHoldEnd()
+        /** Released after sliding toward the middle: throw the recording away. */
+        fun onHoldCancel()
+        /** A slide-to-cancel crossed the line, either way. */
+        fun onCancelArmed(armed: Boolean)
         fun onTap()
     }
 
@@ -101,6 +105,7 @@ class OrbController(
     private var lastTapUpAt = 0L
     /** The press landed on a tucked orb: it only brings the orb out. */
     private var peeking = false
+    private var cancelArmed = false
 
     init {
         dockRight = config.orbPosition().dockRight
@@ -343,6 +348,8 @@ class OrbController(
         handler.removeCallbacks(holdRunnable)
         view.squashed = false
         view.lifted = false
+        view.cancelPullPx = 0f
+        cancelArmed = false
         if (holding) {
             holding = false
             listener.onHoldEnd()
@@ -376,6 +383,8 @@ class OrbController(
                 downParamY = params.y
                 dragging = false
                 holding = false
+                cancelArmed = false
+                view.cancelPullPx = 0f
                 view.squashed = true
                 secondPress = now - lastTapUpAt <= DOUBLE_TAP_MS
                 if (secondPress) handler.removeCallbacks(tapRunnable) // part of a double tap, not a tap
@@ -394,6 +403,13 @@ class OrbController(
                     params.x = downParamX + dx.toInt()
                     params.y = downParamY + dy.toInt()
                     update()
+                } else if (holding) {
+                    // Slide toward the middle of the screen to cancel.
+                    view.cancelPullPx = if (dockRight) -dx else dx
+                    if (view.cancelArmed != cancelArmed) {
+                        cancelArmed = view.cancelArmed
+                        listener.onCancelArmed(cancelArmed)
+                    }
                 }
             }
             MotionEvent.ACTION_UP -> {
@@ -402,7 +418,14 @@ class OrbController(
                 when {
                     holding -> {
                         holding = false
-                        listener.onHoldEnd()
+                        if (cancelArmed) {
+                            cancelArmed = false
+                            view.discard()
+                            listener.onHoldCancel()
+                        } else {
+                            view.cancelPullPx = 0f
+                            listener.onHoldEnd()
+                        }
                     }
                     dragging -> {
                         dragging = false

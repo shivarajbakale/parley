@@ -45,6 +45,12 @@ class Spring(
         return true
     }
 
+    /** Starts from [v] at rest, keeping the target: a pop that springs from small. */
+    fun jumpTo(v: Float) {
+        value = v
+        velocity = 0f
+    }
+
     /** Jumps to the target with no velocity: reduce-motion, or a first frame. */
     fun snap() {
         value = target

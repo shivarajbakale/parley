@@ -51,6 +51,15 @@ class OrbMotionTest {
         assertEquals(v, s.velocity, 0f)
     }
 
+    @Test fun `jumpTo restarts from a value and springs back to the same target`() {
+        val s = Spring(1f, 700f, 0.5f)
+        s.jumpTo(0.35f)
+        assertEquals(0.35f, s.value, 0f)
+        assertEquals(1f, s.target, 0f)
+        assertTrue(run(s, 1f) > 0.01f) // pops past full size before settling
+        assertEquals(1f, s.value, 0f)
+    }
+
     @Test fun `a long frame does not blow up`() {
         val s = Spring(0f, 700f, 0.5f)
         s.target = 1f

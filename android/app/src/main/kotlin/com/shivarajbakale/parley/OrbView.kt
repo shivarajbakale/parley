@@ -82,6 +82,17 @@ class OrbView(context: Context) : View(context) {
         private const val SHAKE_MS = 450L
         private const val FADE_MS = 250L
         private const val IDLE_FRAME_MS = 16L
+        /** Finger travel toward the middle that arms a cancel. */
+        private const val CANCEL_DP = 96f
+        /** Past the capsule's end the sphere only stretches this much further. */
+        private const val OVERPULL_DP = 12f
+        private const val DISCARD_FADE_MS = 480L
+        /** The discarded sphere shrinks away where it was let go... */
+        private const val GHOST_MS = 220L
+        /** ...then a fresh one pops in at home from this scale. */
+        private const val POP_FROM = 0.35f
+        private const val GLASS_CANCEL = 0xF0321218.toInt()
+        private const val HINT = 0xB3F1F1F6.toInt()
         /** Working lights: phase offset in turns, radius in sphere radii, alpha. */
         private val LIGHTS = listOf(Triple(0f, 0.62f, 255), Triple(0.5f, 0.42f, 150))
 
@@ -132,15 +143,57 @@ class OrbView(context: Context) : View(context) {
         set(value) {
             if (field == value) return
             val now = SystemClock.uptimeMillis()
-            val stops = currentStops(now)
+            val stops = displayedStops(now)
             field = value
             visualSince = now
             fadeFrom = stops
             fadeTo = paletteFor(value)
             fadeStart = now
+            // Right after a discard, keep the slow drain rather than a quick fade.
+            fadeMs = if (now - discardAt < 200) DISCARD_FADE_MS else FADE_MS
             if (value == Visual.LISTENING_DICTATION || value == Visual.LISTENING_EDIT) wave.clear()
             invalidate()
         }
+
+    /**
+     * How far the finger has slid toward the middle while holding, in px.
+     * Everything blends toward red as it grows; at [CANCEL_DP] it is armed.
+     */
+    var cancelPullPx = 0f
+        set(value) {
+            val v = value.coerceAtLeast(0f)
+            if (field == v) return
+            field = v
+            invalidate()
+        }
+
+    /** Letting go now would throw the recording away. */
+    val cancelArmed: Boolean get() = cancelPullPx > 0f && cancelPullPx >= armDistance()
+
+    /** Finger travel that arms a cancel: [CANCEL_DP], or less on a short capsule. */
+    private fun armDistance(): Float = min(dp(CANCEL_DP), lastOpenExtra * 0.7f).coerceAtLeast(dp(24f))
+
+    /**
+     * The recording was thrown away: shake, and let the red drain back to the
+     * resting colour instead of snapping.
+     */
+    fun discard() {
+        val now = SystemClock.uptimeMillis()
+        val shown = displayedStops(now)
+        discardAt = now
+        ghostOffset = slide.value
+        ghostStops = shown
+        popPending = true
+        cancelPullPx = 0f
+        cancel.target = 0f
+        cancel.snap()
+        slide.target = 0f
+        slide.snap() // the sphere does not travel home; a new one appears there
+        fadeFrom = shown
+        fadeStart = now
+        fadeMs = DISCARD_FADE_MS
+        invalidate()
+    }
 
     var content: PillContent? = null
         set(value) {
@@ -159,6 +212,15 @@ class OrbView(context: Context) : View(context) {
     private val scale = Spring(1f, 700f, 0.5f)
     private val extra = Spring(0f, 420f, 0.82f)
     private val dim = Spring(1f, 260f, 1f)
+    /** 0..1: how red things are, following the finger without its jitter. */
+    private val cancel = Spring(0f, 900f, 1f)
+    /** px the sphere has slid along the capsule. */
+    private val slide = Spring(0f, 900f, 0.75f)
+    private var discardAt = 0L
+    private var ghostOffset = 0f
+    private var ghostStops = RED
+    private var popPending = false
+    private var fadeMs = FADE_MS
     private var lastOpenExtra = 1f
     private var requestedWidth = 0
     private var lastFrame = 0L
@@ -284,13 +346,21 @@ class OrbView(context: Context) : View(context) {
         Visual.ERROR -> RED
     }
 
-    private fun fading(now: Long) = now - fadeStart < FADE_MS && !reduceMotion()
+    private fun fading(now: Long) = now - fadeStart < fadeMs && !reduceMotion()
 
     /** The stops right now: the target palette, or a fresh blend while crossfading. */
     private fun currentStops(now: Long): IntArray {
         if (!fading(now)) return fadeTo
-        val t = (now - fadeStart) / FADE_MS.toFloat()
+        val t = (now - fadeStart) / fadeMs.toFloat()
         return IntArray(4) { lerpArgb(fadeFrom[it], fadeTo[it], t) }
+    }
+
+    /** [currentStops], pulled toward red by a slide-to-cancel in progress. */
+    private fun displayedStops(now: Long): IntArray {
+        val base = currentStops(now)
+        val c = cancel.value.coerceIn(0f, 1f)
+        if (c <= 0f) return base
+        return IntArray(4) { lerpArgb(base[it], RED[it], c) }
     }
 
     /** Shaders are cached per palette; a blend mid-fade is built for its one frame. */
@@ -339,12 +409,21 @@ class OrbView(context: Context) : View(context) {
         if (listening) s += level * 0.04f
         scale.target = s
         dim.target = if (dimmed) 0.55f else 1f
+        // Slide to cancel: the sphere stays under the finger along the capsule
+        // (stretching only a little past its end), and the colour follows.
+        val pull = if (listening) cancelPullPx else 0f
+        cancel.target = (pull / armDistance()).coerceIn(0f, 1f)
+        val track = (extra.value - dp(4f)).coerceAtLeast(0f)
+        slide.target = if (pull <= track) pull else track + dp(OVERPULL_DP) * (1f - exp(-(pull - track) / dp(40f)))
+        val following = pull > 0f
 
         var moving = false
         if (still) {
-            scale.snap(); extra.snap(); dim.snap()
+            scale.snap(); extra.snap(); dim.snap(); cancel.snap(); slide.snap()
         } else {
-            moving = scale.step(dt) or extra.step(dt) or dim.step(dt)
+            moving = scale.step(dt) or extra.step(dt) or dim.step(dt) or cancel.step(dt)
+            // Under the finger: exactly where it is. Let go: spring home.
+            if (following) slide.snap() else moving = slide.step(dt) or moving
         }
         // The capsule has closed: give the room back.
         if (extra.settled && extra.value == 0f && requestedWidth > compactWidth()) {
@@ -357,10 +436,12 @@ class OrbView(context: Context) : View(context) {
         }
 
         val fadingNow = fading(now)
-        val stops = currentStops(now)
+        val stops = displayedStops(now)
+        val c = cancel.value.coerceIn(0f, 1f)
         val r = diameterPx / 2f
         val cy = height / 2f
-        val cx = if (dockRight) width - marginPx - r else marginPx + r
+        val home = if (dockRight) width - marginPx - r else marginPx + r
+        val cx = home + if (dockRight) -slide.value else slide.value
 
         var shake = 0f
         val shaking = visual == Visual.ERROR && !still && t < SHAKE_MS
@@ -369,13 +450,29 @@ class OrbView(context: Context) : View(context) {
             shake = sin(t / 1000f * 2 * PI.toFloat() * 11f) * dp(5f) * decay
         }
 
+        // After a discard: the old sphere shrinks away where it was let go, and
+        // only then does a fresh one pop in at home.
+        val sinceDiscard = now - discardAt
+        val ghosting = popPending && !still && sinceDiscard < GHOST_MS
+        if (popPending && (still || sinceDiscard >= GHOST_MS)) {
+            popPending = false
+            if (!still) scale.jumpTo(POP_FROM)
+        }
+
         canvas.save()
         canvas.translate(shake, 0f)
         canvas.scale(scale.value, scale.value, cx, cy)
 
         val ex = extra.value.coerceAtLeast(0f)
-        if (ex > 0.5f) drawCapsule(canvas, cx, cy, r, ex, stops)
-        drawSphere(canvas, cx, cy, r, stops, !fadingNow, now, still)
+        if (ex > 0.5f) drawCapsule(canvas, home, cx, cy, r, ex, stops, c)
+        if (ghosting) {
+            canvas.restore()
+            drawGhost(canvas, home + if (dockRight) -ghostOffset else ghostOffset, cy, r, sinceDiscard / GHOST_MS.toFloat())
+            postInvalidateOnAnimation()
+            return
+        }
+        drawSphere(canvas, cx, cy, r, stops, !fadingNow && c == 0f, now, still)
+        if (c > 0.55f) drawCross(canvas, cx, cy, r, ((c - 0.55f) / 0.45f).coerceIn(0f, 1f))
 
         when (visual) {
             Visual.WORKING_DICTATION, Visual.WORKING_EDIT -> drawSweep(canvas, cx, cy, r, t, still)
@@ -429,9 +526,13 @@ class OrbView(context: Context) : View(context) {
         else -> WAVE_DICTATION
     }
 
-    private fun drawCapsule(canvas: Canvas, cx: Float, cy: Float, r: Float, ex: Float, stops: IntArray) {
+    /**
+     * [home] is where the sphere rests; [cx] is where it is now, slid toward
+     * the middle during a slide-to-cancel. [c] is how far toward red (0..1).
+     */
+    private fun drawCapsule(canvas: Canvas, home: Float, cx: Float, cy: Float, r: Float, ex: Float, stops: IntArray, c: Float) {
         val w = diameterPx + ex
-        if (dockRight) rect.set(cx + r - w, cy - r, cx + r, cy + r) else rect.set(cx - r, cy - r, cx - r + w, cy + r)
+        if (dockRight) rect.set(home + r - w, cy - r, home + r, cy + r) else rect.set(home - r, cy - r, home - r + w, cy + r)
 
         // Soft halo in the mode colour, two layers deep.
         val halo = dp(5f)
@@ -443,47 +544,59 @@ class OrbView(context: Context) : View(context) {
         canvas.drawRoundRect(rect, r + halo / 2, r + halo / 2, haloPaint)
         rect.inset(halo / 2, halo / 2)
 
+        glassPaint.color = lerpArgb(GLASS, GLASS_CANCEL, c)
         canvas.drawRoundRect(rect, r, r, glassPaint)
-        val c = content
-        edgePaint.color = withAlpha(toneColor(c), 70)
+        val content = this.content
+        val edge = if (content == null) stops[1] else lerpArgb(toneColor(content), WARN, c)
+        edgePaint.color = withAlpha(edge, (70 + 90 * c).toInt())
         canvas.drawRoundRect(rect, r, r, edgePaint)
 
         // Contents fade in over the end of the opening and out at the start of the close.
-        if (c == null) return
+        if (content == null) return
         val open = (ex / lastOpenExtra.coerceAtLeast(1f)).coerceIn(0f, 1f)
-        val a = ((open - 0.45f) / 0.55f).coerceIn(0f, 1f)
-        if (a <= 0f) return
+        val shown = ((open - 0.45f) / 0.55f).coerceIn(0f, 1f)
+        if (shown <= 0f) return
 
         canvas.save()
         canvas.clipRect(rect)
         val baseline = cy - (labelPaint.descent() + labelPaint.ascent()) / 2
 
-        if (c.timer == null) {
+        // Sliding to cancel: the waveform and timer give way to the hint.
+        val hintA = shown * smooth(0.12f, 0.45f, c)
+        val a = shown * (1f - smooth(0f, 0.35f, c))
+        if (hintA > 0f) drawCancelHint(canvas, cx, baseline, r, c, shown)
+        if (a <= 0f) {
+            canvas.restore()
+            return
+        }
+        val cc = content
+
+        if (cc.timer == null) {
             // A message: beside the sphere, cut short if the screen is too narrow.
-            val room = extraFor(c) - orbGap - outerPad
-            val shown = TextUtils.ellipsize(c.label ?: "", labelPaint, room, TextUtils.TruncateAt.END).toString()
-            val lw = labelPaint.measureText(shown)
+            val room = extraFor(cc) - orbGap - outerPad
+            val message = TextUtils.ellipsize(cc.label ?: "", labelPaint, room, TextUtils.TruncateAt.END).toString()
+            val lw = labelPaint.measureText(message)
             labelPaint.alpha = (255 * a).toInt()
-            canvas.drawText(shown, if (dockRight) cx - r - orbGap - lw else cx + r + orbGap, baseline, labelPaint)
+            canvas.drawText(message, if (dockRight) cx - r - orbGap - lw else cx + r + orbGap, baseline, labelPaint)
             canvas.restore()
             return
         }
 
         // Listening: [label] timer beside the sphere, the waveform beyond it.
-        val textW = textWidth(c)
+        val textW = textWidth(cc)
         val textLeft = if (dockRight) cx - r - orbGap - textW else cx + r + orbGap
         var x = textLeft
-        c.label?.let {
+        cc.label?.let {
             labelPaint.alpha = (255 * a).toInt()
             canvas.drawText(it, x, baseline, labelPaint)
             x += labelPaint.measureText(it) + labelGap
         }
-        timerPaint.color = if (c.tone == PillContent.Tone.WARN) WARN else TIMER
+        timerPaint.color = if (cc.tone == PillContent.Tone.WARN) WARN else TIMER
         timerPaint.alpha = (Color.alpha(timerPaint.color) * a).toInt()
-        canvas.drawText(c.timer, x, baseline, timerPaint)
+        canvas.drawText(cc.timer, x, baseline, timerPaint)
 
         // Newest bar nearest the text, older ones trailing off.
-        barPaint.color = toneColor(c)
+        barPaint.color = toneColor(cc)
         val minH = dp(3f)
         val maxH = diameterPx * 0.52f
         val rr = barW / 2
@@ -495,6 +608,66 @@ class OrbView(context: Context) : View(context) {
             canvas.drawRoundRect(left, cy - h / 2, left + barW, cy + h / 2, rr, rr, barPaint)
         }
         canvas.restore()
+    }
+
+    private fun smooth(from: Float, to: Float, x: Float): Float {
+        val t = ((x - from) / (to - from)).coerceIn(0f, 1f)
+        return t * t * (3 - 2 * t)
+    }
+
+    /**
+     * "‹ Slide to cancel" waits at the far end of the capsule and fades as the
+     * sphere comes to it; once armed, "Cancel" shows in the room the sphere
+     * has left behind. [rect] is the capsule.
+     */
+    private fun drawCancelHint(canvas: Canvas, cx: Float, baseline: Float, r: Float, c: Float, shown: Float) {
+        val armed = cancelArmed
+        val color = lerpArgb(HINT, WARN, c)
+
+        val hint = if (dockRight) "‹  Slide to cancel" else "Slide to cancel  ›"
+        val hw = labelPaint.measureText(hint)
+        val hx = if (dockRight) rect.left + outerPad else rect.right - outerPad - hw
+        val gap = if (dockRight) (cx - r) - (hx + hw) else hx - (cx + r)
+        val near = smooth(0f, dp(28f), gap)
+        val hintA = shown * smooth(0.08f, 0.35f, c) * near * (if (armed) 0f else 1f)
+        if (hintA > 0f) {
+            labelPaint.color = color
+            labelPaint.alpha = (Color.alpha(color) * hintA).toInt()
+            canvas.drawText(hint, hx, baseline, labelPaint)
+        }
+
+        if (armed) {
+            val label = "Cancel"
+            val lw = labelPaint.measureText(label)
+            val lx = if (dockRight) cx + r + orbGap else cx - r - orbGap - lw
+            labelPaint.color = WARN
+            labelPaint.alpha = (255 * shown).toInt()
+            canvas.drawText(label, lx, baseline, labelPaint)
+        }
+        labelPaint.color = TEXT
+    }
+
+    /** The thrown-away sphere, shrinking and fading where it was let go. [g] 0..1. */
+    private fun drawGhost(canvas: Canvas, gx: Float, cy: Float, r: Float, g: Float) {
+        val k = g * g // ease in: it lingers, then goes
+        val gr = r * (1f - 0.75f * k)
+        val a = 1f - k
+        shaderMatrix.setScale(gr, gr)
+        shaderMatrix.postTranslate(gx, cy)
+        bodyPaint.shader = bodyShader(ghostStops, false).also { it.setLocalMatrix(shaderMatrix) }
+        bodyPaint.alpha = (255 * a).toInt()
+        canvas.drawCircle(gx, cy, gr, bodyPaint)
+        drawCross(canvas, gx, cy, gr, a)
+    }
+
+    /** The ✕ that fades onto the sphere as a cancel arms. */
+    private fun drawCross(canvas: Canvas, cx: Float, cy: Float, r: Float, alpha: Float) {
+        markPaint.strokeWidth = dp(2.5f)
+        markPaint.alpha = (255 * alpha).toInt()
+        val k = r * 0.3f * (0.8f + 0.2f * alpha)
+        canvas.drawLine(cx - k, cy - k, cx + k, cy + k, markPaint)
+        canvas.drawLine(cx - k, cy + k, cx + k, cy - k, markPaint)
+        markPaint.alpha = 255
     }
 
     /** Working: two soft lights chase each other round inside the sphere. */

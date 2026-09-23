@@ -229,11 +229,22 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
 
     private val orbListener = object : OrbController.Listener {
         override fun onHoldStart(mode: SessionMode) {
+            Log.d(TAG, "orb hold start $mode")
             session.start(mode)
         }
 
         override fun onHoldEnd() {
+            Log.d(TAG, "orb hold end")
             session.stop()
+        }
+
+        override fun onHoldCancel() {
+            Log.d(TAG, "orb hold cancelled")
+            cancelListening(animated = false) // the orb already played its discard
+        }
+
+        override fun onCancelArmed(armed: Boolean) {
+            if (armed) haptic()
         }
 
         override fun onTap() {
@@ -257,8 +268,37 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
         return !session.state.value.busy || detector.recording
     }
 
+    /** Throws the recording in progress away: nothing is sent, nothing is kept. */
+    private fun cancelListening(animated: Boolean) {
+        if (session.state.value !is SessionState.Listening) return
+        if (animated) orb.view.discard()
+        session.cancel()
+        haptic()
+    }
+
+    /** We swallowed a volume-up press that cancelled, so we swallow its release. */
+    private var consumingVolumeUp = false
+
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        if (!ready || event.keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) return false
+        if (!ready) return false
+        // Volume-up while recording cancels it.
+        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> {
+                    if (!consumingVolumeUp && session.state.value !is SessionState.Listening) return false
+                    if (event.repeatCount == 0) cancelListening(animated = true)
+                    consumingVolumeUp = true
+                    return true
+                }
+                KeyEvent.ACTION_UP -> {
+                    if (!consumingVolumeUp) return false
+                    consumingVolumeUp = false
+                    return true
+                }
+            }
+            return false
+        }
+        if (event.keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) return false
         // Timestamped on arrival, not event.eventTime: some input devices stamp
         // events on another clock, and the deadlines are posted on uptimeMillis.
         val now = SystemClock.uptimeMillis()

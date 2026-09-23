@@ -198,6 +198,20 @@ class SessionTest {
         advanceUntilIdle()
         assertTrue(f.calls.contains("cancelRec"))
         assertFalse(f.calls.any { it.startsWith("transcribe") })
+        assertTrue(f.history.isEmpty())
+    }
+
+    @Test fun `a release after a cancel does nothing`() = runTest {
+        val (s, f) = session()
+        s.start(SessionMode.DICTATION)
+        runCurrent()
+        s.cancel() // volume-up, or a slide-to-cancel
+        s.stop() // the volume-down key coming back up afterwards
+        advanceUntilIdle()
+        assertEquals(SessionState.Idle, s.state.value)
+        assertFalse(f.calls.contains("stopRec"))
+        assertFalse(f.calls.any { it.startsWith("transcribe") })
+        assertTrue(f.history.isEmpty())
     }
 
     @Test fun `edit rewrites the captured selection and can be undone for 10 s`() = runTest {

@@ -68,7 +68,13 @@ sphere stretches into a capsule toward the screen centre with a live waveform
 and an `m:ss` timer, "Edit" for a voice edit, red in the last 10 s before the
 2-minute cap), working (two soft lights circle inside), done (pop to 1.12x and
 a drawn tick, green fading back to indigo), error (shake, and the capsule
-shows the message). A press squashes it to 0.92x. Sizes run on springs
+shows the message). Slide to cancel: while holding, the sphere follows the
+finger along the capsule toward the middle and everything blends toward red;
+past 96 dp (or 70% of a short capsule) it is armed ("Cancel", a haptic tick,
+a ✕ on the sphere), and letting go there throws the recording away: nothing
+is sent to Groq or kept in history. The red sphere shrinks away where it was
+let go and a fresh one pops in at the edge. Volume-up while recording cancels
+the same way. A press squashes it to 0.92x. Sizes run on springs
 (`OrbMotion.kt`) and colours crossfade over 250 ms. The window is only as wide
 as the current shape, anchored on the docked side. When "Tuck away outside
 text fields" is on, it slides into the edge (14 dp showing, dimmed) while no
