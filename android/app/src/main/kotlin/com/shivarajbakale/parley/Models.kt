@@ -6,7 +6,7 @@ package com.shivarajbakale.parley
  */
 
 enum class OrbSize(val wire: String, val dp: Int) {
-    SMALL("small", 56), MEDIUM("medium", 64), LARGE("large", 72);
+    SMALL("small", 36), MEDIUM("medium", 44), LARGE("large", 52);
 
     companion object {
         fun fromWire(value: String): OrbSize? = values().firstOrNull { it.wire == value }

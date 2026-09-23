@@ -112,6 +112,7 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
         handler.removeCallbacks(pillTick)
         orb.destroy()
         handler.removeCallbacksAndMessages(null)
+        focusCheckPending = false
         scope.cancel()
     }
 
@@ -135,10 +136,21 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
         }
     }
 
-    private val focusCheck = Runnable { refreshFocus() }
+    private var focusCheckPending = false
+    private val focusCheck = Runnable {
+        focusCheckPending = false
+        refreshFocus()
+    }
 
+    /**
+     * Throttled, not debounced: a busy screen sends content-changed events
+     * without pause, and a debounce would keep pushing the check back, so the
+     * orb would notice the keyboard seconds late. At most one check is pending,
+     * and it runs [FOCUS_DEBOUNCE_MS] after the first event.
+     */
     private fun scheduleFocusCheck() {
-        handler.removeCallbacks(focusCheck)
+        if (focusCheckPending) return
+        focusCheckPending = true
         handler.postDelayed(focusCheck, FOCUS_DEBOUNCE_MS)
     }
 
@@ -176,16 +188,16 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
         if (!ready) return
         val c = store.config.value
         val busy = session.state.value.busy
-        val visible = c.orbEnabled && !store.paused.value &&
-            (busy || !c.hideOrbWithoutField || editableFocused)
-        orb.setVisible(visible)
+        // With nothing to type into, the orb tucks into the edge rather than vanishing.
+        orb.setTucked(c.hideOrbWithoutField && !busy && !editableFocused)
+        orb.setVisible(c.orbEnabled && !store.paused.value)
     }
 
-    // ---- pill -----------------------------------------------------------
+    // ---- capsule --------------------------------------------------------
 
     private val pillTick = Runnable { refreshPill() }
 
-    /** Sets the pill from the session, and keeps its timer ticking while listening. */
+    /** Sets the capsule from the session, and keeps its timer ticking while listening. */
     private fun refreshPill() {
         if (!ready) return
         handler.removeCallbacks(pillTick)

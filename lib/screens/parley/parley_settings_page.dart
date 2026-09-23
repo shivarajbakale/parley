@@ -101,7 +101,7 @@ class ParleySettingsPage extends ConsumerWidget {
                     },
                   ),
                   DSSwitchTile(
-                    label: 'Only show the orb in text fields',
+                    label: 'Tuck away outside text fields',
                     value: value.hideOrbWithoutField,
                     onChanged: (v) => set('hideOrbWithoutField', v),
                   ),

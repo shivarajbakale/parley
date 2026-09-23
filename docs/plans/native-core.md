@@ -60,15 +60,21 @@ idle ──hold orb / tap-tap-hold──► listening ──release──► tra
 `canRetrieveWindowContent=true`, `isAccessibilityTool=false`. Personal use,
 so there is no Play disclosure flow.
 
-**OrbView.** A 56/64/72 dp circle in a `TYPE_ACCESSIBILITY_OVERLAY` window
-(needs no `SYSTEM_ALERT_WINDOW`). It is draggable and docks to the nearest
-screen edge; the position is saved. States: idle (dim), listening (mode colour +
-mic-level ring from RMS), working (spinner ring), done (tick), error (shake).
-When "hide without field" is on, it shows only while an editable node has
-focus. Beside it, on the side facing the screen, an untouchable pill window
-says what it is doing: "Listening 0:04" / "Editing 0:04" with a tabular timer
-(red in the last 10 s before the 2-minute cap), then "Transcribing" or
-"Rewriting". It hides while the orb is dragged. It moves above the IME using `WindowInsets` of the focused window.
+**OrbView.** A 36/44/52 dp lit sphere in a `TYPE_ACCESSIBILITY_OVERLAY` window
+(needs no `SYSTEM_ALERT_WINDOW`), drawn as one shape that morphs. It is
+draggable (lifts 1.08x) and docks to the nearest edge with a small overshoot;
+the position is saved. States: idle (highlight slowly drifts), listening (the
+sphere stretches into a capsule toward the screen centre with a live waveform
+and an `m:ss` timer, "Edit" for a voice edit, red in the last 10 s before the
+2-minute cap), working (two soft lights circle inside), done (pop to 1.12x and
+a drawn tick, green fading back to indigo), error (shake, and the capsule
+shows the message). A press squashes it to 0.92x. Sizes run on springs
+(`OrbMotion.kt`) and colours crossfade over 250 ms. The window is only as wide
+as the current shape, anchored on the docked side. When "Tuck away outside
+text fields" is on, it slides into the edge (14 dp showing, dimmed) while no
+editable node has focus; a tap brings it out for 3 s. It glides above the IME
+(300 ms, the IME's easing), reading the keyboard window's bounds from a focus
+check that is throttled, not debounced, so a busy screen cannot starve it.
 
 **VolumeGestureDetector.** A pure Kotlin class that takes key down/up events
 with timestamps. Tap-tap-hold means two taps and a third press held longer

@@ -7,8 +7,9 @@
 - Standard verification path: `make check` (analyze, lints, Flutter tests, probe, goldens, `native-test` for the Kotlin core)
 - Device evidence: `make run-capture RUN_CAPTURE_ARGS="-d emulator-5554 -o <png>"`
 - Passing: parley-a01 (service + orb), a03 (volume gesture), a05 (Aurora), r01–r06 (all six screens)
-- Blocked: parley-a02 (dictation) and parley-a04 (voice edit) — both need the user's real Groq / MiniMax keys to prove live
-- Current blocker: no API keys on this machine; no physical phone run yet
+- In progress: parley-a02 (dictation) — proven live on the Oppo CPH2791 into Settings search; chat app + browser field still to try
+- Blocked: parley-a04 (voice edit) — needs a MiniMax key on the phone
+- Device: Oppo CPH2791 (Android 16) over USB, release build installed (`flutter build apk --release`, debug-signed)
 
 ## Session Log
 
@@ -16,10 +17,10 @@
 
 **Built**
 - Flutter: Aurora theme (Geist / Geist Mono / Instrument Serif, OKLCH seeds), Setup (6 steps), Overview, History, Transcript, Settings, API keys. Bridge interface, MethodChannel implementation and an offline `FakeParleyBridge`.
-- Kotlin (`android/app/src/main/kotlin/com/shivarajbakale/parley/`): accessibility service, orb overlay, volume-down tap-tap-hold detector, recorder + mic foreground service, Groq transcriber, MiniMax rewriter, injector (SET_TEXT → paste → clipboard), SQLite history, encrypted config, MethodChannel/EventChannel bridge. 92 JUnit/Robolectric tests.
+- Kotlin (`android/app/src/main/kotlin/com/shivarajbakale/parley/`): accessibility service, orb overlay, volume-down tap-tap-hold detector, recorder + mic foreground service, Groq transcriber, MiniMax rewriter, injector (SET_TEXT → paste → clipboard), SQLite history, encrypted config, MethodChannel/EventChannel bridge. 99 JUnit/Robolectric tests. Orb redesign: one morphing shape (sphere ↔ capsule with waveform + timer), springs, tuck into the edge, 44 dp default.
 
 **Verified**
-- `make check` green, including `native-test: 92 Kotlin test(s), 0 failure(s)`.
+- `make check` green, including `native-test: 99 Kotlin test(s), 0 failure(s)`.
 - Emulator (API 36): service connects, orb draws over Messages, orb turns to error with no key, hidden on password fields, the "Listening 0:04" pill sits beside the orb while holding, tap-tap-hold starts a session (driven via a `uinput` virtual keyboard — `adb input keyevent` never reaches the accessibility key filter). `verifyKey` hit the real Groq API and rejected a fake key. Evidence in `docs/evidence/`.
 
 **Next**

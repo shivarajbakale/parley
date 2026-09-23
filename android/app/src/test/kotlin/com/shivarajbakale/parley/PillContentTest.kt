@@ -19,12 +19,12 @@ class PillContentTest {
         assertEquals("2:00", PillContent.clock(120_000))
     }
 
-    @Test fun `dictation says Listening with the elapsed time`() {
-        assertEquals(PillContent("Listening", "0:04", PillContent.Tone.DICTATION), listening(SessionMode.DICTATION, 4_200))
+    @Test fun `dictation shows just the elapsed time`() {
+        assertEquals(PillContent(null, "0:04", PillContent.Tone.DICTATION), listening(SessionMode.DICTATION, 4_200))
     }
 
-    @Test fun `voice edit says Editing in the edit tone`() {
-        assertEquals(PillContent("Editing", "0:12", PillContent.Tone.EDIT), listening(SessionMode.EDIT, 12_000))
+    @Test fun `voice edit says Edit in the edit tone`() {
+        assertEquals(PillContent("Edit", "0:12", PillContent.Tone.EDIT), listening(SessionMode.EDIT, 12_000))
     }
 
     @Test fun `the last ten seconds before the cap warn`() {
@@ -39,22 +39,18 @@ class PillContentTest {
         assertEquals("0:00", listening(SessionMode.DICTATION, -3_000).timer)
     }
 
-    @Test fun `working states say what is happening, without a timer`() {
+    @Test fun `an error opens the capsule with its message`() {
         assertEquals(
-            PillContent("Transcribing", null, PillContent.Tone.DICTATION),
-            PillContent.forState(SessionState.Transcribing(SessionMode.DICTATION), start),
+            PillContent("No Groq key", null, PillContent.Tone.WARN),
+            PillContent.forState(SessionState.Error("No Groq key"), start),
         )
-        assertEquals(
-            PillContent("Transcribing", null, PillContent.Tone.EDIT),
-            PillContent.forState(SessionState.Transcribing(SessionMode.EDIT), start),
-        )
-        assertEquals(PillContent("Rewriting", null, PillContent.Tone.EDIT), PillContent.forState(SessionState.Rewriting, start))
     }
 
-    @Test fun `idle, inserting, done and error hide the pill`() {
+    @Test fun `working, done and idle keep the orb a circle`() {
         assertNull(PillContent.forState(SessionState.Idle, start))
+        assertNull(PillContent.forState(SessionState.Transcribing(SessionMode.DICTATION), start))
+        assertNull(PillContent.forState(SessionState.Rewriting, start))
         assertNull(PillContent.forState(SessionState.Inserting(SessionMode.DICTATION), start))
         assertNull(PillContent.forState(SessionState.Done(SessionMode.DICTATION, InsertMethod.SET_TEXT), start))
-        assertNull(PillContent.forState(SessionState.Error("No Groq key"), start))
     }
 }
