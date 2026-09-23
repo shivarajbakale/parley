@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs>
+    <linearGradient id="bg" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#2b2170"/>
+      <stop offset="0.55" stop-color="#15113d"/>
+      <stop offset="1" stop-color="#08071c"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.2" cy="0.1" r="0.8">
+      <stop offset="0" stop-color="#8f7dff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#8f7dff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0.9" cy="1" r="0.75">
+      <stop offset="0" stop-color="#2ee6c5" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#2ee6c5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.35" stop-color="#cfc6ff"/>
+      <stop offset="1" stop-color="#7d6bff"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.18"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+    <clipPath id="body"><rect x="100" y="100" width="824" height="824" rx="188"/></clipPath>
+  </defs><rect width="1024" height="1024" fill="url(#bg)"/><rect width="1024" height="1024" fill="url(#glowA)"/><rect width="1024" height="1024" fill="url(#glowB)"/></svg>

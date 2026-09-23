@@ -150,11 +150,22 @@ flutter:
 #   dart run flutter_launcher_icons
 #   dart run flutter_native_splash:create
 # tool/rename_app.sh runs both for you after setting the name + bundle id.
+# Parley's icon is the Mac app's (parley/build/icon.svg): a glass pill of
+# waveform bars on an indigo squircle. assets/icon/icon.png is that render,
+# for launchers without adaptive icons. The adaptive-*.svg layers split it:
+# the gradient full-bleed behind, the pill and bars scaled so the Mac
+# squircle's 824px body fills the 72dp visible area, and bars alone for
+# Android 13 themed icons. Re-render the PNGs from the SVGs (headless Chrome
+# at 1024x1024, transparent background), then `dart run flutter_launcher_icons`.
 flutter_launcher_icons:
   image_path: "assets/icon/icon.png"
-  android: true
-  ios: true
-  remove_alpha_ios: true
+  android: "ic_launcher"
+  adaptive_icon_background: "assets/icon/adaptive-background.png"
+  adaptive_icon_foreground: "assets/icon/adaptive-foreground.png"
+  adaptive_icon_monochrome: "assets/icon/adaptive-monochrome.png"
+  # The layers are drawn on the full 108dp canvas already; no extra inset.
+  adaptive_icon_foreground_inset: 0
+  ios: false
   min_sdk_android: 21
 
 flutter_native_splash:

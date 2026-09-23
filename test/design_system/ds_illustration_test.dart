@@ -111,10 +111,13 @@ void main() {
       // theme, one density and one brand hue.
       // The teeth of this test are the two checks around this one, and
       // neither is relaxed: no illustration package, and nothing under
-      // `lib/design_system/` naming a file on disk.
+      // `lib/design_system/` naming a file on disk. `assets/icon/` is the
+      // launcher-icon source `flutter_launcher_icons` and `tool/rename_app.sh`
+      // read (docs/MODULES.md); it is not in the Flutter asset bundle and no
+      // widget can draw it.
       expect(
         Directory('assets').listSync().map((e) => e.path.split('/').last),
-        unorderedEquals(<String>['fonts', 'images']),
+        unorderedEquals(<String>['fonts', 'images', 'icon']),
       );
       for (final source in Directory(
         'lib/design_system',

@@ -247,6 +247,25 @@
         "ui-evaluator review -> Revise; applied: Clear search label, setup card names the next step, duplicate orb removed, card surface matches the hero"
       ],
       "notes": "Spec agreed with the owner in chat on 2026-09-24: Avenir rejected (Monotype licence, not bundleable); Nunito Sans + Nunito chosen. Scenes are CustomPainter in lib/screens/parley/empty_scene.dart, loop on OrbMotion.breathe, hold still under reduce-motion and flutter test. Built on branch nunito-empty-states in a worktree while the orb redesign was in flight in the main tree."
+    },
+    {
+      "id": "parley-r08",
+      "priority": 13,
+      "area": "native",
+      "title": "Launcher icon matches the Mac app",
+      "user_visible_behavior": "Parley's Android launcher icon is the Mac app's icon (a glass pill of waveform bars on an indigo squircle), as an adaptive icon that reads correctly under circle and squircle masks, with a monochrome layer for Android 13 themed icons.",
+      "status": "passing",
+      "verification": [
+        "make check",
+        "adb install on emulator-5554; launcher search shows the icon"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 223 file(s) scanned, 0 violation(s)",
+        "make check -> All tests passed! (unit, ui-probe 1915, goldens 131)",
+        "make check -> native-test: 99 Kotlin test(s), 0 failure(s)",
+        "adb install -r (emulator-5554) -> Success; docs/evidence/parley-r08/launcher.png shows the icon; notes in docs/evidence/parley-r08.md"
+      ],
+      "notes": "Source: parley/build/icon.svg copied to assets/icon/. Adaptive layers are SVGs in assets/icon/ rendered to PNG with headless Chrome; flutter_launcher_icons generates the mipmaps with adaptive_icon_foreground_inset 0. iOS left off. Built while parley-a02 was in_progress in another session; r08 is a self-contained asset change."
     }
   ]
 }
