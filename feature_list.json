@@ -149,9 +149,10 @@
       "evidence": [
         "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
         "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
-        "make check -> All tests passed!"
+        "make check -> All tests passed!",
+        "make check exit 0 on 2026-09-24: native-test 106 Kotlin test(s), 0 failure(s) — includes four new refusal tests (password field, hint-only field, over-cap field, and the dictation-into-password guard) plus the TextSplicer cap boundary."
       ],
-      "notes": "docs/plans/native-core.md build step 6. BLOCKED: voice edit needs the user's MiniMax key (and a Groq key). MiniMaxRewriter is covered by MockWebServer tests; not exercised live."
+      "notes": "docs/plans/native-core.md build step 6. BLOCKED: voice edit needs the user's MiniMax key (and a Groq key). MiniMaxRewriter is covered by MockWebServer tests; not exercised live. Hardening done 2026-09-24 without a key: an edit is now refused before the mic opens, with a distinct reason — No text field / Can't edit a password field / Nothing to edit / Too much text to edit. FieldTarget carries `secure` from node.isPassword, so a password field's text never reaches MiniMax, and TextSplicer.MAX_EDIT_CHARS caps a whole-field rewrite at 8000 characters, matching the Mac app's edit-target.ts. Still BLOCKED on a live MiniMax key for the on-device rewrite and undo."
     },
     {
       "id": "parley-r03",

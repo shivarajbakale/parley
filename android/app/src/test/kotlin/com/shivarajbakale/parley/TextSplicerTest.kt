@@ -129,4 +129,10 @@ class TextSplicerTest {
         assertEquals(3, TextSplicer.wordCount(" one  two\nthree "))
         assertEquals(2, TextSplicer.wordCount("don't stop."))
     }
+
+    @Test fun `the edit cap is a ceiling, not a limit on ordinary fields`() {
+        assertFalse(TextSplicer.tooLongToEdit(""))
+        assertFalse(TextSplicer.tooLongToEdit("a".repeat(TextSplicer.MAX_EDIT_CHARS)))
+        assertTrue(TextSplicer.tooLongToEdit("a".repeat(TextSplicer.MAX_EDIT_CHARS + 1)))
+    }
 }

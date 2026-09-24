@@ -266,4 +266,31 @@ class SessionTest {
         assertFalse(f.calls.contains("haptic"))
         assertEquals(false, f.inserted.single().third)
     }
+
+    @Test fun `edit refuses a password field before the mic opens`() = runTest {
+        val (s, f) = session { target = FieldTarget("com.example.bank", 4, "hunter2", false, 0, 0, secure = true) }
+        assertFalse(s.start(SessionMode.EDIT))
+        assertEquals(SessionState.Error("Can't edit a password field"), s.state.value)
+        assertTrue(f.calls.isEmpty())
+    }
+
+    @Test fun `dictation into a password field is still allowed`() = runTest {
+        val (s, _) = session { target = FieldTarget("com.example.bank", 4, "", false, 0, 0, secure = true) }
+        assertTrue(s.start(SessionMode.DICTATION))
+    }
+
+    @Test fun `edit refuses a field holding only hint text`() = runTest {
+        val (s, f) = session { target = FieldTarget("com.example.chat", 7, "Type a message", true, 0, 0) }
+        assertFalse(s.start(SessionMode.EDIT))
+        assertEquals(SessionState.Error("Nothing to edit"), s.state.value)
+        assertTrue(f.calls.isEmpty())
+    }
+
+    @Test fun `edit refuses more text than it will send to minimax`() = runTest {
+        val long = "a".repeat(TextSplicer.MAX_EDIT_CHARS + 1)
+        val (s, f) = session { target = FieldTarget("com.example.notes", 9, long, false, 0, 0) }
+        assertFalse(s.start(SessionMode.EDIT))
+        assertEquals(SessionState.Error("Too much text to edit"), s.state.value)
+        assertTrue(f.calls.isEmpty())
+    }
 }

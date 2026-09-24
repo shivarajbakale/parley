@@ -23,6 +23,8 @@ data class FieldTarget(
     val isShowingHint: Boolean,
     val selStart: Int,
     val selEnd: Int,
+    /** A password field: nothing in it is Parley's to send anywhere. */
+    val secure: Boolean = false,
     val handle: Any? = null,
 )
 
@@ -108,7 +110,15 @@ class Session(private val scope: CoroutineScope, private val deps: SessionDeps) 
             return fail(MiniMaxRewriter.messageFor(ApiException.Kind.NO_KEY))
         }
         target = deps.captureTarget()
-        if (requested == SessionMode.EDIT && target == null) return fail("No text field")
+        // An edit is refused before the mic opens, so the user never speaks an
+        // instruction into a request that was already impossible.
+        if (requested == SessionMode.EDIT) {
+            val t = target ?: return fail("No text field")
+            if (t.secure) return fail("Can't edit a password field")
+            val source = TextSplicer.editSource(t.text, t.isShowingHint, t.selStart, t.selEnd)
+            if (source.isBlank()) return fail("Nothing to edit")
+            if (TextSplicer.tooLongToEdit(source)) return fail("Too much text to edit")
+        }
 
         _state.value = SessionState.Listening(requested, deps.now())
         if (deps.config().haptics) deps.haptic()

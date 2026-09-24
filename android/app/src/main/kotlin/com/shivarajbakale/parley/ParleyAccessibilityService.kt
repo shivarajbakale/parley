@@ -369,6 +369,7 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
             isShowingHint = hint,
             selStart = node.textSelectionStart,
             selEnd = node.textSelectionEnd,
+            secure = node.isPassword,
             handle = node,
         )
     }

@@ -18,6 +18,12 @@ object TextSplicer {
         val rangeEnd: Int,
     )
 
+    /** Past this, a "field" is a document or a page, not something to rewrite whole. */
+    const val MAX_EDIT_CHARS = 8000
+
+    /** A whole-field rewrite of a document-sized field is not what the gesture is for. */
+    fun tooLongToEdit(source: String): Boolean = source.length > MAX_EDIT_CHARS
+
     /** Characters after which a dictated word should not get a space. */
     private const val NO_SPACE_AFTER = "([{\"'“‘/-\n\t "
     /** A dictation that starts with one of these attaches to the previous word. */
