@@ -16,14 +16,14 @@ class SlideZonesTest {
     /** A capsule with room for both detents. */
     private fun roomy() = SlideZones.thresholds(density, track = dp(200f), editable = true)
 
-    @Test fun `a roomy capsule uses the full distances`() {
+    @Test fun `cancel is the end of the travel and edit is its midpoint`() {
         val t = roomy()
-        assertEquals(dp(SlideZones.EDIT_DP), t.editPx!!, 0.5f)
-        assertEquals(dp(SlideZones.CANCEL_DP), t.cancelPx, 0.5f)
+        assertEquals(dp(200f), t.cancelPx, 0.5f)
+        assertEquals(dp(100f), t.editPx!!, 0.5f)
     }
 
-    @Test fun `a short capsule compresses but keeps the detents apart`() {
-        val t = SlideZones.thresholds(density, track = dp(60f), editable = true)
+    @Test fun `a short capsule falls back on the floors`() {
+        val t = SlideZones.thresholds(density, track = dp(30f), editable = true)
         val edit = t.editPx!!
         assertEquals(dp(SlideZones.EDIT_FLOOR_DP), edit, 0.5f)
         assertEquals(dp(SlideZones.CANCEL_FLOOR_DP), t.cancelPx, 0.5f)
@@ -33,7 +33,7 @@ class SlideZonesTest {
     @Test fun `no edit detent when the field cannot be edited`() {
         val t = SlideZones.thresholds(density, track = dp(200f), editable = false)
         assertNull(t.editPx)
-        assertEquals(dp(SlideZones.CANCEL_DP), t.cancelPx, 0.5f)
+        assertEquals(dp(200f), t.cancelPx, 0.5f)
     }
 
     @Test fun `sliding out passes rest, then edit, then cancel`() {

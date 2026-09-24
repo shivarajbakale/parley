@@ -94,8 +94,7 @@ fun lerpArgb(from: Int, to: Int, t: Float): Int {
 enum class SlideZone { DICTATE, EDIT, CANCEL }
 
 object SlideZones {
-    const val EDIT_DP = 48f
-    const val CANCEL_DP = 96f
+    /** A detent closer than this to the one below it is not a separate place. */
     const val EDIT_FLOOR_DP = 28f
     const val CANCEL_FLOOR_DP = 56f
     const val HYSTERESIS_DP = 8f
@@ -130,15 +129,15 @@ object SlideZones {
     }
 
     /**
-     * [track] is the room the open capsule leaves to slide along. A short
-     * capsule compresses both distances, but the floors keep the two detents
-     * far enough apart to be separate places.
+     * [track] is how far the sphere can travel inside the open capsule. Cancel
+     * is the end of that travel — so the cross is drawn at the end of the
+     * capsule, not floating short of it — and edit is the midpoint. The floors
+     * keep the two far enough apart to be separate places on a short capsule.
      */
     fun thresholds(density: Float, track: Float, editable: Boolean): Thresholds {
         fun dp(v: Float) = v * density
-        val cancel = min(dp(CANCEL_DP), track * 0.7f).coerceAtLeast(dp(CANCEL_FLOOR_DP))
-        // Halfway to the cancel detent, so the two stay evenly spaced as they compress.
-        val edit = if (editable) min(dp(EDIT_DP), cancel * 0.5f).coerceAtLeast(dp(EDIT_FLOOR_DP)) else null
+        val cancel = track.coerceAtLeast(dp(CANCEL_FLOOR_DP))
+        val edit = if (editable) (cancel * 0.5f).coerceAtLeast(dp(EDIT_FLOOR_DP)) else null
         return Thresholds(edit, cancel, dp(HYSTERESIS_DP))
     }
 }

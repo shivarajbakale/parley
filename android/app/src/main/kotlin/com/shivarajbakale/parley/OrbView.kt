@@ -180,7 +180,6 @@ class OrbView(context: Context) : View(context) {
         set(value) {
             if (field == value) return
             field = value
-            applyExtra()
             invalidate()
         }
 
@@ -203,8 +202,14 @@ class OrbView(context: Context) : View(context) {
     /** Letting go now would throw the recording away. */
     val cancelArmed: Boolean get() = zone == SlideZone.CANCEL
 
-    /** The room an open capsule leaves to slide along. */
-    val capsuleTrack: Float get() = lastOpenExtra
+    /**
+     * How far the sphere can travel inside a listening capsule, measured from
+     * the capsule it is about to open rather than the last one it opened — the
+     * detents have to be known before the first hold.
+     */
+    val capsuleTrack: Float
+        get() = (extraFor(PillContent(null, "0:00", PillContent.Tone.DICTATION)) - outerPad)
+            .coerceAtLeast(0f)
 
     /**
      * The recording was thrown away: shake, and let the red drain back to the
@@ -345,6 +350,7 @@ class OrbView(context: Context) : View(context) {
     private val tickPart = Path()
     private val tickMeasure = PathMeasure()
     private val clipCircle = Path()
+    private val micRect = RectF()
 
     private val barW = dp(3f)
     private val barGap = dp(2.5f)
@@ -379,8 +385,7 @@ class OrbView(context: Context) : View(context) {
         val budget = maxWidthPx - 2 * marginPx - diameterPx
         val content = if (c.timer != null) textWidth(c) + waveGap + wavesW else textWidth(c)
         // Room for the contents, or for the sphere to reach the far detent.
-        val needed = max(orbGap + content + outerPad, trackPx + diameterPx / 2f + outerPad)
-        return min(needed, budget).coerceAtLeast(0f)
+        return min(orbGap + content + outerPad, budget).coerceAtLeast(0f)
     }
 
     // ---- palette --------------------------------------------------------
@@ -520,8 +525,10 @@ class OrbView(context: Context) : View(context) {
         }
         drawSphere(canvas, cx, cy, r, stops, !fadingNow && c == 0f, now, still)
         if (c > 0.55f) drawCross(canvas, cx, cy, r, ((c - 0.55f) / 0.45f).coerceIn(0f, 1f))
-        // Parked on the edit detent: the sphere has taken the pencil.
-        if (zone == SlideZone.EDIT) drawPencil(canvas, cx, cy, r, tracks.value)
+        // Parked on a detent: the sphere wears that detent's glyph.
+        val onTrackNow = tracks.value.coerceIn(0f, 1f)
+        if (zone == SlideZone.EDIT) drawPencil(canvas, cx, cy, r, onTrackNow)
+        if (zone == SlideZone.DICTATE) drawMic(canvas, cx, cy, r, onTrackNow)
 
         when (visual) {
             Visual.WORKING_DICTATION, Visual.WORKING_EDIT -> drawSweep(canvas, cx, cy, r, t, still)
@@ -610,18 +617,22 @@ class OrbView(context: Context) : View(context) {
         canvas.clipRect(rect)
         val baseline = cy - (labelPaint.descent() + labelPaint.ascent()) / 2
 
-        // The recording and the track never share the capsule: one fades out
-        // as the other fades in, so nothing can overlap.
+        // Sliding does not stop the recording, so the waveform never leaves.
+        // The timer does: the sphere travels over where it sits.
         val onTrack = tracks.value.coerceIn(0f, 1f)
         val a = shown * (1f - onTrack)
         if (onTrack > 0f) drawTrack(canvas, cy, r, home, shown * onTrack)
-        if (a <= 0f) {
+        val cc = content
+        if (a <= 0f && cc.timer == null) {
             canvas.restore()
             return
         }
-        val cc = content
 
         if (cc.timer == null) {
+            if (a <= 0f) {
+                canvas.restore()
+                return
+            }
             // A message: beside the sphere, cut short if the screen is too narrow.
             val room = extraFor(cc) - orbGap - outerPad
             val message = TextUtils.ellipsize(cc.label ?: "", labelPaint, room, TextUtils.TruncateAt.END).toString()
@@ -635,17 +646,34 @@ class OrbView(context: Context) : View(context) {
         // Listening: [label] timer beside the sphere, the waveform beyond it.
         val textW = textWidth(cc)
         val textLeft = if (dockRight) cx - r - orbGap - textW else cx + r + orbGap
-        var x = textLeft
-        cc.label?.let {
-            labelPaint.alpha = (255 * a).toInt()
-            canvas.drawText(it, x, baseline, labelPaint)
-            x += labelPaint.measureText(it) + labelGap
+        if (a > 0f) {
+            var x = textLeft
+            cc.label?.let {
+                labelPaint.alpha = (255 * a).toInt()
+                canvas.drawText(it, x, baseline, labelPaint)
+                x += labelPaint.measureText(it) + labelGap
+            }
+            timerPaint.color = if (cc.tone == PillContent.Tone.WARN) WARN else TIMER
+            timerPaint.alpha = (Color.alpha(timerPaint.color) * a).toInt()
+            canvas.drawText(cc.timer, x, baseline, timerPaint)
         }
-        timerPaint.color = if (cc.tone == PillContent.Tone.WARN) WARN else TIMER
-        timerPaint.alpha = (Color.alpha(timerPaint.color) * a).toInt()
-        canvas.drawText(cc.timer, x, baseline, timerPaint)
 
-        // Newest bar nearest the text, older ones trailing off.
+        // At rest the waveform runs out ahead of the sphere, past the timer.
+        // Once the sphere travels it moves behind, into the room just vacated,
+        // so the recording stays visible while the detents own the way ahead.
+        val ghostGap = r * 0.62f + waveGap
+        val behind = onTrack > 0f
+        val waveStart = if (behind) {
+            if (dockRight) home - ghostGap else home + ghostGap
+        } else {
+            if (dockRight) textLeft - waveGap else textLeft + textW + waveGap
+        }
+        val waveLimit = if (behind) {
+            if (dockRight) cx + r + waveGap else cx - r - waveGap
+        } else {
+            if (dockRight) rect.left + outerPad else rect.right - outerPad
+        }
+        val waveA = shown
         barPaint.color = toneColor(cc)
         val minH = dp(3f)
         val maxH = diameterPx * 0.52f
@@ -653,8 +681,11 @@ class OrbView(context: Context) : View(context) {
         for (age in 0 until WAVE_BARS) {
             val h = max(minH, wave[age] * maxH)
             val step = age * (barW + barGap)
-            val left = if (dockRight) textLeft - waveGap - step - barW else textLeft + textW + waveGap + step
-            barPaint.alpha = ((255 - age * 8) * a).toInt().coerceAtLeast(0)
+            val left = if (dockRight) waveStart - step - barW else waveStart + step
+            // Stop where the bars would run into the sphere or the capsule end.
+            if (dockRight && left < waveLimit) break
+            if (!dockRight && left + barW > waveLimit) break
+            barPaint.alpha = ((255 - age * 8) * waveA).toInt().coerceAtLeast(0)
             canvas.drawRoundRect(left, cy - h / 2, left + barW, cy + h / 2, rr, rr, barPaint)
         }
         canvas.restore()
@@ -672,16 +703,37 @@ class OrbView(context: Context) : View(context) {
      */
     private fun drawTrack(canvas: Canvas, cy: Float, r: Float, home: Float, alpha: Float) {
         fun spot(offset: Float, draw: (Float) -> Unit) {
-            if (offset <= 0f) return
+            if (offset < 0f) return
             draw(home + if (dockRight) -offset else offset)
         }
         val gr = r * 0.62f
-        if (zone != SlideZone.EDIT) {
-            spot(editDetentPx) { x -> drawPencil(canvas, x, cy, gr, alpha * 0.55f) }
+        val ghost = alpha * 0.55f
+        // Home is a detent too: letting go there dictates.
+        if (zone != SlideZone.DICTATE) spot(0f) { x -> drawMic(canvas, x, cy, gr, ghost) }
+        if (zone != SlideZone.EDIT && editDetentPx > 0f) {
+            spot(editDetentPx) { x -> drawPencil(canvas, x, cy, gr, ghost) }
         }
         if (zone != SlideZone.CANCEL) {
-            spot(trackPx) { x -> drawCross(canvas, x, cy, gr, alpha * 0.55f) }
+            spot(trackPx) { x -> drawCross(canvas, x, cy, gr, ghost) }
         }
+    }
+
+    /** The mic that marks dictation, on the track or inside the sphere. */
+    private fun drawMic(canvas: Canvas, cx: Float, cy: Float, r: Float, alpha: Float) {
+        if (alpha <= 0f) return
+        markPaint.strokeWidth = dp(2.5f)
+        markPaint.alpha = (255 * alpha.coerceIn(0f, 1f)).toInt()
+        val capW = r * 0.34f
+        val capTop = cy - r * 0.46f
+        val capBottom = cy + r * 0.06f
+        // The capsule of the mic itself.
+        micRect.set(cx - capW, capTop, cx + capW, capBottom)
+        canvas.drawRoundRect(micRect, capW, capW, markPaint)
+        // The cradle under it, and the stem down to the base.
+        micRect.set(cx - capW * 1.6f, cy - r * 0.16f, cx + capW * 1.6f, cy + r * 0.34f)
+        canvas.drawArc(micRect, 0f, 180f, false, markPaint)
+        canvas.drawLine(cx, cy + r * 0.34f, cx, cy + r * 0.56f, markPaint)
+        markPaint.alpha = 255
     }
 
     /** The ✎ that marks an edit, on the track or inside the sphere. */
