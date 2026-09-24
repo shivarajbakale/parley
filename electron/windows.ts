@@ -21,10 +21,23 @@ export const ORB_SIZE = { width: 260, height: 110 };
 /** The pill's glow already pads it by 16 px, so the capsule sits about 20 px up. */
 const ORB_BOTTOM_MARGIN = 4;
 
-export function orbBounds(workArea: Rect): Rect {
+/**
+ * Bottom-centred on `windowBounds` when known — the focused window, not just
+ * its display, so multiple windows on the same screen still get the orb
+ * placed where the user is actually looking. Falls back to `workArea` when no
+ * window bounds are known yet (the instant, pre-correction show). Either way
+ * the result is clamped inside `workArea`, since a small or partly offscreen
+ * window can otherwise push the orb past the display's edge.
+ */
+export function orbBounds(workArea: Rect, windowBounds: Rect | null = null): Rect {
+  const anchor = windowBounds ?? workArea;
+  const x = anchor.x + (anchor.width - ORB_SIZE.width) / 2;
+  const y = anchor.y + anchor.height - ORB_SIZE.height - ORB_BOTTOM_MARGIN;
+  const maxX = workArea.x + workArea.width - ORB_SIZE.width;
+  const maxY = workArea.y + workArea.height - ORB_SIZE.height;
   return {
-    x: Math.round(workArea.x + (workArea.width - ORB_SIZE.width) / 2),
-    y: Math.round(workArea.y + workArea.height - ORB_SIZE.height - ORB_BOTTOM_MARGIN),
+    x: Math.round(Math.min(Math.max(x, workArea.x), maxX)),
+    y: Math.round(Math.min(Math.max(y, workArea.y), maxY)),
     ...ORB_SIZE,
   };
 }

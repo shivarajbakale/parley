@@ -349,10 +349,19 @@ async function startApp() {
       orbWindow?.showInactive();
       const shownFor = orbWindow;
       void readFrontWindowBounds().then((bounds) => {
-        if (!bounds || !shownFor || orbWindow !== shownFor || !shownFor.isVisible()) return;
+        if (!shownFor || orbWindow !== shownFor || !shownFor.isVisible()) return;
+        if (!bounds) {
+          // Untrusted, timed out, or an app that never reports a focused
+          // window — the orb is left at the cursor's display; not fatal, but
+          // worth a trace since it means the fallback fired.
+          console.warn('[orb] frontWindowBounds unavailable, orb stays at cursor display');
+          return;
+        }
+        // Always reposition onto the actual window, even when it shares the
+        // cursor's display: orbBounds(workArea) alone only ever bottom-centers
+        // on the whole screen, never on the window the user is looking at.
         const windowDisplay = screen.getDisplayMatching(bounds);
-        if (windowDisplay.id === cursorDisplay.id) return;
-        shownFor.setBounds(orbBounds(windowDisplay.workArea));
+        shownFor.setBounds(orbBounds(windowDisplay.workArea, bounds));
       });
     },
     hide: () => orbWindow?.hide(),
