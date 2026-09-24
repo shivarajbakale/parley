@@ -50,8 +50,10 @@ export interface SessionDeps {
    * `explain.ask` decides on its own whether a thread is already open. */
   selection: { read(): Promise<SelectionSnapshot | null> };
   explain: { ask(question?: string, snapshot?: SelectionSnapshot | null): Promise<void> };
-  /** The personal dictionary: words for Whisper going in, spelling fixes coming out. */
-  dictionary: { prompt(): string; apply(text: string): string };
+  /** The personal dictionary: words for the transcriber going in, spelling
+   * fixes coming out. `prompt` is Whisper's sentence, `terms` the same words
+   * as a list for a keyterm provider. */
+  dictionary: { prompt(): string; terms(): string[]; apply(text: string): string };
   getSettings(): Settings;
   hasApiKey(): boolean;
   hasRewriteKey(): boolean;
@@ -166,12 +168,13 @@ export function createSession(deps: SessionDeps): Session {
         }
         state = 'transcribing';
         try {
+          const fromSelection = selectionVocabulary(snapshot?.text ?? '');
           const heard = await deps.transcriber.transcribe(
             { data: audio.data, mimeType: audio.mimeType },
             {
-              vocabulary: [deps.dictionary.prompt(), selectionVocabulary(snapshot?.text ?? '')]
-                .filter(Boolean)
-                .join(', '),
+              vocabulary: [deps.dictionary.prompt(), fromSelection].filter(Boolean).join(', '),
+              // Words the user is looking at right now lead, as session words do.
+              terms: [...fromSelection.split(', ').filter(Boolean), ...deps.dictionary.terms()],
             }
           );
           const spoken = heard && deps.dictionary.apply(heard);
@@ -196,7 +199,7 @@ export function createSession(deps: SessionDeps): Session {
         const [heard, target] = await Promise.all([
           deps.transcriber.transcribe(
             { data: audio.data, mimeType: audio.mimeType },
-            { vocabulary: deps.dictionary.prompt() }
+            { vocabulary: deps.dictionary.prompt(), terms: deps.dictionary.terms() }
           ),
           mode === 'edit' ? deps.editTargets.capture() : null,
         ]);

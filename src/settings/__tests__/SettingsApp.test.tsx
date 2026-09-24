@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ThemeProvider } from '@/components/theme-provider';
+import { toast } from '@/lib/notify';
 
 import { DEFAULT_SETTINGS, type ParleyApi } from '../../../electron/types';
 import { SettingsApp } from '../SettingsApp';
@@ -29,6 +30,16 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       hasRewriteKey: true,
     })),
     setApiKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
+    setDeepgramKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
+    setTranscriptionProvider: vi.fn().mockImplementation(async transcriptionProvider => ({
+      ...DEFAULT_SETTINGS,
+      tourSeen: true,
+      onboardingComplete: true,
+      transcriptionProvider,
+      hasApiKey: false,
+      hasRewriteKey: true,
+      wordsDictated: 0,
+    })),
     setRewriteKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     getPermissions: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
     requestPermission: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
@@ -206,5 +217,100 @@ describe('SettingsApp', () => {
     const alert = await screen.findByText('Could not test the key');
     expect(alert).toBeInTheDocument();
     expect(screen.queryByText(/gsk_secret/)).not.toBeInTheDocument();
+  });
+  describe('transcription provider', () => {
+    const view = (over: Record<string, unknown> = {}) => ({
+      ...DEFAULT_SETTINGS,
+      tourSeen: true,
+      onboardingComplete: true,
+      hasApiKey: true,
+      hasRewriteKey: true,
+      wordsDictated: 0,
+      ...over,
+    });
+
+    it('switches to Deepgram and tests and saves a Deepgram key, not a Groq one', async () => {
+      // Stateful, as main is: the refetch after a saved key sees the switch.
+      let current = view({ hasApiKey: false });
+      const api = mockApi({
+        getSettings: vi.fn(async () => current),
+        setTranscriptionProvider: vi.fn(async transcriptionProvider => {
+          current = { ...current, transcriptionProvider };
+          return current;
+        }),
+      });
+      mount(api);
+      expect(await screen.findByText('Groq’s Whisper turns speech into text.')).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Whisper (Groq)' })).toBeChecked();
+
+      await userEvent.click(screen.getByRole('radio', { name: 'Deepgram Nova-3' }));
+      await waitFor(() => expect(api.setTranscriptionProvider).toHaveBeenCalledWith('deepgram'));
+      expect(
+        await screen.findByText('Deepgram Nova-3 turns speech into text.')
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText('Groq API key')).not.toBeInTheDocument();
+
+      await userEvent.type(await screen.findByLabelText('Deepgram API key'), 'dg_abc');
+      await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
+      await waitFor(() => expect(api.setDeepgramKey).toHaveBeenCalledWith('dg_abc'));
+      expect(api.setApiKey).not.toHaveBeenCalled();
+      expect(await screen.findByText('Key works')).toBeInTheDocument();
+    });
+
+    it('keeps the form open when switching to a provider that already has a key', async () => {
+      const api = mockApi({
+        getSettings: vi.fn().mockResolvedValue(view({ hasApiKey: false })),
+        setTranscriptionProvider: vi.fn(async transcriptionProvider =>
+          view({ transcriptionProvider, hasApiKey: true })
+        ),
+      });
+      mount(api);
+      await userEvent.click(await screen.findByRole('radio', { name: 'Deepgram Nova-3' }));
+      expect(await screen.findByText('Parley is ready')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Replace transcription key' })).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      );
+    });
+
+    it('shows an alert when switching the provider rejects', async () => {
+      const api = mockApi({
+        getSettings: vi.fn().mockResolvedValue(view({ hasApiKey: false })),
+        setTranscriptionProvider: vi.fn().mockRejectedValue(new Error('disk full')),
+      });
+      mount(api);
+      await userEvent.click(await screen.findByRole('radio', { name: 'Deepgram Nova-3' }));
+      expect(
+        await screen.findByText('Could not switch the transcription provider')
+      ).toBeInTheDocument();
+    });
+
+    it('names Deepgram in the vocabulary description when it is selected', async () => {
+      mount(
+        mockApi({
+          getSettings: vi.fn().mockResolvedValue(view({ transcriptionProvider: 'deepgram' })),
+        })
+      );
+      await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
+      expect(
+        await screen.findByText('Names and jargon Deepgram should recognise, separated by commas.')
+      ).toBeInTheDocument();
+    });
+
+    it('names the selected provider’s key when a refused gesture opened the window', async () => {
+      const error = vi.spyOn(toast, 'error').mockImplementation(() => {});
+      mount(
+        mockApi({
+          getSettings: vi
+            .fn()
+            .mockResolvedValue(view({ transcriptionProvider: 'deepgram', hasApiKey: false })),
+          takeBlockedReason: vi.fn(async () => 'apiKey' as const),
+        })
+      );
+      await waitFor(() =>
+        expect(error).toHaveBeenCalledWith('Add a Deepgram API key before trying the gesture.')
+      );
+      error.mockRestore();
+    });
   });
 });

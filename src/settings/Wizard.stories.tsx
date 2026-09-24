@@ -25,6 +25,11 @@ function withParley(settings: SettingsView, permissions: PermissionStatus) {
         return current;
       },
       setApiKey: async () => ({ ok: true, message: 'Key works' }),
+      setDeepgramKey: async () => ({ ok: true, message: 'Key works' }),
+      setTranscriptionProvider: async transcriptionProvider => {
+        current = { ...current, transcriptionProvider };
+        return current;
+      },
       setRewriteKey: async () => ({ ok: true, message: 'Key works' }),
       getPermissions: async () => permissions,
       requestPermission: async () => permissions,

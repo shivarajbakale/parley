@@ -16,9 +16,9 @@ an agent needs *in order to find its way around* belongs here rather than there.
 | `electron/types.ts` | Shared types: `GestureKey`, `Settings`, `OrbPhase`, `ParleyApi`, IPC payloads |
 | `electron/gesture-detector.ts` | Pure tap-tap-hold state machine |
 | `electron/key-hook.ts` | Maps `uiohook-napi` events to detector events |
-| `electron/transcriber.ts` | Groq call, error mapping, key test |
+| `electron/transcriber.ts` | Picks the selected provider per call; providers (Groq, Deepgram) and shared error mapping in `transcribers/` |
 | `electron/injector.ts` | Clipboard snapshot, paste keystroke, restore |
-| `electron/settings-store.ts` | JSON settings plus encrypted API key |
+| `electron/settings-store.ts` | JSON settings, the transcription provider, and the encrypted Groq, Deepgram and MiniMax keys |
 | `electron/session.ts` | Orchestrates one dictation session |
 | `electron/windows.ts` | Pure window option and bounds functions for orb and settings windows |
 | `electron/permissions.ts` | Microphone and Accessibility status, request, System Settings deep links |

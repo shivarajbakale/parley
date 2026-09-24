@@ -30,29 +30,49 @@ function sentence(words: string[]): string {
 }
 
 /**
+ * Session words first, then the stored words by most recently and most often
+ * used, case-insensitively unique. A session word the dictionary knows keeps
+ * its place but takes the stored spelling.
+ */
+function orderedWords(entries: DictionaryEntry[], sessionWords: string[]): string[] {
+  const ranked = [...entries]
+    .sort((a, b) => b.lastUsedAt - a.lastUsedAt || b.uses - a.uses)
+    .map((entry) => entry.word);
+
+  const stored = new Map(ranked.map((word) => [word.toLowerCase(), word]));
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const candidate of [...sessionWords, ...ranked]) {
+    const key = candidate.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(stored.get(key) ?? candidate);
+  }
+  return ordered;
+}
+
+/**
  * The `prompt` for one transcription. `sessionWords` are words that matter
  * right now and are not stored; they go first. Whisper treats a prompt as
  * earlier text rather than as an instruction, so this is a plain sentence that
  * happens to contain the words.
  */
 export function whisperPrompt(entries: DictionaryEntry[], sessionWords: string[] = []): string {
-  const ranked = [...entries]
-    .sort((a, b) => b.lastUsedAt - a.lastUsedAt || b.uses - a.uses)
-    .map((entry) => entry.word);
-
-  // A session word the dictionary knows keeps its place but takes the stored spelling.
-  const stored = new Map(ranked.map((word) => [word.toLowerCase(), word]));
-  const seen = new Set<string>();
   const picked: string[] = [];
-  for (const candidate of [...sessionWords, ...ranked]) {
-    const key = candidate.toLowerCase();
-    if (seen.has(key)) continue;
-    const word = stored.get(key) ?? candidate;
+  for (const word of orderedWords(entries, sessionWords)) {
     if (sentence([...picked, word]).length > MAX_PROMPT_CHARS) break;
-    seen.add(key);
     picked.push(word);
   }
   return sentence(picked);
+}
+
+/**
+ * The same words as `whisperPrompt`, in the same order, as a plain list: what
+ * a keyterm provider such as Deepgram takes instead of a sentence. The
+ * provider applies its own budget.
+ */
+export function vocabularyTerms(entries: DictionaryEntry[], sessionWords: string[] = []): string[] {
+  return orderedWords(entries, sessionWords);
 }
 
 function normalize(phrase: string): string {

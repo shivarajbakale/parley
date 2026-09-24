@@ -167,6 +167,17 @@ After onboarding:
 - [ ] In the first-run gesture trainer, each press of your key makes the ring orb swell briefly; holding the key does not keep re-triggering it.
 - [ ] The small orbs (settings sidebar, Overview header, finale menu bar) sit centred and look calm, not noisy.
 
+### Deepgram Nova-3 provider (parley-012)
+
+- [ ] Overview → Transcription key → Replace: the choice reads Whisper (Groq) / Deepgram Nova-3, with Groq selected on an existing install.
+- [ ] Choose Deepgram Nova-3 with no Deepgram key: the title flips to Finish setup, the tray shows not ready, and a gesture is refused with “Add a Deepgram API key before trying the gesture.”
+- [ ] Paste an invalid Deepgram key and Test and save: “Invalid API key”, nothing stored.
+- [ ] Paste a real Deepgram key: “Key works”, the row says Stored, the title returns to Parley is ready.
+- [ ] Dictate a sentence that uses a dictionary word (e.g. MiniMax): it pastes spelled as in the dictionary.
+- [ ] Voice edit and Explain still work with Deepgram selected.
+- [ ] Switch back to Whisper (Groq): dictation uses Groq again with no key re-entry.
+- [ ] General → Custom vocabulary names Deepgram while it is selected, Whisper otherwise.
+
 ## Voice edit
 
 Needs a MiniMax key saved on the Overview tab. The voice edit key defaults to Right

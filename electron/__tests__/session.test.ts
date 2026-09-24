@@ -23,7 +23,11 @@ function setup(overrides: Partial<SessionDeps> = {}) {
     },
     selection: { read: vi.fn().mockResolvedValue({ text: 'const x = useMemo(() => 1)', anchor: null }) },
     explain: { ask: vi.fn().mockResolvedValue(undefined) },
-    dictionary: { prompt: vi.fn().mockReturnValue(''), apply: vi.fn((text: string) => text) },
+    dictionary: {
+      prompt: vi.fn().mockReturnValue(''),
+      terms: vi.fn().mockReturnValue([]),
+      apply: vi.fn((text: string) => text),
+    },
     getSettings: () => DEFAULT_SETTINGS,
     hasApiKey: () => true,
     hasRewriteKey: () => true,
@@ -52,7 +56,7 @@ describe('session', () => {
     await session.receiveAudio(audio());
     expect(deps.transcriber.transcribe).toHaveBeenCalledWith(
       { data: expect.any(ArrayBuffer), mimeType: 'audio/webm' },
-      { vocabulary: '' }
+      { vocabulary: '', terms: [] }
     );
     expect(deps.injector.paste).toHaveBeenCalledWith('hello world');
     expect(deps.onTranscript).toHaveBeenCalledWith('hello world');
@@ -164,6 +168,7 @@ describe('session', () => {
         transcriber: { transcribe: vi.fn().mockResolvedValue('I tested mini max') },
         dictionary: {
           prompt: () => 'Notes about MiniMax.',
+          terms: () => ['MiniMax'],
           apply: vi.fn().mockReturnValue('I tested MiniMax'),
         },
       });
@@ -174,6 +179,7 @@ describe('session', () => {
 
       expect(deps.transcriber.transcribe).toHaveBeenCalledWith(expect.anything(), {
         vocabulary: 'Notes about MiniMax.',
+        terms: ['MiniMax'],
       });
       expect(deps.dictionary.apply).toHaveBeenCalledWith('I tested mini max');
       expect(deps.injector.paste).toHaveBeenCalledWith('I tested MiniMax');
@@ -183,7 +189,7 @@ describe('session', () => {
     it('fixes a spoken instruction before the rewrite sees it', async () => {
       const { deps, session } = setup({
         transcriber: { transcribe: vi.fn().mockResolvedValue('sign it as shiv raj') },
-        dictionary: { prompt: () => '', apply: () => 'sign it as Shivaraj' },
+        dictionary: { prompt: () => '', terms: () => [], apply: () => 'sign it as Shivaraj' },
       });
 
       session.start('edit');
@@ -216,7 +222,7 @@ describe('session', () => {
       const apply = vi.fn();
       const { deps, session } = setup({
         transcriber: { transcribe: vi.fn().mockResolvedValue('') },
-        dictionary: { prompt: () => '', apply },
+        dictionary: { prompt: () => '', terms: () => [], apply },
       });
 
       session.start();
@@ -260,7 +266,20 @@ describe('session', () => {
       await session.receiveAudio(audio());
       expect(deps.transcriber.transcribe).toHaveBeenCalledWith(expect.anything(), {
         vocabulary: expect.stringContaining('useMemo'),
+        terms: expect.arrayContaining(['useMemo']),
       });
+    });
+
+    it('puts the selection words ahead of the dictionary terms for a keyterm provider', async () => {
+      const { deps, session } = setup({
+        dictionary: { prompt: () => '', terms: () => ['MiniMax'], apply: (text: string) => text },
+      });
+      session.start('explain');
+      session.stop();
+      await session.receiveAudio(audio());
+      const [, options] = vi.mocked(deps.transcriber.transcribe).mock.calls[0];
+      expect(options.terms?.[0]).toBe('const');
+      expect(options.terms?.at(-1)).toBe('MiniMax');
     });
 
     it('falls back to a plain explanation when nothing was said', async () => {

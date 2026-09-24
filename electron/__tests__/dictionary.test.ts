@@ -4,6 +4,7 @@ import {
   applyReplacements,
   MAX_PROMPT_CHARS,
   splitVocabulary,
+  vocabularyTerms,
   whisperPrompt,
   type DictionaryEntry,
 } from '../dictionary';
@@ -118,5 +119,22 @@ describe('splitVocabulary', () => {
   it('reads the old comma or newline separated setting', () => {
     expect(splitVocabulary(' Groq, MiniMax\nParley ,, ')).toEqual(['Groq', 'MiniMax', 'Parley']);
     expect(splitVocabulary('')).toEqual([]);
+  });
+});
+
+describe('vocabularyTerms', () => {
+  it('lists session words first, then stored words by recency, with the stored spelling', () => {
+    const terms = vocabularyTerms(
+      [entry('Parley', [], { lastUsedAt: 1 }), entry('MiniMax', [], { lastUsedAt: 2 })],
+      ['kubectl', 'parley']
+    );
+    expect(terms).toEqual(['kubectl', 'Parley', 'MiniMax']);
+  });
+
+  it('is a plain list, with no sentence around it and no prompt budget', () => {
+    const many = Array.from({ length: 300 }, (_, i) => entry(`Word${i}`));
+    const terms = vocabularyTerms(many);
+    expect(terms).toHaveLength(300);
+    expect(terms.join(' ')).not.toContain('Notes about');
   });
 });

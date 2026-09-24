@@ -3,6 +3,7 @@ import { Box, Button, Stack, Switch, Text, Textarea, Title } from '@mantine/core
 import type { Settings, SettingsView } from '../../electron/types';
 
 import { Pressable, StaggerGroup, StaggerItem } from './motion';
+import { PROVIDER_COPY, providerOf } from './providers';
 import classes from './settings.module.css';
 import { SettingRow } from './SettingRow';
 import { SettingsGroup } from './SettingsGroup';
@@ -53,7 +54,7 @@ export function GeneralTab({
             <Box className={classes.blockRow}>
               <Textarea
                 label="Custom vocabulary"
-                description="Names and jargon Whisper should recognise, separated by commas."
+                description={`Names and jargon ${PROVIDER_COPY[providerOf(settings)].listener} should recognise, separated by commas.`}
                 placeholder="Parley, MiniMax, Groq"
                 rows={3}
                 defaultValue={settings.vocabulary}

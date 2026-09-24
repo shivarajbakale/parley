@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { PermissionKind, Settings } from '../../electron/types';
+import type { PermissionKind, Settings, TranscriptionProvider } from '../../electron/types';
 
 /**
  * Query hooks over `window.parley`. IPC is this window's "server", so it gets
@@ -44,6 +44,24 @@ export function useSetApiKey() {
   return useMutation({
     mutationFn: (key: string) => window.parley.setApiKey(key),
     onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
+  });
+}
+
+export function useSetDeepgramKey() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (key: string) => window.parley.setDeepgramKey(key),
+    onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
+  });
+}
+
+/** Readiness follows the provider, so the new view replaces the cached one. */
+export function useSetTranscriptionProvider() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (provider: TranscriptionProvider) =>
+      window.parley.setTranscriptionProvider(provider),
+    onSuccess: view => client.setQueryData(SETTINGS, view),
   });
 }
 

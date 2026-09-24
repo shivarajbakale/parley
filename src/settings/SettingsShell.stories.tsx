@@ -27,6 +27,11 @@ const meta = {
       window.parley = {
         ...window.parley,
         setApiKey: async () => ({ ok: true, message: 'Key works' }),
+        setDeepgramKey: async () => ({ ok: true, message: 'Key works' }),
+        setTranscriptionProvider: async transcriptionProvider => ({
+          ...settled,
+          transcriptionProvider,
+        }),
         setRewriteKey: async () => ({ ok: true, message: 'Key works' }),
         requestPermission: async () => ({ microphone: true, accessibility: true }),
         updateSettings: async patch => ({ ...settled, ...patch }),
@@ -63,3 +68,11 @@ export const Gesture: Story = { args: { ...base, initialTab: 'gesture' } };
 
 /** The General tab: Behaviour, Dictation and Help groups. */
 export const General: Story = { args: { ...base, initialTab: 'general' } };
+
+/** Deepgram Nova-3 selected with no Deepgram key yet: the provider choice and its key form are open. */
+export const DeepgramNeedsKey: Story = {
+  args: {
+    ...base,
+    settings: { ...settled, transcriptionProvider: 'deepgram', hasApiKey: false },
+  },
+};

@@ -13,6 +13,7 @@ import type {
   RecordedAudio,
   SessionBlockedReason,
   Settings,
+  TranscriptionProvider,
 } from './types';
 
 const parley: ParleyApi = {
@@ -28,6 +29,9 @@ const parley: ParleyApi = {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   updateSettings: (patch: Partial<Settings>) => ipcRenderer.invoke('settings:update', patch),
   setApiKey: (key: string) => ipcRenderer.invoke('settings:setApiKey', key),
+  setDeepgramKey: (key: string) => ipcRenderer.invoke('settings:setDeepgramKey', key),
+  setTranscriptionProvider: (provider: TranscriptionProvider) =>
+    ipcRenderer.invoke('settings:setTranscriptionProvider', provider),
   setRewriteKey: (key: string) => ipcRenderer.invoke('settings:setRewriteKey', key),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   requestPermission: (kind: PermissionKind) => ipcRenderer.invoke('permissions:request', kind),

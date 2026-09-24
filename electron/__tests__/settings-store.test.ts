@@ -159,4 +159,79 @@ describe('settings store', () => {
     );
     expect(createSettingsStore({ dir, crypto }).view().wordsDictated).toBe(0);
   });
+  describe('transcription provider', () => {
+    it('defaults to Groq, so an existing user sees no change', () => {
+      const store = createSettingsStore({ dir, crypto });
+      store.setApiKey('gsk_secret');
+      expect(store.get().transcriptionProvider).toBe('groq');
+      expect(store.hasApiKey()).toBe(true);
+    });
+
+    it('round-trips the Deepgram key encrypted, apart from the Groq key', () => {
+      const store = createSettingsStore({ dir, crypto });
+      store.setApiKey('gsk_secret');
+      store.setDeepgramKey('dg_secret');
+      const raw = readFileSync(path.join(dir, 'settings.json'), 'utf8');
+      expect(raw).not.toContain('dg_secret');
+      expect(JSON.parse(raw)).toHaveProperty('deepgramKeyEncrypted');
+
+      const reopened = createSettingsStore({ dir, crypto });
+      expect(reopened.getDeepgramKey()).toBe('dg_secret');
+      expect(reopened.getApiKey()).toBe('gsk_secret');
+      expect(reopened.hasDeepgramKey()).toBe(true);
+      expect(reopened.getTranscriptionKey('deepgram')).toBe('dg_secret');
+      expect(reopened.getTranscriptionKey('groq')).toBe('gsk_secret');
+    });
+
+    it('persists the selected provider across instances', () => {
+      createSettingsStore({ dir, crypto }).setTranscriptionProvider('deepgram');
+      expect(createSettingsStore({ dir, crypto }).get()).toEqual({
+        ...DEFAULT_SETTINGS,
+        transcriptionProvider: 'deepgram',
+      });
+    });
+
+    it('means "the selected provider has a key" by hasApiKey', () => {
+      const store = createSettingsStore({ dir, crypto });
+      store.setApiKey('gsk_secret');
+      store.setTranscriptionProvider('deepgram');
+      expect(store.hasApiKey()).toBe(false);
+      expect(store.view().hasApiKey).toBe(false);
+      expect(store.hasGroqKey()).toBe(true);
+
+      store.setDeepgramKey('dg_secret');
+      expect(store.hasApiKey()).toBe(true);
+      expect(store.view().hasApiKey).toBe(true);
+
+      const groqless = createSettingsStore({
+        dir: mkdtempSync(path.join(tmpdir(), 'parley-settings-')),
+        crypto,
+      });
+      groqless.setDeepgramKey('dg_secret');
+      expect(groqless.hasApiKey()).toBe(false);
+      groqless.setTranscriptionProvider('groq');
+      expect(groqless.view().hasApiKey).toBe(false);
+    });
+
+    it('refuses to take the provider from a settings patch', () => {
+      const store = createSettingsStore({ dir, crypto });
+      store.update({ transcriptionProvider: 'deepgram' });
+      expect(store.get().transcriptionProvider).toBe('groq');
+      store.setTranscriptionProvider('deepgram');
+      store.update({ transcriptionProvider: 'groq', tickSound: false });
+      expect(store.get()).toMatchObject({ transcriptionProvider: 'deepgram', tickSound: false });
+    });
+
+    it('rejects an unknown provider and falls back from a corrupt stored one', () => {
+      const store = createSettingsStore({ dir, crypto });
+      expect(() => store.setTranscriptionProvider('openai' as never)).toThrow();
+      expect(store.get().transcriptionProvider).toBe('groq');
+
+      writeFileSync(
+        path.join(dir, 'settings.json'),
+        JSON.stringify({ schemaVersion: 1, settings: { transcriptionProvider: 'openai' } })
+      );
+      expect(createSettingsStore({ dir, crypto }).get().transcriptionProvider).toBe('groq');
+    });
+  });
 });

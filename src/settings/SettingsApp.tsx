@@ -2,20 +2,28 @@ import { useEffect, useState } from 'react';
 import { Loader, Stack } from '@mantine/core';
 
 import { toast } from '@/lib/notify';
-import type { SessionBlockedReason } from '../../electron/types';
+import type { SessionBlockedReason, TranscriptionProvider } from '../../electron/types';
 
 import { MiniMaxOffer } from './MiniMaxOffer';
+import { PROVIDER_COPY, providerOf } from './providers';
 import { SettingsShell } from './SettingsShell';
 import { Tour } from './tour/Tour';
 import { usePermissions, useSettings, useUpdateSettings } from './use-parley';
 import { stageFor } from './wizard/stage';
 import { WizardShell } from './wizard/WizardShell';
 
-const BLOCKED_MESSAGES: Record<Exclude<SessionBlockedReason, 'rewriteKey'>, string> = {
-  microphone: 'Grant microphone access before trying the gesture.',
-  accessibility: 'Grant Accessibility access before trying the gesture.',
-  apiKey: 'Add a Groq API key before trying the gesture.',
-};
+type ToastReason = Exclude<SessionBlockedReason, 'rewriteKey'>;
+
+function blockedMessage(reason: ToastReason, provider: TranscriptionProvider): string {
+  switch (reason) {
+    case 'microphone':
+      return 'Grant microphone access before trying the gesture.';
+    case 'accessibility':
+      return 'Grant Accessibility access before trying the gesture.';
+    case 'apiKey':
+      return `Add a ${PROVIDER_COPY[provider].keyLabel} before trying the gesture.`;
+  }
+}
 
 export function SettingsApp() {
   const settings = useSettings();
@@ -23,6 +31,9 @@ export function SettingsApp() {
   const update = useUpdateSettings();
 
   const [offerOpen, setOfferOpen] = useState(false);
+  // A refusal waits here until settings have loaded, so its message names the
+  // selected provider's key. A new object per refusal, so a repeat shows again.
+  const [blocked, setBlocked] = useState<{ reason: ToastReason } | null>(null);
 
   // Session refuses a gesture silently when this window is already in
   // front — openSettings() is a no-op then, so this is the only signal. A
@@ -32,12 +43,18 @@ export function SettingsApp() {
   useEffect(() => {
     const onBlocked = (reason: SessionBlockedReason) => {
       if (reason === 'rewriteKey') setOfferOpen(true);
-      else toast.error(BLOCKED_MESSAGES[reason]);
+      else setBlocked({ reason });
     };
     const off = window.parley.onSessionBlocked(onBlocked);
     void window.parley.takeBlockedReason().then(reason => reason && onBlocked(reason));
     return off;
   }, []);
+
+  useEffect(() => {
+    if (!blocked || !settings.data) return;
+    toast.error(blockedMessage(blocked.reason, providerOf(settings.data)));
+    setBlocked(null);
+  }, [blocked, settings.data]);
 
   if (!settings.data || !permissions.data) {
     return (

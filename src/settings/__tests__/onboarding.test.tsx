@@ -46,6 +46,11 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
       return settings;
     }),
     setApiKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
+    setDeepgramKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
+    setTranscriptionProvider: vi.fn(async transcriptionProvider => {
+      settings = { ...settings, transcriptionProvider };
+      return settings;
+    }),
     setRewriteKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
     getPermissions: vi.fn(async () => permissions),
     requestPermission: vi.fn(async kind => {

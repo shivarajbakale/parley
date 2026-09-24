@@ -1,0 +1,169 @@
+{
+  "feature": {
+    "id": "parley-012",
+    "title": "Deepgram Nova-3 as a transcription provider",
+    "problem": "Parley can only transcribe through Groq's Whisper. Someone who already pays for Deepgram, or who wants Nova-3's keyterm prompting for jargon-heavy dictation, has no way to use it. This feature adds Deepgram Nova-3 as a second speech-to-text provider next to Groq. The Overview's Transcription row gains a provider choice (Whisper (Groq) / Deepgram Nova-3) and a key form for whichever is selected. Groq stays the default, so existing users see no change. Readiness and the gesture block mean “the selected provider has a key”. Deepgram gets the dictionary words as keyterms, not Whisper's prose prompt. Frame note: the settings window is not PageShell, so the archetype below is illustrative and not probe-enforced, as in parley-007 to parley-010.",
+    "nonGoals": [
+      "A provider choice in the first-run flow — it stays Groq-only; Deepgram is chosen on the Overview.",
+      "Streaming (websocket) transcription — the orb still sends one recording after release.",
+      "Languages other than English, or a model picker beyond Nova-3.",
+      "Falling back to the other provider when one fails."
+    ]
+  },
+  "app": "Parley",
+  "nav": ["Overview", "Gesture", "General"],
+  "surfaces": [
+    {
+      "id": "overview",
+      "name": "Overview tab · Transcription row",
+      "route": "settings.html · settings · Overview",
+      "archetype": "list-detail",
+      "purpose": "Pick which service turns speech into text, and store that service's key, without leaving the Status group.",
+      "primaryAction": "Test and save",
+      "panels": [
+        {
+          "id": "rail",
+          "kind": "rail",
+          "ratio": 0.3,
+          "title": "Parley",
+          "rows": [["▣ Overview"], ["□ Gesture"], ["□ General"]]
+        },
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Parley is ready",
+          "subtitle": "◉ orb · Tap Right Option 2× and hold in any app",
+          "rows": [
+            ["STATUS"],
+            ["Microphone ............ ✓ Granted"],
+            ["Accessibility ......... ✓ Granted"],
+            ["Transcription ......... ✓ Stored   Replace"],
+            ["  [ Whisper (Groq) | Deepgram Nova-3 ]"],
+            ["  Deepgram API key [••••••••]  Test and save"],
+            ["MiniMax key ........... Not set    Add"]
+          ],
+          "actions": ["Test and save", "Replace"]
+        }
+      ],
+      "states": {
+        "loading": "Settings resolve before the shell mounts, as today. While a provider switch is saving, the SegmentedControl is disabled.",
+        "empty": "The selected provider has no key: the row badge reads Missing, the title reads Finish setup, and that provider's key form opens.",
+        "error": "A rejected key shows the provider's message (“Invalid API key”) beside the button. A failed switch shows a red Alert under the row. A failed dictation names the provider on the pill (“Deepgram error”).",
+        "success": "Saving a key closes the form and the badge flips to Stored. Switching to a provider that already has a key keeps Parley ready at once."
+      }
+    }
+  ],
+  "components": [
+    {
+      "surface": "overview",
+      "control": "SegmentedControl (Whisper (Groq) / Deepgram Nova-3) inside the Transcription row's Collapse, above the key form",
+      "why": "Two mutually exclusive options that are both visible at once, and the choice applies immediately. That is what SegmentedControl is for.",
+      "rejected": "Select (hides the second option behind a click), Radio group (heavier, and reads as a form to submit)"
+    },
+    {
+      "surface": "overview",
+      "control": "The existing ApiKeySection, relabelled per provider (Groq API key / Deepgram API key)",
+      "why": "The same test-then-save form and messages the Groq key already uses. Only the label, placeholder and mutation change.",
+      "rejected": "Two always-visible key forms (one of them is irrelevant to the selected provider)"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Settings",
+      "fields": [
+        {
+          "name": "transcriptionProvider",
+          "type": "'groq' | 'deepgram'",
+          "note": "default 'groq'; set only through settings:setTranscriptionProvider, never through an update patch"
+        },
+        {
+          "name": "deepgramKeyEncrypted",
+          "type": "string",
+          "note": "safeStorage-encrypted, in the settings.json envelope next to apiKeyEncrypted"
+        }
+      ],
+      "relations": [
+        "SettingsView.hasApiKey = the selected provider has a key; hasGroqKey and hasDeepgramKey are exposed as well"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "IPC invoke",
+      "path": "settings:setDeepgramKey",
+      "note": "tests the key against GET /v1/projects first, stores it only if it works, as settings:setApiKey does"
+    },
+    {
+      "method": "IPC invoke",
+      "path": "settings:setTranscriptionProvider",
+      "note": "validates 'groq' | 'deepgram', saves, refreshes the tray, returns the new SettingsView"
+    },
+    {
+      "method": "POST",
+      "path": "https://api.deepgram.com/v1/listen?model=nova-3&language=en&smart_format=true&keyterm=…",
+      "note": "raw audio body, Authorization: Token <key>; at most 100 keyterms"
+    }
+  ],
+  "integration": [
+    {
+      "from": "electron/transcriber.ts",
+      "to": "electron/transcribers/groq.ts and electron/transcribers/deepgram.ts",
+      "note": "createTranscriber keeps its interface and picks a provider through getProvider()"
+    },
+    {
+      "from": "electron/session.ts",
+      "to": "transcribe options gain terms[] next to the Whisper prompt",
+      "note": "Groq keeps the prompt exactly as today; Deepgram uses the raw terms"
+    },
+    {
+      "from": "src/settings/OverviewTab.tsx",
+      "to": "Transcription row: provider SegmentedControl + key form for the selected provider",
+      "note": "the wizard keeps its Groq-only key step"
+    },
+    {
+      "from": "src/settings/GeneralTab.tsx + SettingsApp.tsx",
+      "to": "copy names the selected provider",
+      "note": "vocabulary description and the blocked-gesture notice"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "electron/transcribers/shared.ts",
+      "electron/transcribers/groq.ts",
+      "electron/transcribers/deepgram.ts",
+      "electron/__tests__/deepgram.test.ts",
+      "src/settings/providers.ts"
+    ],
+    "changed": [
+      "electron/transcriber.ts",
+      "electron/types.ts",
+      "electron/settings-store.ts",
+      "electron/session.ts",
+      "electron/dictionary.ts",
+      "electron/main.ts",
+      "electron/preload.ts",
+      "electron/__tests__/settings-store.test.ts",
+      "electron/__tests__/session.test.ts",
+      "electron/__tests__/dictionary.test.ts",
+      "src/settings/use-parley.ts",
+      "src/settings/OverviewTab.tsx",
+      "src/settings/GeneralTab.tsx",
+      "src/settings/SettingsApp.tsx",
+      "src/settings/SettingsShell.stories.tsx",
+      "src/settings/Wizard.stories.tsx",
+      "src/settings/__tests__/SettingsApp.test.tsx",
+      "src/settings/__tests__/SettingsShell.test.tsx",
+      "src/settings/__tests__/MiniMaxOffer.test.tsx",
+      "src/settings/__tests__/onboarding.test.tsx",
+      "ARCHITECTURE.md",
+      "docs/MANUAL_CHECKLIST.md",
+      "feature_list.json"
+    ]
+  },
+  "verification": [
+    "make check",
+    "npm run test -- electron/__tests__/deepgram.test.ts electron/__tests__/transcriber.test.ts electron/__tests__/settings-store.test.ts",
+    "Storybook: SettingsShell DeepgramNeedsKey (provider choice and Deepgram key form open), in dark and light",
+    "Manual: make dev — choose Deepgram Nova-3, save a real Deepgram key, dictate a sentence with a dictionary word, and see it pasted"
+  ]
+}

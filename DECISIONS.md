@@ -6,6 +6,28 @@ silently undo.
 
 ---
 
+## 2026-09-24: Transcription provider is its own channel; hasApiKey follows it
+
+- **What:** `transcriptionProvider` (`groq` | `deepgram`, default `groq`) lives
+  in `Settings` but is dropped from every `updateSettings` patch and is set only
+  through `settings:setTranscriptionProvider`. `hasApiKey` (store and
+  `SettingsView`) means "the selected provider has a key". Deepgram gets
+  `terms` (a word list) and Groq gets `vocabulary` (the Whisper sentence).
+  Both are built from the same ordered dictionary words.
+- **Why:** Switching provider changes readiness, so main has to refresh the tray
+  when it happens. A dedicated channel does that in one place. Keeping the
+  meaning of `hasApiKey` let the Overview, the shell's needs-setup check, the
+  tray and the session block follow the provider without changes. Deepgram's
+  keyterms are words to boost, so a prose prompt would boost "Notes" and
+  "about".
+- **Rejected alternatives:** Patching the provider through `settings:update`
+  (the tray would go stale); `hasGroqKey`/`hasDeepgramKey` view fields (every
+  readiness check would have to pick one); splitting Whisper's prompt sentence
+  back into words (fragile).
+- **Constraint:** The Groq key keeps `apiKeyEncrypted` and
+  `getApiKey`/`setApiKey`, so existing installs keep their key. The first-run
+  wizard is Groq-only.
+
 ## 2026-09-22: Versioned settings envelope for onboarding state
 
 - **What:** `settings.json` gained `schemaVersion` (envelope-only: the

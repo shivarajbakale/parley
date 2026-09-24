@@ -1,6 +1,6 @@
 {
   "project": "parley",
-  "last_updated": "2026-09-22",
+  "last_updated": "2026-09-24",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -219,7 +219,7 @@
       "area": "orb",
       "title": "Orb and pill polish: centred framing, small-size detail, tap pulse, distinct endings",
       "user_visible_behavior": "The settings orbs sit centred and stay crisp at small sizes. The orb in the setup ring swells on each trainer tap. The dictation pill pops when text lands, shudders on an error and shrinks away on a cancel.",
-      "status": "in_progress",
+      "status": "blocked",
       "plan": "none: renderer-only motion on the existing OrbCanvas and Pill; no layout, control or screen changes",
       "verification": [
         "make check",
@@ -230,7 +230,27 @@
         "2026-09-23 automated on branch orb-polish: make check exit 0; unit suite 590 passed incl. new pill-motion.test.ts (5), orb-pulse.test.tsx (1) and three new frame.test.ts cases (phase age, pulse kick and decay, no pulse under reduced motion); ui-probe 131/131 incl. the new OrbCanvas Badge and BadgeSmall stories; ui-lint 0; storybook-lint OK.",
         "2026-09-23 visual: Storybook renders of the badge orb at 136 px, the Overview and sidebar orbs, the trainer ring orb and the finale's docked orb, all seated centred with no per-caller offsets."
       ],
-      "notes": "Branch orb-polish, 2026-09-23. The overlay users see while dictating is the Pill, not the WebGL orb, so the endings live on the Pill. The pill cannot pulse on taps: its window only appears once the hold registers. Stays in_progress until a human checks the pill endings and the trainer pulse with make dev (see the parley-011 block in docs/MANUAL_CHECKLIST.md)."
+      "notes": "Branch orb-polish, 2026-09-23. The overlay users see while dictating is the Pill, not the WebGL orb, so the endings live on the Pill. The pill cannot pulse on taps: its window only appears once the hold registers. Stays in_progress until a human checks the pill endings and the trainer pulse with make dev (see the parley-011 block in docs/MANUAL_CHECKLIST.md). Moved to blocked on 2026-09-24: waiting on a human with make dev, no code change pending, so parley-012 can be in flight."
+    },
+    {
+      "id": "parley-012",
+      "priority": 14,
+      "area": "transcription",
+      "title": "Deepgram Nova-3 as a transcription provider",
+      "user_visible_behavior": "The Overview's Transcription row lets the user choose Whisper (Groq) or Deepgram Nova-3 and store a key for the selected one; the key is tested before it is saved. Groq stays the default. Dictation, voice edit and Explain use the selected provider, and Deepgram gets the dictionary words as keyterms. Ready and the gesture block mean the selected provider has a key.",
+      "status": "in_progress",
+      "plan": "parley-012.feature-plan.json",
+      "verification": [
+        "make check",
+        "npm run test -- electron/__tests__/deepgram.test.ts electron/__tests__/transcriber.test.ts electron/__tests__/settings-store.test.ts",
+        "make dev: choose Deepgram Nova-3, save a real Deepgram key, dictate a sentence with a dictionary word, and see it pasted."
+      ],
+      "evidence": [
+        "2026-09-24 automated on branch feat/deepgram-nova3: make check exit 0; unit suite 76 files / 627 tests passed incl. new deepgram.test.ts (Nova-3 URL and params, one keyterm per deduped term, Token and Content-Type headers, raw ArrayBuffer body, transcript parsing and empty fallback, 401/403/429/500 and network mapping with 'Deepgram error', testKey on GET /v1/projects, 100-term and 1000-char budget, per-call provider routing, Groq default and prompt unchanged), six new settings-store provider tests (Groq default, encrypted Deepgram key round-trip, provider persists, hasApiKey follows the selected provider, provider not patchable, unknown/corrupt provider rejected), two vocabularyTerms tests, one new session test, and five SettingsApp provider tests; the existing transcriber.test.ts passes unchanged; ui-probe 132/132 incl. the new SettingsShell DeepgramNeedsKey story; ui-lint 0; plan-lint 0; capability-lint 0; storybook-lint OK; doc-lint 0.",
+        "2026-09-24 visual: SettingsShell DeepgramNeedsKey and Ready rendered in real chromium at 760x560 in dark and light. The Transcription row shows the Whisper (Groq) / Deepgram Nova-3 SegmentedControl, a Missing badge, and the Deepgram API key form, with the title reading Finish setup.",
+        "Not run: make dev against the live Deepgram API (needs a real key, microphone and Accessibility grants, and a human at the Mac). See the parley-012 block in docs/MANUAL_CHECKLIST.md."
+      ],
+      "notes": "Design approved by the user 2026-09-24 on branch feat/deepgram-nova3. Stays in_progress until a human walks the parley-012 block of docs/MANUAL_CHECKLIST.md with make dev and a real Deepgram key. The first-run wizard stays Groq-only by design; Deepgram is chosen on the Overview."
     }
   ]
 }

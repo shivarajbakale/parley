@@ -11,6 +11,10 @@ export const GESTURE_KEYS = [
 ] as const;
 
 export type GestureKey = (typeof GESTURE_KEYS)[number];
+
+/** Who turns speech into text. Groq's Whisper is the default. */
+export const TRANSCRIPTION_PROVIDERS = ['groq', 'deepgram'] as const;
+export type TranscriptionProvider = (typeof TRANSCRIPTION_PROVIDERS)[number];
 export type TapCount = 2 | 3 | 4;
 
 /** A key as the detector sees it: a gesture key, Escape, or anything else. */
@@ -36,8 +40,11 @@ export interface Settings {
    * equals the dictate or the voice edit key.
    */
   explainGestureKey: GestureKey;
-  /** Free text, comma separated. Sent to Whisper as `prompt`. */
+  /** Free text, comma separated. Sent to Whisper as `prompt`, to Deepgram as keyterms. */
   vocabulary: string;
+  /** Which service transcribes. Set only through `setTranscriptionProvider`,
+   * never through an `updateSettings` patch. */
+  transcriptionProvider: TranscriptionProvider;
   tickSound: boolean;
   launchAtLogin: boolean;
   /** First-run tour seen. Reset alone to replay the tour without redoing setup. */
@@ -57,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   editGestureKey: 'MetaRight',
   explainGestureKey: 'CtrlRight',
   vocabulary: '',
+  transcriptionProvider: 'groq',
   tickSound: true,
   launchAtLogin: true,
   tourSeen: false,
@@ -107,6 +115,7 @@ export type PermissionKind = keyof PermissionStatus;
 
 /** What the settings window may see. The API key itself never leaves main. */
 export interface SettingsView extends Settings {
+  /** The selected transcription provider has a key stored. */
   hasApiKey: boolean;
   /** The MiniMax key that voice edit rewrites with. */
   hasRewriteKey: boolean;
@@ -156,7 +165,11 @@ export interface ParleyApi {
   sendAudio(audio: RecordedAudio): void;
   getSettings(): Promise<SettingsView>;
   updateSettings(patch: Partial<Settings>): Promise<SettingsView>;
+  /** The Groq key: tested, then stored if it works. */
   setApiKey(key: string): Promise<KeyTestResult>;
+  /** The Deepgram key: tested, then stored if it works. */
+  setDeepgramKey(key: string): Promise<KeyTestResult>;
+  setTranscriptionProvider(provider: TranscriptionProvider): Promise<SettingsView>;
   setRewriteKey(key: string): Promise<KeyTestResult>;
   getPermissions(): Promise<PermissionStatus>;
   requestPermission(kind: PermissionKind): Promise<PermissionStatus>;

@@ -1,17 +1,40 @@
-import { Alert, Badge, Box, Button, Collapse, Group, Stack, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Collapse,
+  Group,
+  SegmentedControl,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 
-import type { PermissionKind, PermissionStatus, SettingsView } from '../../electron/types';
+import type {
+  PermissionKind,
+  PermissionStatus,
+  SettingsView,
+  TranscriptionProvider,
+} from '../../electron/types';
 import { SILENT_BANDS } from '../orb/bands';
 import { OrbCanvas } from '../orb/OrbCanvas';
 
 import { KEY_LABELS } from './gesture-keys';
 import { Pressable, StaggerGroup, StaggerItem } from './motion';
+import { PROVIDER_COPY, PROVIDER_OPTIONS, providerOf } from './providers';
 import { SettingRow } from './SettingRow';
 import { SettingsGroup } from './SettingsGroup';
 import { ApiKeySection } from './SetupTab';
 import { formatSaved, minutesSaved, TYPING_WPM } from './usage';
-import { useRequestPermission, useSetApiKey, useSetRewriteKey } from './use-parley';
+import {
+  useRequestPermission,
+  useSetApiKey,
+  useSetDeepgramKey,
+  useSetRewriteKey,
+  useSetTranscriptionProvider,
+} from './use-parley';
 
 /**
  * The settings window's first tab: is Parley working, what has it saved you,
@@ -23,7 +46,7 @@ const ORB_BOX = 56;
 const ORB = 80;
 const readIdle = () => ({ bands: SILENT_BANDS, phase: 'listening' as const });
 
-type KeyRow = 'groq' | 'minimax';
+type KeyRow = 'transcription' | 'minimax';
 
 function PermissionFix({
   kind,
@@ -94,21 +117,36 @@ export function OverviewTab({
   permissions: PermissionStatus;
 }) {
   const request = useRequestPermission();
-  const setApiKey = useSetApiKey();
+  const setGroqKey = useSetApiKey();
+  const setDeepgramKey = useSetDeepgramKey();
   const setRewriteKey = useSetRewriteKey();
+  const setProvider = useSetTranscriptionProvider();
+  const provider = providerOf(settings);
+  const copy = PROVIDER_COPY[provider];
   // With no transcription key, its form is the fix, so it starts open.
-  const [openKey, setOpenKey] = useState<KeyRow | null>(settings.hasApiKey ? null : 'groq');
+  const [openKey, setOpenKey] = useState<KeyRow | null>(
+    settings.hasApiKey ? null : 'transcription'
+  );
   const toggle = (row: KeyRow) => setOpenKey(current => (current === row ? null : row));
 
   // A key that has just become stored closes its form; the row now says Stored.
-  const stored = useRef({ groq: settings.hasApiKey, minimax: settings.hasRewriteKey });
+  // Switching to a provider that already has a key is not "just stored": the
+  // form stays open so the choice the user just made stays in view.
+  const stored = useRef({
+    transcription: settings.hasApiKey,
+    minimax: settings.hasRewriteKey,
+    provider,
+  });
   useEffect(() => {
-    const now = { groq: settings.hasApiKey, minimax: settings.hasRewriteKey };
-    for (const row of ['groq', 'minimax'] as const) {
-      if (now[row] && !stored.current[row]) setOpenKey(current => (current === row ? null : current));
+    const now = { transcription: settings.hasApiKey, minimax: settings.hasRewriteKey };
+    const sameProvider = stored.current.provider === provider;
+    for (const row of ['transcription', 'minimax'] as const) {
+      if (row === 'transcription' && !sameProvider) continue;
+      if (now[row] && !stored.current[row])
+        setOpenKey(current => (current === row ? null : current));
     }
-    stored.current = now;
-  }, [settings.hasApiKey, settings.hasRewriteKey]);
+    stored.current = { ...now, provider };
+  }, [settings.hasApiKey, settings.hasRewriteKey, provider]);
 
   const missing =
     Number(!permissions.microphone) + Number(!permissions.accessibility) + Number(!settings.hasApiKey);
@@ -188,25 +226,44 @@ export function OverviewTab({
               />
             </SettingRow>
             <Box>
-              <SettingRow label="Transcription key" description="Groq’s Whisper turns speech into text.">
+              <SettingRow
+                label="Transcription key"
+                description={`${copy.service} turns speech into text.`}
+              >
                 <KeyFix
                   stored={settings.hasApiKey}
                   name="transcription key"
-                  open={openKey === 'groq'}
-                  onToggle={() => toggle('groq')}
+                  open={openKey === 'transcription'}
+                  onToggle={() => toggle('transcription')}
                 />
               </SettingRow>
-              <Collapse expanded={openKey === 'groq'}>
-                <Box px={14} pb="md">
+              <Collapse expanded={openKey === 'transcription'}>
+                <Stack gap="sm" px={14} pb="md">
+                  <SegmentedControl
+                    aria-label="Transcription provider"
+                    fullWidth
+                    data={PROVIDER_OPTIONS}
+                    value={provider}
+                    disabled={setProvider.isPending}
+                    onChange={value => setProvider.mutate(value as TranscriptionProvider)}
+                  />
+                  {setProvider.isError && (
+                    <Alert color="red" variant="light">
+                      Could not switch the transcription provider
+                    </Alert>
+                  )}
+                  {/* One form per provider: a half-typed Groq key must not be
+                      submitted as a Deepgram key after a switch. */}
                   <ApiKeySection
-                    label="Groq API key"
-                    placeholder="gsk_…"
+                    key={provider}
+                    label={copy.keyLabel}
+                    placeholder={copy.placeholder}
                     purpose="Transcribes what you say."
                     submitLabel="Test and save"
                     hasApiKey={settings.hasApiKey}
-                    setApiKey={setApiKey}
+                    setApiKey={provider === 'deepgram' ? setDeepgramKey : setGroqKey}
                   />
-                </Box>
+                </Stack>
               </Collapse>
             </Box>
             <Box>

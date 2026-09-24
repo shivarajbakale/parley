@@ -20,7 +20,7 @@ import { createAudioWatchdog } from './audio-watchdog';
 import { createCommonWords } from './common-words';
 import { detectCorrection } from './correction-detect';
 import { createCorrectionWatcher } from './correction-watcher';
-import { applyReplacements, splitVocabulary, whisperPrompt } from './dictionary';
+import { applyReplacements, splitVocabulary, vocabularyTerms, whisperPrompt } from './dictionary';
 import { createDictionaryStore } from './dictionary-store';
 import { createEditTargets } from './edit-target';
 import { createExplain, EXPLAIN_LEAVE_MS } from './explain';
@@ -48,7 +48,9 @@ import type {
   SessionBlockedReason,
   SessionMode,
   Settings,
+  TranscriptionProvider,
 } from './types';
+import { TRANSCRIPTION_PROVIDERS } from './types';
 import { explainWindowOptions, orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
 
 /**
@@ -168,7 +170,10 @@ async function startApp() {
 
   const store = createSettingsStore({ dir: app.getPath('userData'), crypto: safeStorage });
   const dictionary = createDictionaryStore({ dir: app.getPath('userData') });
-  const transcriber = createTranscriber({ getApiKey: () => store.getApiKey() });
+  const transcriber = createTranscriber({
+    getApiKey: (provider) => store.getTranscriptionKey(provider),
+    getProvider: () => store.get().transcriptionProvider,
+  });
 
   const injector = createInjector({
     snapshot: () => ({
@@ -414,6 +419,8 @@ async function startApp() {
       // The old free-text vocabulary setting still counts until the
       // Dictionary tab replaces it.
       prompt: () => whisperPrompt(dictionary.list(), splitVocabulary(store.get().vocabulary)),
+      // Deepgram takes the same words as a list rather than a sentence.
+      terms: () => vocabularyTerms(dictionary.list(), splitVocabulary(store.get().vocabulary)),
       apply: (text) => {
         const { text: fixed, hits } = applyReplacements(text, dictionary.list());
         dictionary.recordUses(hits);
@@ -584,12 +591,30 @@ async function startApp() {
   ipcMain.handle('settings:setApiKey', async (event, key: unknown): Promise<KeyTestResult> => {
     onlySettingsWindow(event);
     if (typeof key !== 'string' || key.trim() === '') return { ok: false, message: 'Enter a key' };
-    const result = await transcriber.testKey(key.trim());
+    const result = await transcriber.testKey(key.trim(), 'groq');
     if (result.ok) {
       store.setApiKey(key.trim());
       refreshTray();
     }
     return result;
+  });
+  ipcMain.handle('settings:setDeepgramKey', async (event, key: unknown): Promise<KeyTestResult> => {
+    onlySettingsWindow(event);
+    if (typeof key !== 'string' || key.trim() === '') return { ok: false, message: 'Enter a key' };
+    const result = await transcriber.testKey(key.trim(), 'deepgram');
+    if (result.ok) {
+      store.setDeepgramKey(key.trim());
+      refreshTray();
+    }
+    return result;
+  });
+  ipcMain.handle('settings:setTranscriptionProvider', (event, provider: unknown) => {
+    onlySettingsWindow(event);
+    if (!TRANSCRIPTION_PROVIDERS.includes(provider as never)) return store.view();
+    store.setTranscriptionProvider(provider as TranscriptionProvider);
+    // Readiness is "the selected provider has a key", so the tray may flip.
+    refreshTray();
+    return store.view();
   });
   ipcMain.handle('settings:setRewriteKey', async (event, key: unknown): Promise<KeyTestResult> => {
     onlySettingsWindow(event);

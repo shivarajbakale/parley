@@ -4,9 +4,11 @@ import path from 'node:path';
 import {
   DEFAULT_SETTINGS,
   GESTURE_KEYS,
+  TRANSCRIPTION_PROVIDERS,
   WIZARD_STEP_MAX,
   type Settings,
   type SettingsView,
+  type TranscriptionProvider,
 } from './types';
 
 /** First versioned settings shape. v0 files predate the onboarding fields. */
@@ -23,9 +25,19 @@ export interface SettingsStore {
   get(): Settings;
   update(patch: Partial<Settings>): Settings;
   view(): SettingsView;
+  /** The Groq key. */
   getApiKey(): string | null;
   setApiKey(key: string): void;
+  /** The selected transcription provider has a key: what readiness and the
+   * gesture block mean by "has a key". */
   hasApiKey(): boolean;
+  hasGroqKey(): boolean;
+  getDeepgramKey(): string | null;
+  setDeepgramKey(key: string): void;
+  hasDeepgramKey(): boolean;
+  /** The key for `provider`, whichever one is selected or not. */
+  getTranscriptionKey(provider: TranscriptionProvider): string | null;
+  setTranscriptionProvider(provider: TranscriptionProvider): Settings;
   getRewriteKey(): string | null;
   setRewriteKey(key: string): void;
   hasRewriteKey(): boolean;
@@ -36,6 +48,7 @@ export interface SettingsStore {
 interface FileShape {
   settings?: Partial<Settings>;
   apiKeyEncrypted?: string;
+  deepgramKeyEncrypted?: string;
   rewriteKeyEncrypted?: string;
   /** Envelope-only: the renderer can neither read nor write this. */
   schemaVersion?: number;
@@ -51,7 +64,12 @@ function migrate(shape: FileShape): FileShape {
   return { ...shape, schemaVersion: SETTINGS_SCHEMA_VERSION };
 }
 
-/** Keep only fields with valid values. The renderer is untrusted input. */
+function isProvider(value: unknown): value is TranscriptionProvider {
+  return TRANSCRIPTION_PROVIDERS.includes(value as never);
+}
+
+/** Keep only fields with valid values. The renderer is untrusted input.
+ * `transcriptionProvider` is never taken from a patch: it has its own setter. */
 function sanitize(input: Partial<Settings>): Partial<Settings> {
   const out: Partial<Settings> = {};
   if (GESTURE_KEYS.includes(input.gestureKey as never)) out.gestureKey = input.gestureKey;
@@ -91,8 +109,17 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     // First launch or a corrupted file: defaults are fine.
   }
 
-  let settings: Settings = { ...DEFAULT_SETTINGS, ...sanitize(state.settings ?? {}) };
+  const storedProvider = state.settings?.transcriptionProvider;
+  let settings: Settings = {
+    ...DEFAULT_SETTINGS,
+    ...sanitize(state.settings ?? {}),
+    transcriptionProvider: isProvider(storedProvider)
+      ? storedProvider
+      : DEFAULT_SETTINGS.transcriptionProvider,
+  };
   let apiKeyEncrypted = typeof state.apiKeyEncrypted === 'string' ? state.apiKeyEncrypted : null;
+  let deepgramKeyEncrypted =
+    typeof state.deepgramKeyEncrypted === 'string' ? state.deepgramKeyEncrypted : null;
   let rewriteKeyEncrypted =
     typeof state.rewriteKeyEncrypted === 'string' ? state.rewriteKeyEncrypted : null;
   let wordsDictated =
@@ -104,6 +131,7 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     const body: FileShape = {
       settings,
       ...(apiKeyEncrypted ? { apiKeyEncrypted } : {}),
+      ...(deepgramKeyEncrypted ? { deepgramKeyEncrypted } : {}),
       ...(rewriteKeyEncrypted ? { rewriteKeyEncrypted } : {}),
       ...(wordsDictated ? { wordsDictated } : {}),
       schemaVersion: SETTINGS_SCHEMA_VERSION,
@@ -125,6 +153,11 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     return deps.crypto.encryptString(key).toString('base64');
   }
 
+  const hasGroqKey = () => apiKeyEncrypted !== null;
+  const hasDeepgramKey = () => deepgramKeyEncrypted !== null;
+  const hasApiKey = () =>
+    settings.transcriptionProvider === 'deepgram' ? hasDeepgramKey() : hasGroqKey();
+
   return {
     get: () => settings,
     update(patch) {
@@ -134,15 +167,30 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     },
     view: () => ({
       ...settings,
-      hasApiKey: apiKeyEncrypted !== null,
+      hasApiKey: hasApiKey(),
       hasRewriteKey: rewriteKeyEncrypted !== null,
       wordsDictated,
     }),
-    hasApiKey: () => apiKeyEncrypted !== null,
+    hasApiKey,
+    hasGroqKey,
     getApiKey: () => decrypt(apiKeyEncrypted),
     setApiKey(key) {
       apiKeyEncrypted = encrypt(key);
       save();
+    },
+    hasDeepgramKey,
+    getDeepgramKey: () => decrypt(deepgramKeyEncrypted),
+    setDeepgramKey(key) {
+      deepgramKeyEncrypted = encrypt(key);
+      save();
+    },
+    getTranscriptionKey: provider =>
+      decrypt(provider === 'deepgram' ? deepgramKeyEncrypted : apiKeyEncrypted),
+    setTranscriptionProvider(provider) {
+      if (!isProvider(provider)) throw new Error('Unknown transcription provider');
+      settings = { ...settings, transcriptionProvider: provider };
+      save();
+      return settings;
     },
     hasRewriteKey: () => rewriteKeyEncrypted !== null,
     getRewriteKey: () => decrypt(rewriteKeyEncrypted),

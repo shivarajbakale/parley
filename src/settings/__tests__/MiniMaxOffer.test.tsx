@@ -30,6 +30,8 @@ function mount(pending: SessionBlockedReason | null = null) {
     getSettings: vi.fn(async () => settings),
     updateSettings: vi.fn(async patch => (settings = { ...settings, ...patch })),
     setApiKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
+    setDeepgramKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
+    setTranscriptionProvider: vi.fn(async transcriptionProvider => ({ ...settings, transcriptionProvider })),
     setRewriteKey: vi.fn(async () => {
       settings = { ...settings, hasRewriteKey: true };
       return { ok: true, message: 'Key works' };
