@@ -167,11 +167,27 @@ class OrbView(context: Context) : View(context) {
             invalidate()
         }
 
-    /** Letting go now would throw the recording away. */
-    val cancelArmed: Boolean get() = cancelPullPx > 0f && cancelPullPx >= armDistance()
+    /** Which detent the hold is parked on. The controller owns the thresholds. */
+    var zone: SlideZone = SlideZone.DICTATE
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
 
-    /** Finger travel that arms a cancel: [CANCEL_DP], or less on a short capsule. */
-    private fun armDistance(): Float = min(dp(CANCEL_DP), lastOpenExtra * 0.7f).coerceAtLeast(dp(24f))
+    /** What the capsule offers at rest: "Slide to edit", or why it cannot. */
+    var slideHint: String? = null
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+
+    /** Letting go now would throw the recording away. */
+    val cancelArmed: Boolean get() = zone == SlideZone.CANCEL
+
+    /** The room an open capsule leaves to slide along. */
+    val capsuleTrack: Float get() = lastOpenExtra
 
     /**
      * The recording was thrown away: shake, and let the red drain back to the
@@ -184,6 +200,7 @@ class OrbView(context: Context) : View(context) {
         ghostOffset = slide.value
         ghostStops = shown
         popPending = true
+        zone = SlideZone.DICTATE
         cancelPullPx = 0f
         cancel.target = 0f
         cancel.snap()
@@ -412,7 +429,8 @@ class OrbView(context: Context) : View(context) {
         // Slide to cancel: the sphere stays under the finger along the capsule
         // (stretching only a little past its end), and the colour follows.
         val pull = if (listening) cancelPullPx else 0f
-        cancel.target = (pull / armDistance()).coerceIn(0f, 1f)
+        // The zone is a place, not a gradient: the red arrives with the snap.
+        cancel.target = if (listening && zone == SlideZone.CANCEL) 1f else 0f
         val track = (extra.value - dp(4f)).coerceAtLeast(0f)
         slide.target = if (pull <= track) pull else track + dp(OVERPULL_DP) * (1f - exp(-(pull - track) / dp(40f)))
         val following = pull > 0f
@@ -562,9 +580,8 @@ class OrbView(context: Context) : View(context) {
         val baseline = cy - (labelPaint.descent() + labelPaint.ascent()) / 2
 
         // Sliding to cancel: the waveform and timer give way to the hint.
-        val hintA = shown * smooth(0.12f, 0.45f, c)
         val a = shown * (1f - smooth(0f, 0.35f, c))
-        if (hintA > 0f) drawCancelHint(canvas, cx, baseline, r, c, shown)
+        drawSlideHint(canvas, cx, baseline, r, c, shown)
         if (a <= 0f) {
             canvas.restore()
             return
@@ -616,20 +633,22 @@ class OrbView(context: Context) : View(context) {
     }
 
     /**
-     * "‹ Slide to cancel" waits at the far end of the capsule and fades as the
-     * sphere comes to it; once armed, "Cancel" shows in the room the sphere
-     * has left behind. [rect] is the capsule.
+     * What waits further along the capsule: "Slide to edit" at rest (or why it
+     * is not on offer), "Slide to cancel" once the edit detent is taken, and
+     * "Cancel" in the room the sphere leaves behind once it is armed.
+     * [rect] is the capsule.
      */
-    private fun drawCancelHint(canvas: Canvas, cx: Float, baseline: Float, r: Float, c: Float, shown: Float) {
+    private fun drawSlideHint(canvas: Canvas, cx: Float, baseline: Float, r: Float, c: Float, shown: Float) {
         val armed = cancelArmed
         val color = lerpArgb(HINT, WARN, c)
 
-        val hint = if (dockRight) "‹  Slide to cancel" else "Slide to cancel  ›"
+        val text = if (zone == SlideZone.DICTATE) slideHint ?: "Slide to cancel" else "Slide to cancel"
+        val hint = if (dockRight) "‹  $text" else "$text  ›"
         val hw = labelPaint.measureText(hint)
         val hx = if (dockRight) rect.left + outerPad else rect.right - outerPad - hw
         val gap = if (dockRight) (cx - r) - (hx + hw) else hx - (cx + r)
         val near = smooth(0f, dp(28f), gap)
-        val hintA = shown * smooth(0.08f, 0.35f, c) * near * (if (armed) 0f else 1f)
+        val hintA = shown * near * (if (armed) 0f else 1f)
         if (hintA > 0f) {
             labelPaint.color = color
             labelPaint.alpha = (Color.alpha(color) * hintA).toInt()

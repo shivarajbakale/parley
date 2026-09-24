@@ -98,6 +98,41 @@ class Session(private val scope: CoroutineScope, private val deps: SessionDeps) 
     private data class Undo(val target: FieldTarget, val fullText: String, val expiresAt: Long)
     private var undo: Undo? = null
 
+    /**
+     * Why an edit cannot run against the captured field, or null when it can.
+     * The orb asks this to decide whether the edit detent exists at all, so the
+     * reason shows while the user reaches for it rather than after they speak.
+     */
+    fun editRefusal(): String? {
+        if (deps.minimaxKey().isNullOrEmpty()) return MiniMaxRewriter.messageFor(ApiException.Kind.NO_KEY)
+        val t = target ?: return "No text field"
+        if (t.secure) return "Can't edit a password field"
+        val source = TextSplicer.editSource(t.text, t.isShowingHint, t.selStart, t.selEnd)
+        if (source.isBlank()) return "Nothing to edit"
+        if (TextSplicer.tooLongToEdit(source)) return "Too much text to edit"
+        return null
+    }
+
+    /**
+     * The finger moved to another detent: what the recording will do when it
+     * is let go changes, while it keeps running. The field captured at the
+     * start stays captured, so focus cannot drift underneath a switch.
+     */
+    fun switchTo(mode: SessionMode): Boolean {
+        val listening = _state.value as? SessionState.Listening ?: return false
+        if (listening.mode == mode) return true
+        if (mode == SessionMode.EDIT && editRefusal() != null) return false
+        this.mode = mode
+        _state.value = SessionState.Listening(mode, listening.startedAt)
+        return true
+    }
+
+    /** Whether an edit would rewrite a selection or the whole field. */
+    fun editsSelection(): Boolean {
+        val t = target ?: return false
+        return TextSplicer.editsSelection(t.text, t.isShowingHint, t.selStart, t.selEnd)
+    }
+
     fun canUndo(): Boolean = undo?.let { deps.now() < it.expiresAt } == true
 
     /** Starts listening. Returns false when a session is already in flight. */
@@ -106,19 +141,10 @@ class Session(private val scope: CoroutineScope, private val deps: SessionDeps) 
         undo = null
         mode = requested
         if (deps.groqKey().isNullOrEmpty()) return fail(GroqTranscriber.messageFor(ApiException.Kind.NO_KEY))
-        if (requested == SessionMode.EDIT && deps.minimaxKey().isNullOrEmpty()) {
-            return fail(MiniMaxRewriter.messageFor(ApiException.Kind.NO_KEY))
-        }
         target = deps.captureTarget()
         // An edit is refused before the mic opens, so the user never speaks an
         // instruction into a request that was already impossible.
-        if (requested == SessionMode.EDIT) {
-            val t = target ?: return fail("No text field")
-            if (t.secure) return fail("Can't edit a password field")
-            val source = TextSplicer.editSource(t.text, t.isShowingHint, t.selStart, t.selEnd)
-            if (source.isBlank()) return fail("Nothing to edit")
-            if (TextSplicer.tooLongToEdit(source)) return fail("Too much text to edit")
-        }
+        if (requested == SessionMode.EDIT) editRefusal()?.let { return fail(it) }
 
         _state.value = SessionState.Listening(requested, deps.now())
         if (deps.config().haptics) deps.haptic()

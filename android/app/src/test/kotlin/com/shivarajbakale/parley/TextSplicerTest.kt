@@ -135,4 +135,11 @@ class TextSplicerTest {
         assertFalse(TextSplicer.tooLongToEdit("a".repeat(TextSplicer.MAX_EDIT_CHARS)))
         assertTrue(TextSplicer.tooLongToEdit("a".repeat(TextSplicer.MAX_EDIT_CHARS + 1)))
     }
+
+    @Test fun `an edit knows whether it has a selection or the whole field`() {
+        assertTrue(TextSplicer.editsSelection("hey sam", false, 4, 7))
+        assertFalse(TextSplicer.editsSelection("hey sam", false, 4, 4))
+        assertFalse(TextSplicer.editsSelection("hey sam", false, -1, -1))
+        assertFalse(TextSplicer.editsSelection("Search", true, 0, 0))
+    }
 }

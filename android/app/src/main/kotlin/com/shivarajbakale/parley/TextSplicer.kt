@@ -96,6 +96,18 @@ object TextSplicer {
         return if (start == end) 0 to text.length else start to end
     }
 
+    /** Does the edit act on a selection, or on the whole field? */
+    fun editsSelection(
+        current: CharSequence?,
+        isShowingHint: Boolean,
+        selStart: Int,
+        selEnd: Int,
+    ): Boolean {
+        val text = effectiveText(current, isShowingHint)
+        val (start, end) = normalise(text, selStart, selEnd)
+        return start != end
+    }
+
     fun editSource(current: CharSequence?, isShowingHint: Boolean, selStart: Int, selEnd: Int): String {
         val text = effectiveText(current, isShowingHint)
         val (start, end) = editRange(current, isShowingHint, selStart, selEnd)

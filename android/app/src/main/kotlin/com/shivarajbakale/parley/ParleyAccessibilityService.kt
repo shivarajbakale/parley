@@ -203,7 +203,7 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
         handler.removeCallbacks(pillTick)
         val state = session.state.value
         val now = System.currentTimeMillis()
-        orb.setPill(PillContent.forState(state, now))
+        orb.setPill(PillContent.forState(state, now, session.editsSelection()))
         if (state is SessionState.Listening) {
             // Land just after the next whole second so the clock never skips one.
             val elapsed = (now - state.startedAt).coerceAtLeast(0)
@@ -228,24 +228,33 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
     // ---- orb touches ----------------------------------------------------
 
     private val orbListener = object : OrbController.Listener {
-        override fun onHoldStart(mode: SessionMode) {
-            Log.d(TAG, "orb hold start $mode")
-            session.start(mode)
+        override fun onHoldStart() {
+            Log.d(TAG, "orb hold start")
+            session.start(SessionMode.DICTATION)
         }
 
-        override fun onHoldEnd() {
-            Log.d(TAG, "orb hold end")
-            session.stop()
+        override fun onHoldEnd(zone: SlideZone) {
+            Log.d(TAG, "orb hold end on $zone")
+            when (zone) {
+                SlideZone.CANCEL -> cancelListening(animated = false) // the orb already played its discard
+                SlideZone.EDIT -> {
+                    session.switchTo(SessionMode.EDIT)
+                    session.stop()
+                }
+                SlideZone.DICTATE -> session.stop()
+            }
         }
 
-        override fun onHoldCancel() {
-            Log.d(TAG, "orb hold cancelled")
-            cancelListening(animated = false) // the orb already played its discard
+        override fun onZoneChanged(zone: SlideZone) {
+            haptic()
+            when (zone) {
+                SlideZone.EDIT -> session.switchTo(SessionMode.EDIT)
+                SlideZone.DICTATE -> session.switchTo(SessionMode.DICTATION)
+                SlideZone.CANCEL -> Unit // the mode stops mattering; the take is going away
+            }
         }
 
-        override fun onCancelArmed(armed: Boolean) {
-            if (armed) haptic()
-        }
+        override fun editRefusal(): String? = session.editRefusal()
 
         override fun onTap() {
             when {

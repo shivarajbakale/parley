@@ -36,19 +36,19 @@ class OrbController(
     private val listener: Listener,
 ) : OrbView.Host {
     interface Listener {
-        fun onHoldStart(mode: SessionMode)
-        fun onHoldEnd()
-        /** Released after sliding toward the middle: throw the recording away. */
-        fun onHoldCancel()
-        /** A slide-to-cancel crossed the line, either way. */
-        fun onCancelArmed(armed: Boolean)
+        fun onHoldStart()
+        /** Let go on [zone]: dictate, edit, or throw the recording away. */
+        fun onHoldEnd(zone: SlideZone)
+        /** The slide snapped to another detent. */
+        fun onZoneChanged(zone: SlideZone)
         fun onTap()
+        /** Why an edit cannot run right now, or null when the detent is on offer. */
+        fun editRefusal(): String?
     }
 
     companion object {
         private const val TAG = "ParleyOrb"
         const val HOLD_MS = 150L
-        const val DOUBLE_TAP_MS = 300L
         private const val EDGE_GAP_DP = 8f
         /** How much of a tucked orb shows at the edge. */
         private const val PEEK_DP = 14f
@@ -101,11 +101,10 @@ class OrbController(
     private var downParamY = 0
     private var dragging = false
     private var holding = false
-    private var secondPress = false
-    private var lastTapUpAt = 0L
     /** The press landed on a tucked orb: it only brings the orb out. */
     private var peeking = false
-    private var cancelArmed = false
+    private var zone = SlideZone.DICTATE
+    private var zones = SlideZones.thresholds(1f, 0f, editable = false)
 
     init {
         dockRight = config.orbPosition().dockRight
@@ -340,19 +339,26 @@ class OrbController(
     private val holdRunnable = Runnable {
         holding = true
         view.squashed = false // spring back out as the capsule opens
-        listener.onHoldStart(if (secondPress) SessionMode.EDIT else SessionMode.DICTATION)
+        listener.onHoldStart()
+        // The detents are fixed for this hold: what the field holds cannot
+        // change underneath the finger once the capture is taken.
+        val refusal = listener.editRefusal()
+        zone = SlideZone.DICTATE
+        zones = SlideZones.thresholds(density, view.capsuleTrack, editable = refusal == null)
+        view.zone = SlideZone.DICTATE
+        view.slideHint = refusal ?: "Slide to edit"
     }
-    private val tapRunnable = Runnable { listener.onTap() }
 
     private fun cancelGesture() {
         handler.removeCallbacks(holdRunnable)
         view.squashed = false
         view.lifted = false
         view.cancelPullPx = 0f
-        cancelArmed = false
+        view.zone = SlideZone.DICTATE
+        zone = SlideZone.DICTATE
         if (holding) {
             holding = false
-            listener.onHoldEnd()
+            listener.onHoldEnd(SlideZone.DICTATE)
         }
         dragging = false
     }
@@ -383,11 +389,10 @@ class OrbController(
                 downParamY = params.y
                 dragging = false
                 holding = false
-                cancelArmed = false
+                zone = SlideZone.DICTATE
+                view.zone = SlideZone.DICTATE
                 view.cancelPullPx = 0f
                 view.squashed = true
-                secondPress = now - lastTapUpAt <= DOUBLE_TAP_MS
-                if (secondPress) handler.removeCallbacks(tapRunnable) // part of a double tap, not a tap
                 handler.postDelayed(holdRunnable, HOLD_MS)
             }
             MotionEvent.ACTION_MOVE -> {
@@ -404,12 +409,16 @@ class OrbController(
                     params.y = downParamY + dy.toInt()
                     update()
                 } else if (holding) {
-                    // Slide toward the middle of the screen to cancel.
-                    view.cancelPullPx = if (dockRight) -dx else dx
-                    if (view.cancelArmed != cancelArmed) {
-                        cancelArmed = view.cancelArmed
-                        listener.onCancelArmed(cancelArmed)
+                    // Slide toward the middle of the screen: edit, then cancel.
+                    val pull = (if (dockRight) -dx else dx).coerceAtLeast(0f)
+                    val next = zones.zoneFor(pull, zone)
+                    if (next != zone) {
+                        zone = next
+                        view.zone = next
+                        listener.onZoneChanged(next)
                     }
+                    // The sphere parks on the detent rather than tracking the finger.
+                    view.cancelPullPx = zones.snapPx(zone)
                 }
             }
             MotionEvent.ACTION_UP -> {
@@ -418,26 +427,22 @@ class OrbController(
                 when {
                     holding -> {
                         holding = false
-                        if (cancelArmed) {
-                            cancelArmed = false
+                        val released = zone
+                        zone = SlideZone.DICTATE
+                        if (released == SlideZone.CANCEL) {
                             view.discard()
-                            listener.onHoldCancel()
                         } else {
                             view.cancelPullPx = 0f
-                            listener.onHoldEnd()
+                            view.zone = SlideZone.DICTATE
                         }
+                        listener.onHoldEnd(released)
                     }
                     dragging -> {
                         dragging = false
                         view.lifted = false
                         dock()
                     }
-                    secondPress -> lastTapUpAt = 0 // a double tap without a hold does nothing
-                    else -> {
-                        lastTapUpAt = now
-                        // Wait out the double-tap window before calling it a single tap.
-                        handler.postDelayed(tapRunnable, DOUBLE_TAP_MS)
-                    }
+                    else -> listener.onTap()
                 }
             }
             MotionEvent.ACTION_CANCEL -> {

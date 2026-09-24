@@ -91,6 +91,57 @@ fun lerpArgb(from: Int, to: Int, t: Float): Int {
     return ch(24) or ch(16) or ch(8) or ch(0)
 }
 
+enum class SlideZone { DICTATE, EDIT, CANCEL }
+
+object SlideZones {
+    const val EDIT_DP = 40f
+    const val CANCEL_DP = 96f
+    const val EDIT_FLOOR_DP = 28f
+    const val CANCEL_FLOOR_DP = 56f
+    const val HYSTERESIS_DP = 8f
+
+    /**
+     * Where the detents sit for one hold. [editPx] is null when the focused
+     * field cannot be rewritten, and then the slide runs straight from rest to
+     * cancel with nothing in between.
+     */
+    class Thresholds(val editPx: Float?, val cancelPx: Float, private val hysteresisPx: Float) {
+
+        /**
+         * The zone the finger is in, given the one it was in. A zone holds
+         * until the finger comes back past [HYSTERESIS_DP], so resting on a
+         * boundary cannot flicker between two modes.
+         */
+        fun zoneFor(pullPx: Float, current: SlideZone): SlideZone {
+            if (pullPx >= cancelPx) return SlideZone.CANCEL
+            if (current == SlideZone.CANCEL && pullPx >= cancelPx - hysteresisPx) return SlideZone.CANCEL
+            val edit = editPx ?: return SlideZone.DICTATE
+            if (pullPx >= edit) return SlideZone.EDIT
+            if (current == SlideZone.EDIT && pullPx >= edit - hysteresisPx) return SlideZone.EDIT
+            return SlideZone.DICTATE
+        }
+
+        /** Where the sphere parks: the detent, not wherever the finger is. */
+        fun snapPx(zone: SlideZone): Float = when (zone) {
+            SlideZone.DICTATE -> 0f
+            SlideZone.EDIT -> editPx ?: 0f
+            SlideZone.CANCEL -> cancelPx
+        }
+    }
+
+    /**
+     * [track] is the room the open capsule leaves to slide along. A short
+     * capsule compresses both distances, but the floors keep the two detents
+     * far enough apart to be separate places.
+     */
+    fun thresholds(density: Float, track: Float, editable: Boolean): Thresholds {
+        fun dp(v: Float) = v * density
+        val cancel = min(dp(CANCEL_DP), track * 0.7f).coerceAtLeast(dp(CANCEL_FLOOR_DP))
+        val edit = if (editable) min(dp(EDIT_DP), cancel * 0.45f).coerceAtLeast(dp(EDIT_FLOOR_DP)) else null
+        return Thresholds(edit, cancel, dp(HYSTERESIS_DP))
+    }
+}
+
 /**
  * What the capsule says for a session state, or null when the orb stays a
  * circle. Listening shows a timer (and "Edit" for a voice edit); an error
@@ -104,13 +155,17 @@ data class PillContent(val label: String?, val timer: String?, val tone: Tone) {
         /** The timer turns to the warning tone this long before the recording cap. */
         const val WARN_BEFORE_CAP_MS = 10_000L
 
-        fun forState(state: SessionState, nowMs: Long): PillContent? = when (state) {
+        fun forState(state: SessionState, nowMs: Long, editsSelection: Boolean = false): PillContent? = when (state) {
             is SessionState.Listening -> {
                 val elapsed = (nowMs - state.startedAt).coerceAtLeast(0)
                 val nearCap = elapsed >= Session.MAX_RECORDING_MS - WARN_BEFORE_CAP_MS
                 val edit = state.mode == SessionMode.EDIT
                 PillContent(
-                    label = if (edit) "Edit" else null,
+                    label = when {
+                        !edit -> null
+                        editsSelection -> "Edit selection"
+                        else -> "Edit all"
+                    },
                     timer = clock(elapsed),
                     tone = when {
                         nearCap -> Tone.WARN

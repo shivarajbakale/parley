@@ -293,4 +293,83 @@ class SessionTest {
         assertEquals(SessionState.Error("Too much text to edit"), s.state.value)
         assertTrue(f.calls.isEmpty())
     }
+
+    @Test fun `editRefusal is null when the field can be rewritten`() = runTest {
+        val (s, _) = session()
+        s.start(SessionMode.DICTATION)
+        assertNull(s.editRefusal())
+    }
+
+    @Test fun `editRefusal names each reason an edit cannot run`() = runTest {
+        val (noField, _) = session { target = null }
+        noField.start(SessionMode.DICTATION)
+        assertEquals("No text field", noField.editRefusal())
+
+        val (secure, _) = session { target = FieldTarget("com.example.bank", 4, "hunter2", false, 0, 0, secure = true) }
+        secure.start(SessionMode.DICTATION)
+        assertEquals("Can't edit a password field", secure.editRefusal())
+
+        val (hint, _) = session { target = FieldTarget("com.example.chat", 7, "Type a message", true, 0, 0) }
+        hint.start(SessionMode.DICTATION)
+        assertEquals("Nothing to edit", hint.editRefusal())
+
+        val long = "a".repeat(TextSplicer.MAX_EDIT_CHARS + 1)
+        val (big, _) = session { target = FieldTarget("com.example.notes", 9, long, false, 0, 0) }
+        big.start(SessionMode.DICTATION)
+        assertEquals("Too much text to edit", big.editRefusal())
+
+        val (noKey, _) = session { minimax = null }
+        noKey.start(SessionMode.DICTATION)
+        assertEquals("No MiniMax key", noKey.editRefusal())
+    }
+
+    @Test fun `sliding into the edit detent switches a live recording`() = runTest {
+        val (s, f) = session { target = FieldTarget("com.example.mail", 3, "hey sam thx", false, 0, 0) }
+        s.start(SessionMode.DICTATION)
+        assertEquals(SessionState.Listening(SessionMode.DICTATION, 0), s.state.value)
+
+        assertTrue(s.switchTo(SessionMode.EDIT))
+        assertEquals(SessionState.Listening(SessionMode.EDIT, 0), s.state.value)
+
+        s.stop()
+        runCurrent()
+        assertTrue(f.calls.contains("rewrite:hey sam thx|hello world"))
+        assertEquals(listOf(Triple("Hello, world.", SessionMode.EDIT, false)), f.inserted)
+    }
+
+    @Test fun `sliding back out of the edit detent dictates again`() = runTest {
+        val (s, f) = session()
+        s.start(SessionMode.DICTATION)
+        assertTrue(s.switchTo(SessionMode.EDIT))
+        assertTrue(s.switchTo(SessionMode.DICTATION))
+        assertEquals(SessionState.Listening(SessionMode.DICTATION, 0), s.state.value)
+
+        s.stop()
+        runCurrent()
+        assertFalse(f.calls.any { it.startsWith("rewrite") })
+        assertEquals(listOf(Triple("hello world", SessionMode.DICTATION, true)), f.inserted)
+    }
+
+    @Test fun `the edit detent is refused when the field cannot be edited`() = runTest {
+        val (s, _) = session { target = FieldTarget("com.example.bank", 4, "hunter2", false, 0, 0, secure = true) }
+        s.start(SessionMode.DICTATION)
+        assertFalse(s.switchTo(SessionMode.EDIT))
+        assertEquals(SessionState.Listening(SessionMode.DICTATION, 0), s.state.value)
+    }
+
+    @Test fun `a switch outside listening is ignored`() = runTest {
+        val (s, _) = session()
+        assertFalse(s.switchTo(SessionMode.EDIT))
+        assertEquals(SessionState.Idle, s.state.value)
+    }
+
+    @Test fun `the pill knows whether the edit has a selection`() = runTest {
+        val (whole, _) = session { target = FieldTarget("com.example.mail", 3, "hey sam thx", false, 0, 0) }
+        whole.start(SessionMode.DICTATION)
+        assertFalse(whole.editsSelection())
+
+        val (part, _) = session { target = FieldTarget("com.example.mail", 3, "hey sam thx", false, 4, 7) }
+        part.start(SessionMode.DICTATION)
+        assertTrue(part.editsSelection())
+    }
 }
