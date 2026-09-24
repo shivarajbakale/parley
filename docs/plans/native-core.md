@@ -47,8 +47,9 @@ idle ──hold orb / tap-tap-hold──► listening ──release──► tra
 ```
 
 - Release under 300 ms of audio: discard, back to idle, no API call.
-- Mode is fixed at start: orb double-tap-then-hold is **edit**, everything else
-  is **dictation**.
+- Mode is chosen on release: a hold slides through detents toward the middle of
+  the screen — rest is **dictation**, ~40 dp is **edit**, ~96 dp is **cancel**.
+  The volume gesture has no detents and is always **dictation**.
 - The field target is captured at start (window id + node id + selection), so
   focus moving during transcription does not send text to the wrong field.
 

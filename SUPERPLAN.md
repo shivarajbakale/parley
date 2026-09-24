@@ -35,7 +35,7 @@ Floating-orb voice dictation and voice edit for any Android text field.
 - Floating orb over every app, drawn by an accessibility overlay: hold it to dictate, release to insert
 - Volume-down tap-tap-hold as a second trigger, mirroring the Mac gesture
 - Dictation: Groq Whisper transcribes and the text is inserted at the cursor of the focused field
-- Voice edit: double-tap then hold the orb (orb-only in v1) and speak an instruction; MiniMax rewrites the selection or the whole field
+- Voice edit: hold the orb and slide toward the middle of the screen (orb-only in v1), then speak an instruction; MiniMax rewrites the selection or the whole field
 - History of dictations and edits, with the time saved on an Overview
 - First-run setup: API keys, microphone, accessibility service, battery exemption, one practice dictation
 
