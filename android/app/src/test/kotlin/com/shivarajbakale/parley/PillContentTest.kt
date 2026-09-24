@@ -8,8 +8,8 @@ class PillContentTest {
 
     private val start = 1_000_000L
 
-    private fun listening(mode: SessionMode, elapsedMs: Long, editsSelection: Boolean = false) =
-        PillContent.forState(SessionState.Listening(mode, start), start + elapsedMs, editsSelection)!!
+    private fun listening(mode: SessionMode, elapsedMs: Long) =
+        PillContent.forState(SessionState.Listening(mode, start), start + elapsedMs)!!
 
     @Test fun `clock is m colon ss in whole seconds`() {
         assertEquals("0:00", PillContent.clock(0))
@@ -23,15 +23,8 @@ class PillContentTest {
         assertEquals(PillContent(null, "0:04", PillContent.Tone.DICTATION), listening(SessionMode.DICTATION, 4_200))
     }
 
-    @Test fun `voice edit names what it will rewrite`() {
-        assertEquals(
-            PillContent("Edit all", "0:12", PillContent.Tone.EDIT),
-            listening(SessionMode.EDIT, 12_000, editsSelection = false),
-        )
-        assertEquals(
-            PillContent("Edit selection", "0:12", PillContent.Tone.EDIT),
-            listening(SessionMode.EDIT, 12_000, editsSelection = true),
-        )
+    @Test fun `voice edit carries no text, only its tone`() {
+        assertEquals(PillContent(null, "0:12", PillContent.Tone.EDIT), listening(SessionMode.EDIT, 12_000))
     }
 
     @Test fun `the last ten seconds before the cap warn`() {

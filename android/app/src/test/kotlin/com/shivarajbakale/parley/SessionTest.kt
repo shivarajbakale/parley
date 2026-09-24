@@ -362,14 +362,4 @@ class SessionTest {
         assertFalse(s.switchTo(SessionMode.EDIT))
         assertEquals(SessionState.Idle, s.state.value)
     }
-
-    @Test fun `the pill knows whether the edit has a selection`() = runTest {
-        val (whole, _) = session { target = FieldTarget("com.example.mail", 3, "hey sam thx", false, 0, 0) }
-        whole.start(SessionMode.DICTATION)
-        assertFalse(whole.editsSelection())
-
-        val (part, _) = session { target = FieldTarget("com.example.mail", 3, "hey sam thx", false, 4, 7) }
-        part.start(SessionMode.DICTATION)
-        assertTrue(part.editsSelection())
-    }
 }

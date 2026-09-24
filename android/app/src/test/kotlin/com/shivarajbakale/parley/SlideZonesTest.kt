@@ -38,26 +38,29 @@ class SlideZonesTest {
 
     @Test fun `sliding out passes rest, then edit, then cancel`() {
         val t = roomy()
+        val edit = t.editPx!!
         assertEquals(SlideZone.DICTATE, t.zoneFor(0f, SlideZone.DICTATE))
-        assertEquals(SlideZone.DICTATE, t.zoneFor(dp(39f), SlideZone.DICTATE))
-        assertEquals(SlideZone.EDIT, t.zoneFor(dp(40f), SlideZone.DICTATE))
-        assertEquals(SlideZone.EDIT, t.zoneFor(dp(95f), SlideZone.EDIT))
-        assertEquals(SlideZone.CANCEL, t.zoneFor(dp(96f), SlideZone.EDIT))
+        assertEquals(SlideZone.DICTATE, t.zoneFor(edit - 1f, SlideZone.DICTATE))
+        assertEquals(SlideZone.EDIT, t.zoneFor(edit, SlideZone.DICTATE))
+        assertEquals(SlideZone.EDIT, t.zoneFor(t.cancelPx - 1f, SlideZone.EDIT))
+        assertEquals(SlideZone.CANCEL, t.zoneFor(t.cancelPx, SlideZone.EDIT))
     }
 
     @Test fun `a zone holds until the finger comes back past the hysteresis`() {
         val t = roomy()
-        assertEquals(SlideZone.CANCEL, t.zoneFor(dp(90f), SlideZone.CANCEL))
-        assertEquals(SlideZone.EDIT, t.zoneFor(dp(87f), SlideZone.CANCEL))
-        assertEquals(SlideZone.EDIT, t.zoneFor(dp(34f), SlideZone.EDIT))
-        assertEquals(SlideZone.DICTATE, t.zoneFor(dp(31f), SlideZone.EDIT))
+        val edit = t.editPx!!
+        val hyst = dp(SlideZones.HYSTERESIS_DP)
+        assertEquals(SlideZone.CANCEL, t.zoneFor(t.cancelPx - hyst + 1f, SlideZone.CANCEL))
+        assertEquals(SlideZone.EDIT, t.zoneFor(t.cancelPx - hyst - 1f, SlideZone.CANCEL))
+        assertEquals(SlideZone.EDIT, t.zoneFor(edit - hyst + 1f, SlideZone.EDIT))
+        assertEquals(SlideZone.DICTATE, t.zoneFor(edit - hyst - 1f, SlideZone.EDIT))
     }
 
     @Test fun `without an edit detent the slide goes straight from rest to cancel`() {
         val t = SlideZones.thresholds(density, track = dp(200f), editable = false)
         assertEquals(SlideZone.DICTATE, t.zoneFor(dp(60f), SlideZone.DICTATE))
-        assertEquals(SlideZone.CANCEL, t.zoneFor(dp(96f), SlideZone.DICTATE))
-        assertEquals(SlideZone.DICTATE, t.zoneFor(dp(87f), SlideZone.CANCEL))
+        assertEquals(SlideZone.CANCEL, t.zoneFor(t.cancelPx, SlideZone.DICTATE))
+        assertEquals(SlideZone.DICTATE, t.zoneFor(t.cancelPx - dp(SlideZones.HYSTERESIS_DP) - 1f, SlideZone.CANCEL))
     }
 
     @Test fun `the orb parks on the detent, not under the finger`() {

@@ -94,7 +94,7 @@ fun lerpArgb(from: Int, to: Int, t: Float): Int {
 enum class SlideZone { DICTATE, EDIT, CANCEL }
 
 object SlideZones {
-    const val EDIT_DP = 40f
+    const val EDIT_DP = 48f
     const val CANCEL_DP = 96f
     const val EDIT_FLOOR_DP = 28f
     const val CANCEL_FLOOR_DP = 56f
@@ -137,7 +137,8 @@ object SlideZones {
     fun thresholds(density: Float, track: Float, editable: Boolean): Thresholds {
         fun dp(v: Float) = v * density
         val cancel = min(dp(CANCEL_DP), track * 0.7f).coerceAtLeast(dp(CANCEL_FLOOR_DP))
-        val edit = if (editable) min(dp(EDIT_DP), cancel * 0.45f).coerceAtLeast(dp(EDIT_FLOOR_DP)) else null
+        // Halfway to the cancel detent, so the two stay evenly spaced as they compress.
+        val edit = if (editable) min(dp(EDIT_DP), cancel * 0.5f).coerceAtLeast(dp(EDIT_FLOOR_DP)) else null
         return Thresholds(edit, cancel, dp(HYSTERESIS_DP))
     }
 }
@@ -155,17 +156,13 @@ data class PillContent(val label: String?, val timer: String?, val tone: Tone) {
         /** The timer turns to the warning tone this long before the recording cap. */
         const val WARN_BEFORE_CAP_MS = 10_000L
 
-        fun forState(state: SessionState, nowMs: Long, editsSelection: Boolean = false): PillContent? = when (state) {
+        fun forState(state: SessionState, nowMs: Long): PillContent? = when (state) {
             is SessionState.Listening -> {
                 val elapsed = (nowMs - state.startedAt).coerceAtLeast(0)
                 val nearCap = elapsed >= Session.MAX_RECORDING_MS - WARN_BEFORE_CAP_MS
                 val edit = state.mode == SessionMode.EDIT
                 PillContent(
-                    label = when {
-                        !edit -> null
-                        editsSelection -> "Edit selection"
-                        else -> "Edit all"
-                    },
+                    label = null,
                     timer = clock(elapsed),
                     tone = when {
                         nearCap -> Tone.WARN

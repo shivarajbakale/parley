@@ -346,7 +346,9 @@ class OrbController(
         zone = SlideZone.DICTATE
         zones = SlideZones.thresholds(density, view.capsuleTrack, editable = refusal == null)
         view.zone = SlideZone.DICTATE
-        view.slideHint = refusal ?: "Slide to edit"
+        view.tracking = false
+        view.trackPx = zones.cancelPx
+        view.editDetentPx = zones.editPx ?: 0f
     }
 
     private fun cancelGesture() {
@@ -355,6 +357,7 @@ class OrbController(
         view.lifted = false
         view.cancelPullPx = 0f
         view.zone = SlideZone.DICTATE
+        view.tracking = false
         zone = SlideZone.DICTATE
         if (holding) {
             holding = false
@@ -411,6 +414,9 @@ class OrbController(
                 } else if (holding) {
                     // Slide toward the middle of the screen: edit, then cancel.
                     val pull = (if (dockRight) -dx else dx).coerceAtLeast(0f)
+                    // The track appears as soon as the finger commits to a slide,
+                    // so the capsule answers before the first detent is reached.
+                    view.tracking = pull > touchSlop
                     val next = zones.zoneFor(pull, zone)
                     if (next != zone) {
                         zone = next
@@ -429,6 +435,7 @@ class OrbController(
                         holding = false
                         val released = zone
                         zone = SlideZone.DICTATE
+                        view.tracking = false
                         if (released == SlideZone.CANCEL) {
                             view.discard()
                         } else {

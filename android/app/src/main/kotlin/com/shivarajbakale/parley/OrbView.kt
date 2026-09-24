@@ -175,8 +175,25 @@ class OrbView(context: Context) : View(context) {
             invalidate()
         }
 
-    /** What the capsule offers at rest: "Slide to edit", or why it cannot. */
-    var slideHint: String? = null
+    /** Travel to the cancel detent, in px. The capsule opens wide enough for it. */
+    var trackPx: Float = 0f
+        set(value) {
+            if (field == value) return
+            field = value
+            applyExtra()
+            invalidate()
+        }
+
+    /** Travel to the edit detent, or 0 when this field cannot be rewritten. */
+    var editDetentPx: Float = 0f
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+
+    /** The finger has begun to slide: the track takes the capsule over. */
+    var tracking: Boolean = false
         set(value) {
             if (field == value) return
             field = value
@@ -216,13 +233,21 @@ class OrbView(context: Context) : View(context) {
         set(value) {
             if (field == value) return
             field = value
-            val target = extraFor(value)
-            extra.target = target
-            if (target > 0f) lastOpenExtra = target
-            // Widen first, then grow into the room.
-            if (widthFor(target) > requestedWidth) requestWidth(widthFor(target))
+            applyExtra()
             invalidate()
         }
+
+    /**
+     * The capsule is the wider of what the contents need and what the slide
+     * needs, so it does not resize under the finger when the contents change.
+     */
+    private fun applyExtra() {
+        val target = extraFor(content)
+        extra.target = target
+        if (target > 0f) lastOpenExtra = target
+        // Widen first, then grow into the room.
+        if (widthFor(target) > requestedWidth) requestWidth(widthFor(target))
+    }
 
     // ---- motion state ---------------------------------------------------
 
@@ -233,6 +258,8 @@ class OrbView(context: Context) : View(context) {
     private val cancel = Spring(0f, 900f, 1f)
     /** px the sphere has slid along the capsule. */
     private val slide = Spring(0f, 900f, 0.75f)
+    /** 0 the capsule shows the recording, 1 it shows the slide track. */
+    private val tracks = Spring(0f, 700f, 1f)
     private var discardAt = 0L
     private var ghostOffset = 0f
     private var ghostStops = RED
@@ -351,7 +378,9 @@ class OrbView(context: Context) : View(context) {
         if (c == null) return 0f
         val budget = maxWidthPx - 2 * marginPx - diameterPx
         val content = if (c.timer != null) textWidth(c) + waveGap + wavesW else textWidth(c)
-        return min(orbGap + content + outerPad, budget).coerceAtLeast(0f)
+        // Room for the contents, or for the sphere to reach the far detent.
+        val needed = max(orbGap + content + outerPad, trackPx + diameterPx / 2f + outerPad)
+        return min(needed, budget).coerceAtLeast(0f)
     }
 
     // ---- palette --------------------------------------------------------
@@ -431,17 +460,17 @@ class OrbView(context: Context) : View(context) {
         val pull = if (listening) cancelPullPx else 0f
         // The zone is a place, not a gradient: the red arrives with the snap.
         cancel.target = if (listening && zone == SlideZone.CANCEL) 1f else 0f
-        val track = (extra.value - dp(4f)).coerceAtLeast(0f)
-        slide.target = if (pull <= track) pull else track + dp(OVERPULL_DP) * (1f - exp(-(pull - track) / dp(40f)))
-        val following = pull > 0f
+        val room = (extra.value - dp(4f)).coerceAtLeast(0f)
+        slide.target = if (pull <= room) pull else room + dp(OVERPULL_DP) * (1f - exp(-(pull - room) / dp(40f)))
+        tracks.target = if (listening && tracking) 1f else 0f
 
         var moving = false
         if (still) {
-            scale.snap(); extra.snap(); dim.snap(); cancel.snap(); slide.snap()
+            scale.snap(); extra.snap(); dim.snap(); cancel.snap(); slide.snap(); tracks.snap()
         } else {
-            moving = scale.step(dt) or extra.step(dt) or dim.step(dt) or cancel.step(dt)
-            // Under the finger: exactly where it is. Let go: spring home.
-            if (following) slide.snap() else moving = slide.step(dt) or moving
+            // The sphere springs between detents rather than following the finger.
+            moving = scale.step(dt) or extra.step(dt) or dim.step(dt) or cancel.step(dt) or
+                slide.step(dt) or tracks.step(dt)
         }
         // The capsule has closed: give the room back.
         if (extra.settled && extra.value == 0f && requestedWidth > compactWidth()) {
@@ -491,6 +520,8 @@ class OrbView(context: Context) : View(context) {
         }
         drawSphere(canvas, cx, cy, r, stops, !fadingNow && c == 0f, now, still)
         if (c > 0.55f) drawCross(canvas, cx, cy, r, ((c - 0.55f) / 0.45f).coerceIn(0f, 1f))
+        // Parked on the edit detent: the sphere has taken the pencil.
+        if (zone == SlideZone.EDIT) drawPencil(canvas, cx, cy, r, tracks.value)
 
         when (visual) {
             Visual.WORKING_DICTATION, Visual.WORKING_EDIT -> drawSweep(canvas, cx, cy, r, t, still)
@@ -579,9 +610,11 @@ class OrbView(context: Context) : View(context) {
         canvas.clipRect(rect)
         val baseline = cy - (labelPaint.descent() + labelPaint.ascent()) / 2
 
-        // Sliding to cancel: the waveform and timer give way to the hint.
-        val a = shown * (1f - smooth(0f, 0.35f, c))
-        drawSlideHint(canvas, cx, baseline, r, c, shown)
+        // The recording and the track never share the capsule: one fades out
+        // as the other fades in, so nothing can overlap.
+        val onTrack = tracks.value.coerceIn(0f, 1f)
+        val a = shown * (1f - onTrack)
+        if (onTrack > 0f) drawTrack(canvas, cy, r, home, shown * onTrack)
         if (a <= 0f) {
             canvas.restore()
             return
@@ -633,37 +666,37 @@ class OrbView(context: Context) : View(context) {
     }
 
     /**
-     * What waits further along the capsule: "Slide to edit" at rest (or why it
-     * is not on offer), "Slide to cancel" once the edit detent is taken, and
-     * "Cancel" in the room the sphere leaves behind once it is armed.
-     * [rect] is the capsule.
+     * The places the sphere can land, drawn where it will land: the pencil at
+     * the edit detent, the cross at the cancel detent. The one the sphere is
+     * parked on is left out — the sphere is wearing that glyph itself.
      */
-    private fun drawSlideHint(canvas: Canvas, cx: Float, baseline: Float, r: Float, c: Float, shown: Float) {
-        val armed = cancelArmed
-        val color = lerpArgb(HINT, WARN, c)
-
-        val text = if (zone == SlideZone.DICTATE) slideHint ?: "Slide to cancel" else "Slide to cancel"
-        val hint = if (dockRight) "‹  $text" else "$text  ›"
-        val hw = labelPaint.measureText(hint)
-        val hx = if (dockRight) rect.left + outerPad else rect.right - outerPad - hw
-        val gap = if (dockRight) (cx - r) - (hx + hw) else hx - (cx + r)
-        val near = smooth(0f, dp(28f), gap)
-        val hintA = shown * near * (if (armed) 0f else 1f)
-        if (hintA > 0f) {
-            labelPaint.color = color
-            labelPaint.alpha = (Color.alpha(color) * hintA).toInt()
-            canvas.drawText(hint, hx, baseline, labelPaint)
+    private fun drawTrack(canvas: Canvas, cy: Float, r: Float, home: Float, alpha: Float) {
+        fun spot(offset: Float, draw: (Float) -> Unit) {
+            if (offset <= 0f) return
+            draw(home + if (dockRight) -offset else offset)
         }
-
-        if (armed) {
-            val label = "Cancel"
-            val lw = labelPaint.measureText(label)
-            val lx = if (dockRight) cx + r + orbGap else cx - r - orbGap - lw
-            labelPaint.color = WARN
-            labelPaint.alpha = (255 * shown).toInt()
-            canvas.drawText(label, lx, baseline, labelPaint)
+        val gr = r * 0.62f
+        if (zone != SlideZone.EDIT) {
+            spot(editDetentPx) { x -> drawPencil(canvas, x, cy, gr, alpha * 0.55f) }
         }
-        labelPaint.color = TEXT
+        if (zone != SlideZone.CANCEL) {
+            spot(trackPx) { x -> drawCross(canvas, x, cy, gr, alpha * 0.55f) }
+        }
+    }
+
+    /** The ✎ that marks an edit, on the track or inside the sphere. */
+    private fun drawPencil(canvas: Canvas, cx: Float, cy: Float, r: Float, alpha: Float) {
+        if (alpha <= 0f) return
+        markPaint.strokeWidth = dp(2.5f)
+        markPaint.alpha = (255 * alpha.coerceIn(0f, 1f)).toInt()
+        val k = r * 0.34f
+        // The shaft, running corner to corner.
+        canvas.drawLine(cx - k, cy + k, cx + k, cy - k, markPaint)
+        // The nib, a short tick across the low end.
+        canvas.drawLine(cx - k, cy + k, cx - k + k * 0.5f, cy + k * 0.95f, markPaint)
+        // The line it writes on.
+        canvas.drawLine(cx - k * 1.1f, cy + k * 1.5f, cx + k * 1.1f, cy + k * 1.5f, markPaint)
+        markPaint.alpha = 255
     }
 
     /** The thrown-away sphere, shrinking and fading where it was let go. [g] 0..1. */

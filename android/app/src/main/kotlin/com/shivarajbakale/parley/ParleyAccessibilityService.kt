@@ -203,7 +203,7 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
         handler.removeCallbacks(pillTick)
         val state = session.state.value
         val now = System.currentTimeMillis()
-        orb.setPill(PillContent.forState(state, now, session.editsSelection()))
+        orb.setPill(PillContent.forState(state, now))
         if (state is SessionState.Listening) {
             // Land just after the next whole second so the clock never skips one.
             val elapsed = (now - state.startedAt).coerceAtLeast(0)

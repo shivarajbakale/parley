@@ -127,12 +127,6 @@ class Session(private val scope: CoroutineScope, private val deps: SessionDeps) 
         return true
     }
 
-    /** Whether an edit would rewrite a selection or the whole field. */
-    fun editsSelection(): Boolean {
-        val t = target ?: return false
-        return TextSplicer.editsSelection(t.text, t.isShowingHint, t.selStart, t.selEnd)
-    }
-
     fun canUndo(): Boolean = undo?.let { deps.now() < it.expiresAt } == true
 
     /** Starts listening. Returns false when a session is already in flight. */
