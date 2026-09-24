@@ -67,6 +67,10 @@ void main() {
     await pumpParley(tester, screen(), bridge: bridge);
 
     await tester.scrollUntilVisible(find.text('Clear history'), 200);
+    // scrollUntilVisible stops as soon as the sliver builds the row, which can
+    // still leave it under the fold.
+    await tester.ensureVisible(find.text('Clear history'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Clear history'));
     await tester.pumpAndSettle();
     expect(find.text('Clear all history?'), findsOneWidget);

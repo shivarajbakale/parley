@@ -71,7 +71,8 @@ class ParleySettingsPage extends ConsumerWidget {
               child: DSSettingsSection(
                 eyebrow: 'Triggers',
                 footer:
-                    'Hold the orb to dictate; double-tap then hold to rewrite. '
+                    'Hold the orb to dictate. Keep holding and slide toward '
+                    'the middle to rewrite instead, or further to cancel. '
                     'The volume gesture is two taps and a held third press.',
                 children: [
                   DSSwitchTile(
