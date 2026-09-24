@@ -22,6 +22,31 @@ void main() {
     expect(find.text('Password fields are never read.'), findsOneWidget);
   });
 
+  testWidgets('the key step can switch to Deepgram and saves its key', (
+    tester,
+  ) async {
+    final bridge = FakeParleyBridge(now: parleyTestNow);
+    await pumpParley(tester, const SetupPage(initialStep: 1), bridge: bridge);
+    expect(find.text('Your Groq key'), findsOneWidget);
+
+    await tester.tap(find.text('Use Deepgram Nova-3 instead'));
+    await tester.pumpAndSettle();
+    expect(find.text('Your Deepgram key'), findsOneWidget);
+    expect(find.text('Deepgram API key'), findsOneWidget);
+    expect(find.text('Use Whisper (Groq) instead'), findsOneWidget);
+
+    await tester.enterText(find.byType(EditableText).first, 'dg_live_key_Q9z1');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check key'));
+    await tester.pumpAndSettle();
+
+    final status = await bridge.getStatus();
+    expect(status.transcriptionProvider, TranscriptionProvider.deepgram);
+    expect(status.deepgramKeySet, isTrue);
+    expect(status.groqKeySet, isFalse);
+    expect(find.text('Microphone'), findsOneWidget);
+  });
+
   testWidgets('the battery step can be skipped', (tester) async {
     await pumpParley(
       tester,

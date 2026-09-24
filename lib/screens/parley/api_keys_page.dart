@@ -5,20 +5,24 @@ import 'package:parley_android/design_system/ds_button.dart';
 import 'package:parley_android/design_system/ds_form_page.dart';
 import 'package:parley_android/design_system/ds_pinned_action_bar.dart';
 import 'package:parley_android/design_system/ds_card.dart';
+import 'package:parley_android/design_system/ds_control_tile.dart';
 import 'package:parley_android/design_system/ds_list_tile.dart';
+import 'package:parley_android/design_system/ds_radio.dart';
 import 'package:parley_android/design_system/ds_text.dart';
 import 'package:parley_android/design_system/ds_snack_bar.dart';
 import 'package:parley_android/design_system/ds_text_field.dart';
+import 'package:parley_android/models/parley.dart';
 import 'package:parley_android/providers/parley_providers.dart';
 import 'package:parley_android/theme/spec/design_spec.dart';
 import 'package:parley_android/utils/error_copy.dart';
 
 /// API keys — the **Form** archetype.
 ///
-/// Two fields and one pinned action. Nothing is saved until every key typed
-/// here has been checked with its provider, so a typo never replaces a key
-/// that worked. Leaving a field empty keeps the stored key; the MiniMax field
-/// has a Remove, because voice edit is optional.
+/// Who transcribes, that provider's key, and the MiniMax key, with one pinned
+/// action. Nothing is saved until every key typed here has been checked with
+/// its provider, so a typo never replaces a key that worked, and the provider
+/// only switches once it has a key. Leaving a field empty keeps the stored
+/// key; the MiniMax field has a Remove, because voice edit is optional.
 class ApiKeysPage extends ConsumerStatefulWidget {
   const ApiKeysPage({super.key});
 
@@ -27,42 +31,68 @@ class ApiKeysPage extends ConsumerStatefulWidget {
 }
 
 class _ApiKeysPageState extends ConsumerState<ApiKeysPage> {
-  final _groq = TextEditingController();
+  final _keys = {
+    for (final p in TranscriptionProvider.values) p: TextEditingController(),
+  };
   final _minimax = TextEditingController();
   bool _saving = false;
   bool _removeMinimax = false;
+
+  /// The radio's answer; null until the user picks, so the saved one shows.
+  TranscriptionProvider? _picked;
   Map<String, String> _errors = const {};
 
   @override
   void dispose() {
-    _groq.dispose();
+    for (final c in _keys.values) {
+      c.dispose();
+    }
     _minimax.dispose();
     super.dispose();
   }
 
-  bool get _dirty =>
-      _groq.text.trim().isNotEmpty ||
-      _minimax.text.trim().isNotEmpty ||
-      _removeMinimax;
+  TranscriptionProvider _chosen(ParleyConfig? config) =>
+      _picked ?? config?.transcriptionProvider ?? TranscriptionProvider.groq;
 
-  Future<void> _save() async {
+  bool _dirty(ParleyConfig? config) {
+    final chosen = _chosen(config);
+    return _keys[chosen]!.text.trim().isNotEmpty ||
+        _minimax.text.trim().isNotEmpty ||
+        _removeMinimax ||
+        (config != null && chosen != config.transcriptionProvider);
+  }
+
+  Future<void> _save(ParleyConfig? config) async {
+    final chosen = _chosen(config);
+    final typed = _keys[chosen]!.text.trim();
+    if (typed.isEmpty && config?.keyLast4Of(chosen) == null) {
+      setState(
+        () => _errors = {
+          chosen.name: 'Add a ${chosen.company} key to use ${chosen.company}.',
+        },
+      );
+      return;
+    }
     setState(() {
       _saving = true;
       _errors = const {};
     });
     try {
-      final groq = _groq.text.trim();
       final minimax = _minimax.text.trim();
-      final result = await ref
-          .read(parleyBridgeProvider)
-          .setKeys(
-            groq: groq.isEmpty ? null : groq,
-            minimax: _removeMinimax ? '' : (minimax.isEmpty ? null : minimax),
-          );
+      final key = typed.isEmpty ? null : typed;
+      final bridge = ref.read(parleyBridgeProvider);
+      final result = await bridge.setKeys(
+        groq: chosen == TranscriptionProvider.groq ? key : null,
+        deepgram: chosen == TranscriptionProvider.deepgram ? key : null,
+        minimax: _removeMinimax ? '' : (minimax.isEmpty ? null : minimax),
+      );
       if (!mounted) return;
       if (!result.ok) {
         setState(() => _errors = result.errors);
         return;
+      }
+      if (chosen != config?.transcriptionProvider) {
+        await bridge.setTranscriptionProvider(chosen);
       }
       await ref.read(parleyConfigProvider.notifier).reload();
       await ref.read(parleyStatusProvider.notifier).refresh();
@@ -82,7 +112,8 @@ class _ApiKeysPageState extends ConsumerState<ApiKeysPage> {
   Widget build(BuildContext context) {
     final config = ref.watch(parleyConfigProvider).valueOrNull;
     final space = context.design.space;
-    final groqSaved = config?.groqKeyLast4;
+    final chosen = _chosen(config);
+    final keySaved = config?.keyLast4Of(chosen);
     final minimaxSaved = config?.minimaxKeyLast4;
 
     return DSFormPage(
@@ -92,21 +123,46 @@ class _ApiKeysPageState extends ConsumerState<ApiKeysPage> {
         children: [
           DSButton(
             label: 'Check and save',
-            onPressed: _dirty && !_saving ? _save : null,
+            onPressed: _dirty(config) && !_saving ? () => _save(config) : null,
             loading: _saving,
             fullWidth: true,
           ),
         ],
       ),
       children: [
+        // Radios, not a segmented control: each option needs its sentence,
+        // and "Deepgram Nova-3" beside "Whisper (Groq)" clips at 320pt.
+        DSCard(
+          variant: DSCardVariant.outlined,
+          padding: EdgeInsets.zero,
+          child: DSRadioGroup<TranscriptionProvider>(
+            label: 'Transcription',
+            value: chosen,
+            enabled: !_saving,
+            onChanged: (value) => setState(() {
+              _picked = value ?? chosen;
+              _errors = const {};
+            }),
+            children: [
+              for (final p in TranscriptionProvider.values)
+                DSRadioTile<TranscriptionProvider>(
+                  value: p,
+                  label: p.label,
+                  subtitle: p.detail,
+                ),
+            ],
+          ),
+        ),
+        space.verticalMd,
         DSTextField(
-          controller: _groq,
-          label: 'Groq API key',
-          hintText: groqSaved == null ? 'gsk_…' : 'Paste a new key',
-          helperText: groqSaved == null
+          key: ValueKey('key-${chosen.name}'),
+          controller: _keys[chosen],
+          label: '${chosen.company} API key',
+          hintText: keySaved == null ? chosen.keyHint : 'Paste a new key',
+          helperText: keySaved == null
               ? 'Required for transcription.'
-              : 'Saved ••$groqSaved. Empty keeps it.',
-          errorText: _errors['groq'],
+              : 'Saved ••$keySaved. Empty keeps it.',
+          errorText: _errors[chosen.name],
           input: const DSFieldInput.password(),
           onChanged: (_) => setState(() {}),
         ),
@@ -138,16 +194,16 @@ class _ApiKeysPageState extends ConsumerState<ApiKeysPage> {
         space.verticalLg,
         const DSText('How they are used', role: DSTextRole.eyebrow),
         space.verticalXs,
-        const DSCard(
+        DSCard(
           variant: DSCardVariant.outlined,
           padding: EdgeInsets.zero,
           child: DSListTileGroup(
             children: [
               DSListTile(
-                title: 'Groq',
-                subtitle: 'Turns what you say into text (Whisper).',
+                title: chosen.company,
+                subtitle: 'Turns what you say into text (${chosen.model}).',
               ),
-              DSListTile(
+              const DSListTile(
                 title: 'MiniMax',
                 subtitle: 'Rewrites a field when you ask for a voice edit.',
               ),

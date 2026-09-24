@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * Settings, API keys, the pause switch and the orb's position.
  *
  * Backed by EncryptedSharedPreferences in the app ([create]); tests pass plain
- * preferences. Full keys are readable only in-process ([groqKey], [minimaxKey]);
+ * preferences. Full keys are readable only in-process ([groqKey], [deepgramKey],
+ * [minimaxKey], [transcriptionKey]);
  * the [config] flow carries their last four characters and nothing more.
  */
 class ConfigStore(private val prefs: SharedPreferences) {
@@ -32,6 +33,8 @@ class ConfigStore(private val prefs: SharedPreferences) {
         private const val K_RETENTION = "historyRetentionDays"
         private const val K_GROQ = "groqKey"
         private const val K_MINIMAX = "minimaxKey"
+        private const val K_DEEPGRAM = "deepgramKey"
+        private const val K_PROVIDER = "transcriptionProvider"
         private const val K_PAUSED = "paused"
         private const val K_ORB_RIGHT = "orbDockRight"
         private const val K_ORB_Y = "orbYFraction"
@@ -74,6 +77,14 @@ class ConfigStore(private val prefs: SharedPreferences) {
 
     val groqKey: String? get() = prefs.getString(K_GROQ, null)?.takeIf { it.isNotEmpty() }
     val minimaxKey: String? get() = prefs.getString(K_MINIMAX, null)?.takeIf { it.isNotEmpty() }
+    val deepgramKey: String? get() = prefs.getString(K_DEEPGRAM, null)?.takeIf { it.isNotEmpty() }
+
+    /** The key of the provider dictation is configured to use. */
+    val transcriptionKey: String?
+        get() = when (config.value.transcriptionProvider) {
+            TranscriptionProvider.GROQ -> groqKey
+            TranscriptionProvider.DEEPGRAM -> deepgramKey
+        }
 
     private fun read() = Config(
         orbEnabled = prefs.getBoolean(K_ORB_ENABLED, true),
@@ -86,6 +97,9 @@ class ConfigStore(private val prefs: SharedPreferences) {
         historyRetentionDays = prefs.getInt(K_RETENTION, 30),
         groqKeyLast4 = last4(prefs.getString(K_GROQ, null)),
         minimaxKeyLast4 = last4(prefs.getString(K_MINIMAX, null)),
+        transcriptionProvider = TranscriptionProvider.fromWire(prefs.getString(K_PROVIDER, null))
+            ?: TranscriptionProvider.DEFAULT,
+        deepgramKeyLast4 = last4(prefs.getString(K_DEEPGRAM, null)),
     )
 
     /**
@@ -117,7 +131,12 @@ class ConfigStore(private val prefs: SharedPreferences) {
                 }
                 edit.putInt(key, days)
             }
-            "groqKeyLast4", "minimaxKeyLast4" -> throw IllegalArgumentException("$key is read-only; use setKeys")
+            K_PROVIDER -> {
+                val provider = TranscriptionProvider.fromWire(value as? String)
+                    ?: throw IllegalArgumentException("transcriptionProvider must be groq or deepgram")
+                edit.putString(key, provider.wire)
+            }
+            "groqKeyLast4", "minimaxKeyLast4", "deepgramKeyLast4" -> throw IllegalArgumentException("$key is read-only; use setKeys")
             else -> throw IllegalArgumentException("Unknown config key: $key")
         }
         edit.apply()
@@ -125,10 +144,11 @@ class ConfigStore(private val prefs: SharedPreferences) {
     }
 
     /** Saves keys already verified by the caller. An empty string removes that key. */
-    fun setKeys(groq: String?, minimax: String?): Config {
+    fun setKeys(groq: String?, minimax: String?, deepgram: String? = null): Config {
         val edit = prefs.edit()
         groq?.let { if (it.isEmpty()) edit.remove(K_GROQ) else edit.putString(K_GROQ, it) }
         minimax?.let { if (it.isEmpty()) edit.remove(K_MINIMAX) else edit.putString(K_MINIMAX, it) }
+        deepgram?.let { if (it.isEmpty()) edit.remove(K_DEEPGRAM) else edit.putString(K_DEEPGRAM, it) }
         edit.apply()
         return publish()
     }

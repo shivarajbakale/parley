@@ -21,6 +21,7 @@ class SessionTest {
 
     private class Fakes(val scope: TestScope) : SessionDeps {
         var groq: String? = "gsk"
+        var deepgram: String? = null
         var minimax: String? = "mm"
         var cfg = Config()
         var target: FieldTarget? = null
@@ -40,7 +41,10 @@ class SessionTest {
         var file: File? = null
 
         override fun now() = scope.testScheduler.currentTime
-        override fun groqKey() = groq
+        override fun transcriptionKey() = when (cfg.transcriptionProvider) {
+            TranscriptionProvider.GROQ -> groq
+            TranscriptionProvider.DEEPGRAM -> deepgram
+        }
         override fun minimaxKey() = minimax
         override fun config() = cfg
         override fun captureTarget() = target
@@ -141,6 +145,27 @@ class SessionTest {
         assertFalse(f.calls.contains("startRec"))
         advanceTimeBy(Session.ERROR_MS + 1)
         assertEquals(SessionState.Idle, s.state.value)
+    }
+
+    @Test fun `deepgram chosen without a deepgram key names deepgram, even with a groq key`() = runTest {
+        val (s, f) = session { cfg = Config(transcriptionProvider = TranscriptionProvider.DEEPGRAM) }
+        assertFalse(s.start(SessionMode.DICTATION))
+        assertEquals(SessionState.Error("No Deepgram key"), s.state.value)
+        runCurrent()
+        assertFalse(f.calls.contains("startRec"))
+    }
+
+    @Test fun `deepgram chosen with its key dictates`() = runTest {
+        val (s, f) = session {
+            cfg = Config(transcriptionProvider = TranscriptionProvider.DEEPGRAM)
+            groq = null
+            deepgram = "dg"
+        }
+        assertTrue(s.start(SessionMode.DICTATION))
+        s.stop()
+        runCurrent()
+        assertTrue(f.calls.contains("transcribe:auto"))
+        assertEquals("hello world", f.inserted.single().first)
     }
 
     @Test fun `mic failure is an error, not a crash`() = runTest {

@@ -25,6 +25,9 @@ written against this file; a change here changes both in the same commit.
 | `minimaxKeySet` | bool | |
 | `orbEnabled` | bool | config value |
 | `volumeGestureEnabled` | bool | config value |
+| `deepgramKeySet` | bool | |
+| `transcriptionProvider` | `groq`\|`deepgram` | config value |
+| `transcriptionKeySet` | bool | the chosen provider has a key; what "ready" reads |
 
 `Config`
 
@@ -40,6 +43,8 @@ written against this file; a change here changes both in the same commit.
 | `historyRetentionDays` | int (7, 30, 90, 0 = forever) | 30 |
 | `groqKeyLast4` | string or null | null |
 | `minimaxKeyLast4` | string or null | null |
+| `transcriptionProvider` | string `groq`\|`deepgram` | `groq` |
+| `deepgramKeyLast4` | string or null | null |
 
 `HistoryEntry`
 
@@ -69,10 +74,10 @@ written against this file; a change here changes both in the same commit.
 | `setPaused` | `{paused: bool}` | Status |
 | `openSystemSettings` | `{target: 'accessibility'\|'battery'\|'appDetails'}` | null |
 | `requestMicPermission` | — | bool (granted) |
-| `verifyKey` | `{provider: 'groq'\|'minimax', key: string}` | `{ok: bool, message: string\|null}` |
-| `setKeys` | `{groq?: string, minimax?: string}` (`''` for minimax removes it) | `{ok: bool, errors: {groq?: string, minimax?: string}}` — verifies every non-empty key first; saves none if any fails |
+| `verifyKey` | `{provider: 'groq'\|'deepgram'\|'minimax', key: string}` | `{ok: bool, message: string\|null}` |
+| `setKeys` | `{groq?: string, deepgram?: string, minimax?: string}` (`''` removes that key) | `{ok: bool, errors: {groq?: string, deepgram?: string, minimax?: string}}` — verifies every non-empty key first; saves none if any fails |
 | `getConfig` | — | Config |
-| `setConfig` | `{key: string, value: any}` | Config |
+| `setConfig` | `{key: string, value: any}` | Config — `transcriptionProvider` (`groq`\|`deepgram`) is how the Dart `setTranscriptionProvider` chooses who transcribes |
 | `getUsageSummary` | — | UsageSummary |
 | `listHistory` | `{offset: int, limit: int, query: string\|null, filter: 'all'\|'dictation'\|'edit'\|'notInserted'}` | List\<HistoryEntry\>, newest first |
 | `getHistoryEntry` | `{id: int}` | HistoryEntry or null |

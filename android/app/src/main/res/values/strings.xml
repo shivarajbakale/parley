@@ -3,5 +3,5 @@
     <string name="app_name">Parley</string>
     <string name="accessibility_service_label">Parley</string>
     <string name="accessibility_service_summary">Floating orb for voice dictation into any text field.</string>
-    <string name="accessibility_service_description">Parley shows a floating orb over other apps. Hold it, or press volume-down twice and hold the third press, to dictate; your speech is sent to Groq for transcription and the text is typed into the field you were in. Parley reads which text field has focus and its current text only to insert or edit what you dictated. Voice edits send that field\'s text to MiniMax. Nothing is collected or stored off the device except those requests.</string>
+    <string name="accessibility_service_description">Parley shows a floating orb over other apps. Hold it, or press volume-down twice and hold the third press, to dictate; your speech is sent to the transcription provider you chose (Groq or Deepgram) and the text is typed into the field you were in. Parley reads which text field has focus and its current text only to insert or edit what you dictated. Voice edits send that field\'s text to MiniMax. Nothing is collected or stored off the device except those requests.</string>
 </resources>

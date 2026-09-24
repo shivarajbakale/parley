@@ -21,7 +21,8 @@ import 'package:parley_android/utils/app_routes.dart';
 /// First run — the **Sequence** archetype.
 ///
 /// Six steps, each with one job and one pinned action: say what Parley is,
-/// take the Groq key, the microphone, the accessibility grant, the battery
+/// take the transcription key (Groq unless the user switches to Deepgram
+/// on that step), the microphone, the accessibility grant, the battery
 /// exemption, then one practice dictation in a field on this screen. Grants
 /// are given in system Settings, so the page re-reads status whenever the app
 /// comes back to the front and advances on its own when the grant landed.
@@ -46,7 +47,7 @@ class _SetupPageState extends ConsumerState<SetupPage>
   bool _placed = false;
   bool _busy = false;
   String? _keyError;
-  final _groq = TextEditingController();
+  final _key = TextEditingController();
   final _practice = TextEditingController();
 
   @override
@@ -58,7 +59,7 @@ class _SetupPageState extends ConsumerState<SetupPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _groq.dispose();
+    _key.dispose();
     _practice.dispose();
     super.dispose();
   }
@@ -74,7 +75,7 @@ class _SetupPageState extends ConsumerState<SetupPage>
 
   bool _done(_Step step, ParleyStatus s) => switch (step) {
     _Step.welcome => false,
-    _Step.key => s.groqKeySet,
+    _Step.key => s.transcriptionKeySet,
     _Step.mic => s.micGranted,
     _Step.accessibility => s.serviceBound,
     _Step.battery => s.batteryUnrestricted,
@@ -106,14 +107,18 @@ class _SetupPageState extends ConsumerState<SetupPage>
     if (mounted) context.go(AppRoutes.home);
   }
 
-  Future<void> _saveKey() async {
+  Future<void> _saveKey(TranscriptionProvider provider) async {
     setState(() {
       _busy = true;
       _keyError = null;
     });
+    final key = _key.text.trim();
     final result = await ref
         .read(parleyBridgeProvider)
-        .setKeys(groq: _groq.text.trim());
+        .setKeys(
+          groq: provider == TranscriptionProvider.groq ? key : null,
+          deepgram: provider == TranscriptionProvider.deepgram ? key : null,
+        );
     if (!mounted) return;
     if (result.ok) {
       await ref.read(parleyStatusProvider.notifier).refresh();
@@ -121,8 +126,23 @@ class _SetupPageState extends ConsumerState<SetupPage>
       // The status listener may already have advanced on the grant event.
       if (mounted && _step == _Step.key) _next();
     } else {
-      setState(() => _keyError = result.errors['groq'] ?? 'Key rejected');
+      setState(
+        () => _keyError = result.errors[provider.name] ?? 'Key rejected',
+      );
     }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  /// The key step's other answer: transcribe on the other provider instead.
+  Future<void> _switchProvider(TranscriptionProvider to) async {
+    setState(() {
+      _busy = true;
+      _keyError = null;
+      _key.clear();
+    });
+    await ref.read(parleyBridgeProvider).setTranscriptionProvider(to);
+    ref.invalidate(parleyConfigProvider);
+    await ref.read(parleyStatusProvider.notifier).refresh();
     if (mounted) setState(() => _busy = false);
   }
 
@@ -217,12 +237,14 @@ class _SetupPageState extends ConsumerState<SetupPage>
     return switch (_step) {
       _Step.welcome => [primary('Get started', _next)],
       _Step.key =>
-        s.groqKeySet && _groq.text.trim().isEmpty
+        s.transcriptionKeySet && _key.text.trim().isEmpty
             ? [primary('Continue', _next)]
             : [
                 primary(
                   'Check key',
-                  _groq.text.trim().isEmpty || _busy ? null : _saveKey,
+                  _key.text.trim().isEmpty || _busy
+                      ? null
+                      : () => _saveKey(s.transcriptionProvider),
                 ),
               ],
       _Step.mic =>
@@ -294,23 +316,38 @@ class _SetupPageState extends ConsumerState<SetupPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           header(
-            'Your Groq key',
-            'Parley transcribes on your own Groq account. The key is checked '
-                'with one request, then stored encrypted on this phone.',
+            'Your ${s.transcriptionProvider.company} key',
+            'Parley transcribes on your own '
+                '${s.transcriptionProvider.company} account. The key is '
+                'checked with one request, then stored encrypted on this '
+                'phone.',
           ),
           space.verticalLg,
           DSTextField(
-            controller: _groq,
-            label: 'Groq API key',
-            hintText: s.groqKeySet
+            key: ValueKey('setup-key-${s.transcriptionProvider.name}'),
+            controller: _key,
+            label: '${s.transcriptionProvider.company} API key',
+            hintText: s.transcriptionKeySet
                 ? 'A key is saved — paste to replace'
-                : 'gsk_…',
+                : s.transcriptionProvider.keyHint,
             errorText: _keyError,
             input: const DSFieldInput.password(),
             onChanged: (_) => setState(() {}),
           ),
-          if (s.groqKeySet && _groq.text.trim().isEmpty)
-            grantedNote('A Groq key is saved'),
+          if (s.transcriptionKeySet && _key.text.trim().isEmpty)
+            grantedNote('A ${s.transcriptionProvider.company} key is saved'),
+          // The other provider is an answer to this step, not a second
+          // primary: it sits under the field so Check key keeps the bar.
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: DSButton(
+              label: 'Use ${s.transcriptionProvider.other.label} instead',
+              variant: DSButtonVariant.ghost,
+              onPressed: _busy
+                  ? null
+                  : () => _switchProvider(s.transcriptionProvider.other),
+            ),
+          ),
         ],
       ),
       _Step.mic => Column(

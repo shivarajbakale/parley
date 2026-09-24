@@ -116,9 +116,10 @@ class ParleyBridge(private val activity: Activity, messenger: BinaryMessenger) :
             "verifyKey" -> {
                 val key = call.argument<String>("key") ?: throw IllegalArgumentException("key must be a string")
                 val verdict = when (call.argument<String>("provider")) {
-                    "groq" -> ParleyRuntime.transcriber.verify(key)
+                    "groq" -> ParleyRuntime.groq.verify(key)
+                    "deepgram" -> ParleyRuntime.deepgram.verify(key)
                     "minimax" -> ParleyRuntime.rewriter.verify(key)
-                    else -> throw IllegalArgumentException("provider must be groq or minimax")
+                    else -> throw IllegalArgumentException("provider must be groq, deepgram or minimax")
                 }
                 result.success(verdict.toMap())
             }
@@ -174,13 +175,16 @@ class ParleyBridge(private val activity: Activity, messenger: BinaryMessenger) :
     private suspend fun setKeys(call: MethodCall): Map<String, Any?> {
         val groq = call.argument<String>("groq")?.trim()
         val minimax = call.argument<String>("minimax")?.trim()
-        val groqCheck = groq?.takeIf { it.isNotEmpty() }?.let { scope.async { ParleyRuntime.transcriber.verify(it) } }
+        val deepgram = call.argument<String>("deepgram")?.trim()
+        val groqCheck = groq?.takeIf { it.isNotEmpty() }?.let { scope.async { ParleyRuntime.groq.verify(it) } }
+        val deepgramCheck = deepgram?.takeIf { it.isNotEmpty() }?.let { scope.async { ParleyRuntime.deepgram.verify(it) } }
         val minimaxCheck = minimax?.takeIf { it.isNotEmpty() }?.let { scope.async { ParleyRuntime.rewriter.verify(it) } }
         val errors = mutableMapOf<String, String>()
         groqCheck?.await()?.let { if (!it.ok) errors["groq"] = it.message ?: "Key rejected" }
+        deepgramCheck?.await()?.let { if (!it.ok) errors["deepgram"] = it.message ?: "Key rejected" }
         minimaxCheck?.await()?.let { if (!it.ok) errors["minimax"] = it.message ?: "Key rejected" }
         if (errors.isEmpty()) {
-            config.setKeys(groq, minimax)
+            config.setKeys(groq, minimax, deepgram)
             ParleyRuntime.refreshStatus()
         }
         return mapOf("ok" to errors.isEmpty(), "errors" to errors)

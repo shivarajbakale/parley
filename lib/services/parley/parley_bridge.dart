@@ -11,12 +11,17 @@ abstract interface class ParleyBridge {
   Future<void> openSystemSettings(SystemSettingsTarget target);
   Future<bool> requestMicPermission();
 
-  /// Checks one key with the provider without saving it.
+  /// Checks one key with the provider (`groq`, `deepgram` or `minimax`)
+  /// without saving it.
   Future<KeyCheck> verifyKey(String provider, String key);
 
   /// Verifies every non-empty key, then saves them all or none. An empty
-  /// [minimax] removes the stored MiniMax key.
-  Future<KeyCheck> setKeys({String? groq, String? minimax});
+  /// [minimax] or [deepgram] removes that stored key.
+  Future<KeyCheck> setKeys({String? groq, String? minimax, String? deepgram});
+
+  /// Chooses who transcribes. Read it back from [ParleyConfig] and
+  /// [ParleyStatus]; it is the `transcriptionProvider` config key.
+  Future<ParleyConfig> setTranscriptionProvider(TranscriptionProvider provider);
 
   Future<ParleyConfig> getConfig();
   Future<ParleyConfig> setConfig(String key, Object? value);

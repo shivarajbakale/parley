@@ -45,7 +45,8 @@ sealed class SessionState {
 /** Everything a session touches, so the rules are unit tests with fakes. */
 interface SessionDeps {
     fun now(): Long
-    fun groqKey(): String?
+    /** The key of the configured transcription provider. */
+    fun transcriptionKey(): String?
     fun minimaxKey(): String?
     fun config(): Config
     fun captureTarget(): FieldTarget?
@@ -134,7 +135,9 @@ class Session(private val scope: CoroutineScope, private val deps: SessionDeps) 
         if (_state.value.busy) return false
         undo = null
         mode = requested
-        if (deps.groqKey().isNullOrEmpty()) return fail(GroqTranscriber.messageFor(ApiException.Kind.NO_KEY))
+        if (deps.transcriptionKey().isNullOrEmpty()) {
+            return fail(deps.config().transcriptionProvider.messageFor(ApiException.Kind.NO_KEY))
+        }
         target = deps.captureTarget()
         // An edit is refused before the mic opens, so the user never speaks an
         // instruction into a request that was already impossible.
@@ -219,7 +222,10 @@ class Session(private val scope: CoroutineScope, private val deps: SessionDeps) 
                 return
             }
             val config = deps.config()
-            val key = deps.groqKey() ?: throw ApiException(ApiException.Kind.NO_KEY, GroqTranscriber.messageFor(ApiException.Kind.NO_KEY))
+            val key = deps.transcriptionKey() ?: throw ApiException(
+                ApiException.Kind.NO_KEY,
+                config.transcriptionProvider.messageFor(ApiException.Kind.NO_KEY),
+            )
             val heard = deps.transcribe(file, key, config.language).trim()
             if (heard.isEmpty()) {
                 _state.value = SessionState.Idle

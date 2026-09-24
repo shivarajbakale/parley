@@ -269,6 +269,23 @@
         "adb install -r (emulator-5554) -> Success; docs/evidence/parley-r08/launcher.png shows the icon; notes in docs/evidence/parley-r08.md"
       ],
       "notes": "Source: parley/build/icon.svg copied to assets/icon/. Adaptive layers are SVGs in assets/icon/ rendered to PNG with headless Chrome; flutter_launcher_icons generates the mipmaps with adaptive_icon_foreground_inset 0. iOS left off. Built while parley-a02 was in_progress in another session; r08 is a self-contained asset change."
+    },
+    {
+      "id": "parley-a06",
+      "priority": 14,
+      "area": "native",
+      "title": "Deepgram Nova-3 as a transcription provider",
+      "user_visible_behavior": "API keys offers a choice of transcription provider, Whisper (Groq) or Deepgram Nova-3, with a key field for the chosen one. Each key is checked with its own provider before it is saved, and switching to Deepgram needs a Deepgram key. Dictation then sends the recording to the chosen provider; Parley is ready when that provider has a key, and Setup, Overview and Settings name the provider in use. Existing installs stay on Groq.",
+      "status": "in_progress",
+      "verification": [
+        "make check",
+        "flutter test test/screens/api_keys_page_test.dart",
+        "native-test: DeepgramTranscriberTest, StoresTest, SessionTest"
+      ],
+      "evidence": [
+        "make check exit 0 on feat/deepgram-nova3: 144 Kotlin tests, flutter tests green, goldens re-baselined (api_keys, api_keys_text2x, setup_key); notes in docs/evidence/parley-a06.md"
+      ],
+      "notes": "Plan: parley-a06.feature-plan.json (FEATURE-PLAN.md). Design approved by the owner in chat on 2026-09-24. Not yet walked on a device with a real Deepgram key; stays in_progress until that walk."
     }
   ]
 }

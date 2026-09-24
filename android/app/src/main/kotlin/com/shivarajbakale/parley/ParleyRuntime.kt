@@ -33,8 +33,14 @@ object ParleyRuntime {
     lateinit var history: HistoryStore
         private set
 
-    val transcriber = GroqTranscriber()
+    val groq = GroqTranscriber()
+    val deepgram = DeepgramTranscriber()
     val rewriter = MiniMaxRewriter()
+
+    fun transcriber(provider: TranscriptionProvider): Transcriber = when (provider) {
+        TranscriptionProvider.GROQ -> groq
+        TranscriptionProvider.DEEPGRAM -> deepgram
+    }
 
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -85,6 +91,8 @@ object ParleyRuntime {
             minimaxKeySet = c.minimaxKeyLast4 != null,
             orbEnabled = c.orbEnabled,
             volumeGestureEnabled = c.volumeGestureEnabled,
+            deepgramKeySet = c.deepgramKeyLast4 != null,
+            transcriptionProvider = c.transcriptionProvider,
         )
     }
 

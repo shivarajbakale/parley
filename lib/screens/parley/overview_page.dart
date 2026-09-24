@@ -223,14 +223,14 @@ class _GettingStarted extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = status ?? const ParleyStatus();
-    final steps = [s.serviceBound, s.micGranted, s.groqKeySet, false];
+    final steps = [s.serviceBound, s.micGranted, s.transcriptionKeySet, false];
     final done = steps.where((d) => d).length;
     final ready = s.listening;
     final next = !s.serviceBound || s.paused
         ? 'turn on Parley'
         : !s.micGranted
         ? 'allow the mic'
-        : !s.groqKeySet
+        : !s.transcriptionKeySet
         ? 'add your key'
         : 'say something';
     return DSCard(

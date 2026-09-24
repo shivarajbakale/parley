@@ -24,7 +24,16 @@ data class Config(
     val historyRetentionDays: Int = 30,
     val groqKeyLast4: String? = null,
     val minimaxKeyLast4: String? = null,
+    val transcriptionProvider: TranscriptionProvider = TranscriptionProvider.DEFAULT,
+    val deepgramKeyLast4: String? = null,
 ) {
+    /** The chosen provider's key, last four; null when it has none. */
+    val transcriptionKeyLast4: String?
+        get() = when (transcriptionProvider) {
+            TranscriptionProvider.GROQ -> groqKeyLast4
+            TranscriptionProvider.DEEPGRAM -> deepgramKeyLast4
+        }
+
     fun toMap(): Map<String, Any?> = mapOf(
         "orbEnabled" to orbEnabled,
         "orbSize" to orbSize.wire,
@@ -36,6 +45,8 @@ data class Config(
         "historyRetentionDays" to historyRetentionDays,
         "groqKeyLast4" to groqKeyLast4,
         "minimaxKeyLast4" to minimaxKeyLast4,
+        "transcriptionProvider" to transcriptionProvider.wire,
+        "deepgramKeyLast4" to deepgramKeyLast4,
     )
 
     companion object {
@@ -52,7 +63,16 @@ data class Status(
     val minimaxKeySet: Boolean,
     val orbEnabled: Boolean,
     val volumeGestureEnabled: Boolean,
+    val deepgramKeySet: Boolean = false,
+    val transcriptionProvider: TranscriptionProvider = TranscriptionProvider.DEFAULT,
 ) {
+    /** The chosen provider has a key: what "ready" means. */
+    val transcriptionKeySet: Boolean
+        get() = when (transcriptionProvider) {
+            TranscriptionProvider.GROQ -> groqKeySet
+            TranscriptionProvider.DEEPGRAM -> deepgramKeySet
+        }
+
     fun toMap(): Map<String, Any?> = mapOf(
         "serviceBound" to serviceBound,
         "paused" to paused,
@@ -62,6 +82,9 @@ data class Status(
         "minimaxKeySet" to minimaxKeySet,
         "orbEnabled" to orbEnabled,
         "volumeGestureEnabled" to volumeGestureEnabled,
+        "deepgramKeySet" to deepgramKeySet,
+        "transcriptionProvider" to transcriptionProvider.wire,
+        "transcriptionKeySet" to transcriptionKeySet,
     )
 }
 

@@ -363,7 +363,7 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
     // ---- SessionDeps ----------------------------------------------------
 
     override fun now(): Long = System.currentTimeMillis()
-    override fun groqKey(): String? = store.groqKey
+    override fun transcriptionKey(): String? = store.transcriptionKey
     override fun minimaxKey(): String? = store.minimaxKey
     override fun config(): Config = store.config.value
 
@@ -402,7 +402,7 @@ class ParleyAccessibilityService : AccessibilityService(), SessionDeps {
     }
 
     override suspend fun transcribe(file: File, key: String, language: String): String =
-        ParleyRuntime.transcriber.transcribe(file, key, language)
+        ParleyRuntime.transcriber(store.config.value.transcriptionProvider).transcribe(file, key, language)
 
     override suspend fun rewrite(text: String, instruction: String, key: String): String =
         ParleyRuntime.rewriter.rewrite(text, instruction, key)

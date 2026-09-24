@@ -49,7 +49,9 @@ internal object Http {
 class GroqTranscriber(
     private val baseUrl: String = DEFAULT_BASE,
     private val client: OkHttpClient = Http.client(),
-) {
+) : Transcriber {
+    override val provider = TranscriptionProvider.GROQ
+
     companion object {
         const val DEFAULT_BASE = "https://api.groq.com/openai/v1"
         const val MODEL = "whisper-large-v3-turbo"
@@ -75,8 +77,11 @@ class GroqTranscriber(
 
     private val base = baseUrl.trimEnd('/')
 
-    /** Returns the transcript, trimmed; empty when nothing was said. */
-    suspend fun transcribe(wav: File, key: String?, language: String): String = withContext(Dispatchers.IO) {
+    /**
+     * Returns the transcript, trimmed; empty when nothing was said. The request
+     * carries no Whisper `prompt`, so [keyterms] are not sent.
+     */
+    override suspend fun transcribe(wav: File, key: String?, language: String, keyterms: List<String>): String = withContext(Dispatchers.IO) {
         if (key.isNullOrEmpty()) fail(ApiException.Kind.NO_KEY)
         val form = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart("file", "speech.wav", wav.asRequestBody(WAV))
@@ -105,7 +110,7 @@ class GroqTranscriber(
     }
 
     /** The cheapest authenticated call: list models. */
-    suspend fun verify(key: String): VerifyResult = withContext(Dispatchers.IO) {
+    override suspend fun verify(key: String): VerifyResult = withContext(Dispatchers.IO) {
         if (key.isBlank()) return@withContext VerifyResult(false, messageFor(ApiException.Kind.NO_KEY))
         val request = Request.Builder().url("$base/models").header("Authorization", "Bearer ${key.trim()}").get().build()
         try {

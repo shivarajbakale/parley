@@ -114,11 +114,19 @@ class FakeParleyBridge implements ParleyBridge {
   }
 
   @override
-  Future<KeyCheck> setKeys({String? groq, String? minimax}) async {
+  Future<KeyCheck> setKeys({
+    String? groq,
+    String? minimax,
+    String? deepgram,
+  }) async {
     await _wait();
     final errors = <String, String>{
       if (groq != null && groq.isNotEmpty && _problemWith(groq) != null)
         'groq': _problemWith(groq)!,
+      if (deepgram != null &&
+          deepgram.isNotEmpty &&
+          _problemWith(deepgram) != null)
+        'deepgram': _problemWith(deepgram)!,
       if (minimax != null &&
           minimax.isNotEmpty &&
           _problemWith(minimax) != null)
@@ -131,6 +139,13 @@ class FakeParleyBridge implements ParleyBridge {
     if (groq != null && groq.isNotEmpty) {
       config = config.withValue('groqKeyLast4', last4(groq));
       status = status.copyWith(groqKeySet: true);
+    }
+    if (deepgram != null) {
+      config = config.withValue(
+        'deepgramKeyLast4',
+        deepgram.isEmpty ? null : last4(deepgram),
+      );
+      status = status.copyWith(deepgramKeySet: deepgram.isNotEmpty);
     }
     if (minimax != null) {
       config = config.withValue(
@@ -145,6 +160,11 @@ class FakeParleyBridge implements ParleyBridge {
   }
 
   @override
+  Future<ParleyConfig> setTranscriptionProvider(
+    TranscriptionProvider provider,
+  ) => setConfig('transcriptionProvider', provider.name);
+
+  @override
   Future<ParleyConfig> getConfig() async {
     await _wait();
     return _config;
@@ -154,11 +174,14 @@ class FakeParleyBridge implements ParleyBridge {
   Future<ParleyConfig> setConfig(String key, Object? value) async {
     await _wait();
     _config = _config.withValue(key, value);
-    if (key == 'orbEnabled' || key == 'volumeGestureEnabled') {
+    if (key == 'orbEnabled' ||
+        key == 'volumeGestureEnabled' ||
+        key == 'transcriptionProvider') {
       _emit(
         _status.copyWith(
           orbEnabled: _config.orbEnabled,
           volumeGestureEnabled: _config.volumeGestureEnabled,
+          transcriptionProvider: _config.transcriptionProvider,
         ),
       );
     }

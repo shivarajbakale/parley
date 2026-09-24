@@ -254,13 +254,14 @@ class ParleySettingsPage extends ConsumerWidget {
   }
 
   static String _keysSummary(ParleyConfig c) {
-    final groq = c.groqKeyLast4 == null
-        ? 'Groq missing'
-        : 'Groq ••${c.groqKeyLast4}';
+    final provider = c.transcriptionProvider.company;
+    final transcription = c.transcriptionKeyLast4 == null
+        ? '$provider missing'
+        : '$provider ••${c.transcriptionKeyLast4}';
     final minimax = c.minimaxKeyLast4 == null
         ? 'no MiniMax'
         : 'MiniMax ••${c.minimaxKeyLast4}';
-    return '$groq · $minimax';
+    return '$transcription · $minimax';
   }
 
   static String _orbSizeLabel(String size) => switch (size) {

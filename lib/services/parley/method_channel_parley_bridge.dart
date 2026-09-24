@@ -52,13 +52,22 @@ class MethodChannelParleyBridge implements ParleyBridge {
   }
 
   @override
-  Future<KeyCheck> setKeys({String? groq, String? minimax}) async =>
-      KeyCheck.fromMap(
-        await _map('setKeys', {
-          if (groq != null) 'groq': groq,
-          if (minimax != null) 'minimax': minimax,
-        }),
-      );
+  Future<KeyCheck> setKeys({
+    String? groq,
+    String? minimax,
+    String? deepgram,
+  }) async => KeyCheck.fromMap(
+    await _map('setKeys', {
+      if (groq != null) 'groq': groq,
+      if (minimax != null) 'minimax': minimax,
+      if (deepgram != null) 'deepgram': deepgram,
+    }),
+  );
+
+  @override
+  Future<ParleyConfig> setTranscriptionProvider(
+    TranscriptionProvider provider,
+  ) => setConfig('transcriptionProvider', provider.name);
 
   @override
   Future<ParleyConfig> getConfig() async =>

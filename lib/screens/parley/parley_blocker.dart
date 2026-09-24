@@ -36,10 +36,11 @@ blockerOf(ParleyStatus s) {
       target: null,
     );
   }
-  if (!s.groqKeySet) {
+  if (!s.transcriptionKeySet) {
+    final company = s.transcriptionProvider.company;
     return (
-      title: 'Add your Groq key',
-      message: 'Transcription runs on your own Groq account.',
+      title: 'Add your $company key',
+      message: 'Transcription runs on your own $company account.',
       mode: OrbMode.idle,
       action: 'Add key',
       short: 'Add key',
@@ -80,7 +81,7 @@ Future<void> fixBlocker(
     await ref.read(parleyBridgeProvider).openSystemSettings(target);
   } else if (!status.micGranted) {
     await ref.read(parleyStatusProvider.notifier).requestMic();
-  } else if (!status.groqKeySet) {
+  } else if (!status.transcriptionKeySet) {
     if (context.mounted) context.push(AppRoutes.apiKeys);
   } else if (status.paused) {
     await ref.read(parleyStatusProvider.notifier).setPaused(false);

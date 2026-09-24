@@ -42,6 +42,54 @@ enum HistoryFilter {
   final String label;
 }
 
+/// Who turns speech into text. [groq] is the default, so an install from
+/// before the choice existed is unchanged. The wire value is [name].
+enum TranscriptionProvider {
+  groq(
+    label: 'Whisper (Groq)',
+    company: 'Groq',
+    model: 'Whisper',
+    detail: 'Runs on your Groq account.',
+    keyHint: 'gsk_…',
+  ),
+  deepgram(
+    label: 'Deepgram Nova-3',
+    company: 'Deepgram',
+    model: 'Nova-3',
+    detail: 'Runs on your Deepgram account.',
+    keyHint: 'Paste a key',
+  );
+
+  const TranscriptionProvider({
+    required this.label,
+    required this.company,
+    required this.model,
+    required this.detail,
+    required this.keyHint,
+  });
+
+  /// The choice as the user reads it: the model, and whose it is.
+  final String label;
+
+  /// The account the key belongs to, for "Groq key" and "Deepgram error".
+  final String company;
+
+  /// The model's own name, for "Turns what you say into text (Whisper)."
+  final String model;
+
+  /// One sentence under [label] where the choice is made.
+  final String detail;
+
+  /// Placeholder for an empty key field.
+  final String keyHint;
+
+  /// The other provider — the one a switch offers.
+  TranscriptionProvider get other => this == groq ? deepgram : groq;
+
+  static TranscriptionProvider parse(Object? value) =>
+      value == 'deepgram' ? deepgram : groq;
+}
+
 /// What the Setup sequence and the Overview hero read.
 class ParleyStatus {
   const ParleyStatus({
@@ -53,6 +101,8 @@ class ParleyStatus {
     this.minimaxKeySet = false,
     this.orbEnabled = true,
     this.volumeGestureEnabled = true,
+    this.deepgramKeySet = false,
+    this.transcriptionProvider = TranscriptionProvider.groq,
   });
 
   final bool serviceBound;
@@ -63,10 +113,18 @@ class ParleyStatus {
   final bool minimaxKeySet;
   final bool orbEnabled;
   final bool volumeGestureEnabled;
+  final bool deepgramKeySet;
+  final TranscriptionProvider transcriptionProvider;
+
+  /// The chosen transcription provider has a key.
+  bool get transcriptionKeySet => switch (transcriptionProvider) {
+    TranscriptionProvider.groq => groqKeySet,
+    TranscriptionProvider.deepgram => deepgramKeySet,
+  };
 
   /// Everything dictation needs is in place. Battery is advice, not a gate:
   /// Parley works without it until the OS decides to kill the service.
-  bool get ready => serviceBound && micGranted && groqKeySet;
+  bool get ready => serviceBound && micGranted && transcriptionKeySet;
 
   /// Ready and not switched off by the user.
   bool get listening => ready && !paused;
@@ -80,6 +138,10 @@ class ParleyStatus {
     minimaxKeySet: map['minimaxKeySet'] == true,
     orbEnabled: map['orbEnabled'] != false,
     volumeGestureEnabled: map['volumeGestureEnabled'] != false,
+    deepgramKeySet: map['deepgramKeySet'] == true,
+    transcriptionProvider: TranscriptionProvider.parse(
+      map['transcriptionProvider'],
+    ),
   );
 
   ParleyStatus copyWith({
@@ -91,6 +153,8 @@ class ParleyStatus {
     bool? minimaxKeySet,
     bool? orbEnabled,
     bool? volumeGestureEnabled,
+    bool? deepgramKeySet,
+    TranscriptionProvider? transcriptionProvider,
   }) => ParleyStatus(
     serviceBound: serviceBound ?? this.serviceBound,
     paused: paused ?? this.paused,
@@ -100,6 +164,8 @@ class ParleyStatus {
     minimaxKeySet: minimaxKeySet ?? this.minimaxKeySet,
     orbEnabled: orbEnabled ?? this.orbEnabled,
     volumeGestureEnabled: volumeGestureEnabled ?? this.volumeGestureEnabled,
+    deepgramKeySet: deepgramKeySet ?? this.deepgramKeySet,
+    transcriptionProvider: transcriptionProvider ?? this.transcriptionProvider,
   );
 
   @override
@@ -112,7 +178,9 @@ class ParleyStatus {
       other.groqKeySet == groqKeySet &&
       other.minimaxKeySet == minimaxKeySet &&
       other.orbEnabled == orbEnabled &&
-      other.volumeGestureEnabled == volumeGestureEnabled;
+      other.volumeGestureEnabled == volumeGestureEnabled &&
+      other.deepgramKeySet == deepgramKeySet &&
+      other.transcriptionProvider == transcriptionProvider;
 
   @override
   int get hashCode => Object.hash(
@@ -124,6 +192,8 @@ class ParleyStatus {
     minimaxKeySet,
     orbEnabled,
     volumeGestureEnabled,
+    deepgramKeySet,
+    transcriptionProvider,
   );
 }
 
@@ -140,6 +210,8 @@ class ParleyConfig {
     this.historyRetentionDays = 30,
     this.groqKeyLast4,
     this.minimaxKeyLast4,
+    this.transcriptionProvider = TranscriptionProvider.groq,
+    this.deepgramKeyLast4,
   });
 
   final bool orbEnabled;
@@ -158,6 +230,16 @@ class ParleyConfig {
   final int historyRetentionDays;
   final String? groqKeyLast4;
   final String? minimaxKeyLast4;
+  final TranscriptionProvider transcriptionProvider;
+  final String? deepgramKeyLast4;
+
+  /// The last four of [transcriptionProvider]'s key, or null when it has none.
+  String? get transcriptionKeyLast4 => keyLast4Of(transcriptionProvider);
+
+  String? keyLast4Of(TranscriptionProvider provider) => switch (provider) {
+    TranscriptionProvider.groq => groqKeyLast4,
+    TranscriptionProvider.deepgram => deepgramKeyLast4,
+  };
 
   static const orbSizes = ['small', 'medium', 'large'];
   static const retentionChoices = [7, 30, 90, 0];
@@ -185,6 +267,10 @@ class ParleyConfig {
     historyRetentionDays: (map['historyRetentionDays'] as num?)?.toInt() ?? 30,
     groqKeyLast4: map['groqKeyLast4'] as String?,
     minimaxKeyLast4: map['minimaxKeyLast4'] as String?,
+    transcriptionProvider: TranscriptionProvider.parse(
+      map['transcriptionProvider'],
+    ),
+    deepgramKeyLast4: map['deepgramKeyLast4'] as String?,
   );
 
   Map<String, Object?> toMap() => {
@@ -198,6 +284,8 @@ class ParleyConfig {
     'historyRetentionDays': historyRetentionDays,
     'groqKeyLast4': groqKeyLast4,
     'minimaxKeyLast4': minimaxKeyLast4,
+    'transcriptionProvider': transcriptionProvider.name,
+    'deepgramKeyLast4': deepgramKeyLast4,
   };
 
   /// A copy with one key changed, the way `setConfig` changes it.
@@ -317,7 +405,7 @@ class KeyCheck {
 
   final bool ok;
 
-  /// Provider (`groq`, `minimax`) to the provider's own message.
+  /// Provider (`groq`, `deepgram`, `minimax`) to the provider's own message.
   final Map<String, String> errors;
 
   factory KeyCheck.fromMap(Map<Object?, Object?> map) => KeyCheck(

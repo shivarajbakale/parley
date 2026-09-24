@@ -177,6 +177,8 @@ class ConfigStoreTest {
                 "historyRetentionDays" to 30,
                 "groqKeyLast4" to null,
                 "minimaxKeyLast4" to null,
+                "transcriptionProvider" to "groq",
+                "deepgramKeyLast4" to null,
             ),
             config.config.value.toMap(),
         )
@@ -202,6 +204,9 @@ class ConfigStoreTest {
             "language" to "english",
             "historyRetentionDays" to 14,
             "groqKeyLast4" to "abcd",
+            "deepgramKeyLast4" to "abcd",
+            "transcriptionProvider" to "openai",
+            "transcriptionProvider" to 1,
             "nope" to true,
         )) {
             try {
@@ -223,6 +228,62 @@ class ConfigStoreTest {
         assertNull(config.minimaxKey)
         assertNull(config.config.value.minimaxKeyLast4)
         assertEquals("abcd", config.config.value.groqKeyLast4)
+    }
+
+    @Test fun `provider defaults to groq and switches to deepgram`() {
+        assertEquals(TranscriptionProvider.GROQ, config.config.value.transcriptionProvider)
+        config.set("transcriptionProvider", "deepgram")
+        assertEquals(TranscriptionProvider.DEEPGRAM, config.config.value.transcriptionProvider)
+        assertEquals("deepgram", config.config.value.toMap()["transcriptionProvider"])
+        config.set("transcriptionProvider", "groq")
+        assertEquals(TranscriptionProvider.GROQ, config.config.value.transcriptionProvider)
+    }
+
+    @Test fun `provider survives a new store on the same prefs`() {
+        config.set("transcriptionProvider", "deepgram")
+        val prefs = ApplicationProvider.getApplicationContext<Context>()
+            .getSharedPreferences("config-test", Context.MODE_PRIVATE)
+        assertEquals(TranscriptionProvider.DEEPGRAM, ConfigStore(prefs).config.value.transcriptionProvider)
+    }
+
+    @Test fun `deepgram key crosses only as last 4, empty removes, and leaves the others alone`() {
+        config.setKeys("gsk_1234567890abcd", "mm_secretWXYZ")
+        config.setKeys(null, null, "dg_secret_key_Q9z1")
+        val c = config.config.value
+        assertEquals("Q9z1", c.deepgramKeyLast4)
+        assertEquals("dg_secret_key_Q9z1", config.deepgramKey)
+        assertFalse(c.toMap().values.any { it == "dg_secret_key_Q9z1" })
+        assertEquals("abcd", c.groqKeyLast4)
+        assertEquals("WXYZ", c.minimaxKeyLast4)
+        config.setKeys(null, null, "")
+        assertNull(config.deepgramKey)
+        assertNull(config.config.value.deepgramKeyLast4)
+        assertEquals("abcd", config.config.value.groqKeyLast4)
+    }
+
+    @Test fun `the transcription key is the chosen provider's`() {
+        config.setKeys("gsk_1234567890abcd", null)
+        assertEquals("gsk_1234567890abcd", config.transcriptionKey)
+        assertEquals("abcd", config.config.value.transcriptionKeyLast4)
+        config.set("transcriptionProvider", "deepgram")
+        assertNull(config.transcriptionKey)
+        assertNull(config.config.value.transcriptionKeyLast4)
+        config.setKeys(null, null, "dg_secret_key_Q9z1")
+        assertEquals("dg_secret_key_Q9z1", config.transcriptionKey)
+    }
+
+    @Test fun `status is ready only when the chosen provider has a key`() {
+        fun status(provider: TranscriptionProvider, groq: Boolean, deepgram: Boolean) = Status(
+            serviceBound = true, paused = false, micGranted = true, batteryUnrestricted = true,
+            groqKeySet = groq, minimaxKeySet = false, orbEnabled = true, volumeGestureEnabled = true,
+            deepgramKeySet = deepgram, transcriptionProvider = provider,
+        )
+        assertTrue(status(TranscriptionProvider.GROQ, groq = true, deepgram = false).transcriptionKeySet)
+        assertFalse(status(TranscriptionProvider.DEEPGRAM, groq = true, deepgram = false).transcriptionKeySet)
+        val map = status(TranscriptionProvider.DEEPGRAM, groq = false, deepgram = true).toMap()
+        assertEquals(true, map["transcriptionKeySet"])
+        assertEquals(true, map["deepgramKeySet"])
+        assertEquals("deepgram", map["transcriptionProvider"])
     }
 
     @Test fun `pause and orb position persist`() {

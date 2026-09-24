@@ -1,0 +1,198 @@
+{
+  "feature": {
+    "id": "parley-a06",
+    "title": "Deepgram Nova-3 as a transcription provider",
+    "problem": "Transcription only runs on Groq's Whisper. A user who already pays for Deepgram, or who wants Nova-3's accuracy, has no way to use it: the only key the app asks for, checks and needs to be ready is a Groq key.",
+    "nonGoals": [
+      "A vocabulary or dictionary screen. The Android app has none yet; Deepgram takes a keyterm list the day one exists, and Groq is left exactly as it is.",
+      "Streaming transcription. Both providers get the finished WAV, as today.",
+      "Changing voice edit. MiniMax stays the only rewriter."
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "api-keys",
+      "name": "API keys",
+      "route": "/api-keys",
+      "archetype": "form",
+      "purpose": "pick who transcribes, and replace or remove the keys",
+      "primaryAction": "Check and save",
+      "secondaryActions": [
+        "Remove MiniMax key"
+      ],
+      "panels": [
+        {
+          "kind": "field-set",
+          "fields": [
+            {
+              "label": "Transcription",
+              "placeholder": "( ) Whisper (Groq)  (o) Deepgram Nova-3",
+              "helper": "Radio rows, one sentence each."
+            },
+            {
+              "label": "Deepgram API key",
+              "placeholder": "Paste a key",
+              "helper": "Required for Deepgram. Empty keeps it."
+            },
+            {
+              "label": "MiniMax API key",
+              "placeholder": "Paste a key",
+              "helper": "Optional. Turns on voice edit."
+            }
+          ]
+        },
+        {
+          "kind": "section",
+          "title": "How they are used",
+          "rows": [
+            [
+              "Deepgram",
+              "Nova-3 speech to text"
+            ],
+            [
+              "MiniMax",
+              "voice edit"
+            ]
+          ]
+        }
+      ],
+      "moments": {
+        "peak": "Tapping Deepgram Nova-3 swaps the key field under it in place, already labelled for Deepgram, with nothing else on the page moving.",
+        "end": "Check and save returns to Settings with a Keys saved snack bar, and the Keys row names the provider now in use."
+      },
+      "states": {
+        "loading": "Check and save shows its spinner and is disabled while every typed key is checked with its own provider.",
+        "empty": "A fresh install opens on Whisper (Groq), exactly as before, with the Groq field asking for gsk_.",
+        "error": "A rejected key shows the provider's own message under its field, and neither the key nor the provider switch is saved. Choosing Deepgram with no Deepgram key saved or typed says Add a Deepgram key to use Deepgram.",
+        "success": "Keys and provider are saved together, the status turns ready when the chosen provider has a key, and the page closes."
+      }
+    }
+  ],
+  "overlays": [
+    {
+      "id": "keys-saved",
+      "kind": "snack-bar",
+      "title": "Keys saved",
+      "body": "Shown on Settings after the page closes.",
+      "buttons": []
+    }
+  ],
+  "components": [
+    {
+      "surface": "api-keys",
+      "control": "DSRadioGroup + DSRadioTile",
+      "why": "Two options that each need a sentence (which model, on whose account), all visible, exactly one chosen, and the answer is saved with the form rather than applied on tap.",
+      "rejected": "DSSegmentedButton — Whisper (Groq) and Deepgram Nova-3 clip at 320pt, and a segment reads as a view switch, not an answer"
+    },
+    {
+      "surface": "api-keys",
+      "control": "DSTextField with DSFieldInput.password",
+      "why": "One key field for the chosen provider, swapped in place; label above, helper below, the provider's error replacing the helper so the layout does not jump.",
+      "rejected": "both transcription key fields at once — a field for a provider that is not in use is a question nobody needs to answer"
+    },
+    {
+      "surface": "api-keys",
+      "control": "DSPinnedActionBar + DSButton",
+      "why": "The form's one primary, full width above the safe area, with its loading state while keys are checked.",
+      "rejected": "saving the provider the moment it is tapped — a switch to Deepgram without a working key would stop dictation"
+    }
+  ],
+  "entities": [
+    {
+      "name": "ParleyConfig",
+      "fields": [
+        {
+          "name": "transcriptionProvider",
+          "type": "TranscriptionProvider",
+          "note": "groq (default) or deepgram"
+        },
+        {
+          "name": "deepgramKeyLast4",
+          "type": "String?"
+        }
+      ]
+    },
+    {
+      "name": "ParleyStatus",
+      "fields": [
+        {
+          "name": "deepgramKeySet",
+          "type": "bool"
+        },
+        {
+          "name": "transcriptionProvider",
+          "type": "TranscriptionProvider"
+        },
+        {
+          "name": "transcriptionKeySet",
+          "type": "bool",
+          "note": "the chosen provider has a key; what ready reads"
+        }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "https://api.deepgram.com/v1/listen?model=nova-3&language=…&smart_format=true&keyterm=…",
+      "auth": true,
+      "purpose": "transcribe the raw WAV body (Authorization: Token <key>)"
+    },
+    {
+      "method": "GET",
+      "path": "https://api.deepgram.com/v1/projects",
+      "auth": true,
+      "purpose": "check a Deepgram key before it is saved"
+    }
+  ],
+  "integration": [
+    {
+      "from": "Session",
+      "to": "ParleyRuntime.transcriber(provider)",
+      "note": "the configured provider picks GroqTranscriber or DeepgramTranscriber behind one Transcriber interface"
+    },
+    {
+      "from": "ParleyBridge",
+      "to": "verifyKey / setKeys / setConfig",
+      "note": "provider deepgram in verifyKey and setKeys; transcriptionProvider is a setConfig key"
+    },
+    {
+      "from": "setup_page key step",
+      "to": "the configured provider",
+      "note": "the step asks for the chosen provider's key and offers the other provider"
+    },
+    {
+      "from": "parley_blocker / overview / settings",
+      "to": "ParleyStatus.transcriptionKeySet",
+      "note": "copy names the chosen provider instead of Groq"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/Transcriber.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/DeepgramTranscriber.kt",
+      "android/app/src/test/kotlin/com/shivarajbakale/parley/DeepgramTranscriberTest.kt"
+    ],
+    "changed": [
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/GroqTranscriber.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ConfigStore.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/Models.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/Session.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ParleyRuntime.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ParleyBridge.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ParleyAccessibilityService.kt",
+      "android/app/src/main/res/values/strings.xml",
+      "lib/models/parley.dart",
+      "lib/services/parley/parley_bridge.dart",
+      "lib/services/parley/method_channel_parley_bridge.dart",
+      "lib/services/parley/fake_parley_bridge.dart",
+      "lib/screens/parley/api_keys_page.dart",
+      "lib/screens/parley/setup_page.dart",
+      "lib/screens/parley/parley_blocker.dart",
+      "lib/screens/parley/overview_page.dart",
+      "lib/screens/parley/parley_settings_page.dart",
+      "docs/plans/bridge-contract.md",
+      "test/screens/api_keys_page_test.dart"
+    ]
+  }
+}

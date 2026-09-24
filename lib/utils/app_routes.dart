@@ -36,7 +36,7 @@ abstract final class AppRoutes {
   static const historyEntry = '/history';
   static String historyEntryAt(int id) => '/history/$id';
 
-  /// Replace or remove the Groq and MiniMax keys.
+  /// Choose Groq or Deepgram for transcription; replace or remove the keys.
   static const apiKeys = '/settings/keys';
 
   /// Subscription paywall. Deep-linkable; pushed as a full-screen dialog.
