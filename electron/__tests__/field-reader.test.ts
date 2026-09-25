@@ -117,4 +117,12 @@ describe('window locator', () => {
     await expect(locator.frontWindowBounds()).resolves.toBeNull();
     expect(onError).toHaveBeenCalledWith(failure);
   });
+
+  it('warms up with a timeout long enough for macOS to check a new binary', async () => {
+    const run = vi.fn().mockRejectedValue(new Error('killed'));
+    const locator = createWindowLocator({ helperPath: '/x/parley-ax', run });
+    await expect(locator.warmUp()).resolves.toBeUndefined();
+    expect(run.mock.calls[0][1]).toEqual(['--window-only']);
+    expect(run.mock.calls[0][2].timeout).toBeGreaterThanOrEqual(5000);
+  });
 });

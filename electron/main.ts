@@ -334,6 +334,9 @@ async function startApp() {
     onError: (error) =>
       console.warn('[orb] window read failed:', (error as { code?: unknown }).code ?? error),
   });
+  // The first run of a freshly installed helper is slow enough to time out
+  // the first orb's read; pay it once at launch, not on the first dictation.
+  void windowLocator.warmUp();
 
   const orb = {
     show: () => {

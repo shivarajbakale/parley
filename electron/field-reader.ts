@@ -99,10 +99,17 @@ export type RunHelperWithArgs = (
 const WINDOW_READ_TIMEOUT_MS = 1500;
 /** `--window-only` prints four numbers; this is generous headroom, not a cap on text. */
 const WINDOW_OUTPUT_BYTES = 16 * 1024;
+/**
+ * macOS checks a freshly installed binary before its first run (measured
+ * past 1.5s), and a run killed before that check ends does not finish it.
+ */
+const WARM_UP_TIMEOUT_MS = 10_000;
 
 export interface WindowLocator {
   /** The frontmost window's bounds, or `null` when the helper could not say. */
   frontWindowBounds(): Promise<Rect | null>;
+  /** One unhurried run at launch, so the first orb's read is not the slow one. */
+  warmUp(): Promise<void>;
 }
 
 /**
@@ -127,6 +134,16 @@ export function createWindowLocator(deps: {
       } catch (error) {
         deps.onError?.(error);
         return null;
+      }
+    },
+    async warmUp() {
+      try {
+        await deps.run(deps.helperPath, ['--window-only'], {
+          timeout: WARM_UP_TIMEOUT_MS,
+          maxBuffer: WINDOW_OUTPUT_BYTES,
+        });
+      } catch {
+        // Nothing to place yet; a real read reports its own failure.
       }
     },
   };
