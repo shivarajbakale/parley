@@ -1,5 +1,8 @@
 // Reads the focused UI element through the macOS Accessibility API and prints
 // one JSON object: { role, subrole, editable, valueKnown, value, selectedText, secure, selectionBounds }.
+// With `--window-only` it prints just { frontWindowBounds } and never touches the
+// focused field: the orb only needs to know where the window is, and a field's
+// whole value (a terminal's scrollback) is too much output to wait for.
 //
 // Read-only on purpose. Writing AXValue into a web input skips the page's own
 // input events, so Parley always writes back with a real paste instead.
@@ -53,7 +56,14 @@ func selectionBounds(_ element: AXUIElement) -> [String: Double]? {
 func frontWindowBounds() -> [String: Double]? {
   guard let front = NSWorkspace.shared.frontmostApplication else { return nil }
   let application = AXUIElementCreateApplication(front.processIdentifier)
-  guard let window = attribute(application, kAXFocusedWindowAttribute) else { return nil }
+  AXUIElementSetMessagingTimeout(application, 1.0)
+  // Electron apps build their accessibility tree only when asked to; without
+  // this the first read of their window comes back empty.
+  AXUIElementSetAttributeValue(application, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+  guard
+    let window = attribute(application, kAXFocusedWindowAttribute)
+      ?? attribute(application, kAXMainWindowAttribute)
+  else { return nil }
   guard
     let positionValue = attribute(window as! AXUIElement, kAXPositionAttribute),
     let sizeValue = attribute(window as! AXUIElement, kAXSizeAttribute)
@@ -74,6 +84,9 @@ func emit(_ object: [String: Any]) -> Never {
 guard AXIsProcessTrusted() else { emit(["error": "untrusted"]) }
 
 let windowBounds = frontWindowBounds()
+if CommandLine.arguments.contains("--window-only") {
+  emit(["frontWindowBounds": windowBounds as Any? ?? NSNull()])
+}
 guard let element = focusedElement() else {
   emit(["error": "no_focus", "frontWindowBounds": windowBounds as Any? ?? NSNull()])
 }

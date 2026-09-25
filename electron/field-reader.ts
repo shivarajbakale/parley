@@ -85,6 +85,53 @@ export function parseFrontWindowBounds(stdout: string): Rect | null {
   }
 }
 
+export type RunHelperWithArgs = (
+  file: string,
+  args: string[],
+  options: { timeout: number; maxBuffer: number }
+) => Promise<string>;
+
+/**
+ * The helper's AX messaging timeout is 1000ms, tuned for apps that build their
+ * accessibility tree lazily (Electron apps); the extra 500ms covers spawning
+ * the process, so the read is not killed just before it answers.
+ */
+const WINDOW_READ_TIMEOUT_MS = 1500;
+/** `--window-only` prints four numbers; this is generous headroom, not a cap on text. */
+const WINDOW_OUTPUT_BYTES = 16 * 1024;
+
+export interface WindowLocator {
+  /** The frontmost window's bounds, or `null` when the helper could not say. */
+  frontWindowBounds(): Promise<Rect | null>;
+}
+
+/**
+ * Where the user's window is, for placing the orb. Runs the helper with
+ * `--window-only` so the focused field's value is never read: a field full of
+ * text (a terminal, a long document) used to overflow the output cap, which
+ * dropped the correction and left the orb on the cursor's display.
+ */
+export function createWindowLocator(deps: {
+  helperPath: string;
+  run: RunHelperWithArgs;
+  onError?: (error: unknown) => void;
+}): WindowLocator {
+  return {
+    async frontWindowBounds() {
+      try {
+        const stdout = await deps.run(deps.helperPath, ['--window-only'], {
+          timeout: WINDOW_READ_TIMEOUT_MS,
+          maxBuffer: WINDOW_OUTPUT_BYTES,
+        });
+        return parseFrontWindowBounds(stdout);
+      } catch (error) {
+        deps.onError?.(error);
+        return null;
+      }
+    },
+  };
+}
+
 export function createFieldReader(deps: { helperPath: string; run: RunHelper }): FieldReader {
   return {
     async read() {

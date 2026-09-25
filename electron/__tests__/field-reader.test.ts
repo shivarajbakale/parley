@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createFieldReader, parseFocusedField, parseFrontWindowBounds } from '../field-reader';
+import {
+  createFieldReader,
+  createWindowLocator,
+  parseFocusedField,
+  parseFrontWindowBounds,
+} from '../field-reader';
 
 describe('field reader', () => {
   it('parses what the helper prints', () => {
@@ -75,5 +80,41 @@ describe('field reader', () => {
       run: vi.fn().mockRejectedValue(new Error('ENOENT')),
     });
     await expect(reader.read()).resolves.toBeNull();
+  });
+});
+
+describe('window locator', () => {
+  it('asks the helper for the window only, with room for a slow Electron app', async () => {
+    const run = vi
+      .fn()
+      .mockResolvedValue(JSON.stringify({ frontWindowBounds: { x: 10, y: 33, width: 800, height: 600 } }));
+    const locator = createWindowLocator({ helperPath: '/x/parley-ax', run });
+    await expect(locator.frontWindowBounds()).resolves.toEqual({ x: 10, y: 33, width: 800, height: 600 });
+    const [file, args, options] = run.mock.calls[0];
+    expect(file).toBe('/x/parley-ax');
+    expect(args).toEqual(['--window-only']);
+    // The helper's own AX timeout is 1000ms; spawning needs headroom on top.
+    expect(options.timeout).toBeGreaterThan(1000);
+  });
+
+  it('never caps output below what a window read prints', async () => {
+    const run = vi.fn().mockResolvedValue('{}');
+    await createWindowLocator({ helperPath: '/x/parley-ax', run }).frontWindowBounds();
+    const printed = JSON.stringify({
+      frontWindowBounds: { x: -1728.5, y: -1117.25, width: 3456.75, height: 2234.125 },
+    });
+    expect(run.mock.calls[0][2].maxBuffer).toBeGreaterThan(printed.length * 4);
+  });
+
+  it('reports a failed read instead of swallowing it', async () => {
+    const failure = Object.assign(new Error('too much'), { code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' });
+    const onError = vi.fn();
+    const locator = createWindowLocator({
+      helperPath: '/x/parley-ax',
+      run: vi.fn().mockRejectedValue(failure),
+      onError,
+    });
+    await expect(locator.frontWindowBounds()).resolves.toBeNull();
+    expect(onError).toHaveBeenCalledWith(failure);
   });
 });

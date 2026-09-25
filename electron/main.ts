@@ -25,7 +25,7 @@ import { createDictionaryStore } from './dictionary-store';
 import { createEditTargets } from './edit-target';
 import { createExplain, EXPLAIN_LEAVE_MS } from './explain';
 import { CARD_MIN_HEIGHT, CARD_WIDTH, maxCardHeight, placeCard } from './explain-placement';
-import { createFieldReader, parseFrontWindowBounds } from './field-reader';
+import { createFieldReader, createWindowLocator } from './field-reader';
 import { createGestureDetector } from './gesture-detector';
 import { createInjector } from './injector';
 import { createKeyHook } from './key-hook';
@@ -326,21 +326,14 @@ async function startApp() {
     onTimeout: recoverStuckSession,
   });
 
-  /** A dedicated, un-shared run of the helper: this must never wait behind a
-   * correction-watcher read, and it only ever needs `frontWindowBounds`. */
-  async function readFrontWindowBounds(): Promise<Rect | null> {
-    try {
-      // 1000ms, not the usual 300ms: the helper's own AX messaging timeout
-      // (parley-ax.swift) is 1000ms, tuned for apps that build their
-      // accessibility tree lazily (Electron apps). A tighter timeout here
-      // kills the helper before that read finishes, so the correction is
-      // silently dropped and the orb is left on the previous window's display.
-      const { stdout } = await execFileAsync(AX_HELPER, [], { timeout: 1000, maxBuffer: 1024 });
-      return parseFrontWindowBounds(stdout);
-    } catch {
-      return null;
-    }
-  }
+  // A dedicated, un-shared run of the helper: this must never wait behind a
+  // correction-watcher read, and it only ever needs `frontWindowBounds`.
+  const windowLocator = createWindowLocator({
+    helperPath: AX_HELPER,
+    run: async (file, args, options) => (await execFileAsync(file, args, options)).stdout,
+    onError: (error) =>
+      console.warn('[orb] window read failed:', (error as { code?: unknown }).code ?? error),
+  });
 
   const orb = {
     show: () => {
@@ -353,7 +346,7 @@ async function startApp() {
       // `showInactive`, never `show`: the user's text field must keep focus.
       orbWindow?.showInactive();
       const shownFor = orbWindow;
-      void readFrontWindowBounds().then((bounds) => {
+      void windowLocator.frontWindowBounds().then((bounds) => {
         if (!shownFor || orbWindow !== shownFor || !shownFor.isVisible()) return;
         if (!bounds) {
           // Untrusted, timed out, or an app that never reports a focused
