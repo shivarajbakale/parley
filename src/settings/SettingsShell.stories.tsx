@@ -2,7 +2,13 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 import { eventArgTypes, handlers } from 'storybook/story-helpers';
 
-import { DEFAULT_SETTINGS, type ParleyApi, type SettingsView } from '../../electron/types';
+import {
+  DEFAULT_SETTINGS,
+  OFFLINE_AGENT_SUMMARY,
+  type AgentSummary,
+  type ParleyApi,
+  type SettingsView,
+} from '../../electron/types';
 
 import { SettingsShell } from './SettingsShell';
 
@@ -13,6 +19,26 @@ const settled: SettingsView = {
   hasApiKey: true,
   hasRewriteKey: false,
   wordsDictated: 1340,
+  agent: OFFLINE_AGENT_SUMMARY,
+};
+
+const ONLINE_AGENT: AgentSummary = {
+  online: true,
+  managed: true,
+  serverState: 'online',
+  message: '',
+  currentRun: null,
+  mcpServers: [
+    { name: 'Files', tools: 12 },
+    { name: 'Calendar', tools: 8 },
+  ],
+};
+
+const BROKEN_AGENT: AgentSummary = { ...OFFLINE_AGENT_SUMMARY, message: 'refused on :4111' };
+
+const WAITING_AGENT: AgentSummary = {
+  ...ONLINE_AGENT,
+  currentRun: { status: 'awaiting_approval', summary: 'Delete 3 events?', callId: 'c9' },
 };
 
 /** The settings window after first run: Overview first, then the grouped Gesture and General tabs. */
@@ -23,7 +49,10 @@ const meta = {
   parameters: { layout: 'fullscreen' },
   argTypes: { ...eventArgTypes(['onChange']) },
   decorators: [
-    Story => {
+    (Story, context) => {
+      const agent =
+        (context as { parameters?: { agent?: AgentSummary } }).parameters?.agent ??
+        OFFLINE_AGENT_SUMMARY;
       window.parley = {
         ...window.parley,
         setApiKey: async () => ({ ok: true, message: 'Key works' }),
@@ -33,6 +62,11 @@ const meta = {
           transcriptionProvider,
         }),
         setRewriteKey: async () => ({ ok: true, message: 'Key works' }),
+        setAgentUrl: async () => ({ ok: true, message: 'Starting…', mcpServers: [] }),
+        testAgent: async () => ({ ok: agent.online, message: agent.message || 'Agent works', mcpServers: agent.mcpServers }),
+        restartAgent: async () => ({ ok: true, message: 'Restarting…', mcpServers: agent.mcpServers }),
+        decideApproval: async () => true,
+        agentStatus: async () => agent,
         requestPermission: async () => ({ microphone: true, accessibility: true }),
         updateSettings: async patch => ({ ...settled, ...patch }),
       } as ParleyApi;
@@ -75,4 +109,40 @@ export const DeepgramNeedsKey: Story = {
     ...base,
     settings: { ...settled, transcriptionProvider: 'deepgram', hasApiKey: false },
   },
+};
+
+/** The Agent tab with a healthy server: reachability, the safety contract, an example. */
+export const AgentOnline: Story = {
+  args: {
+    ...base,
+    initialTab: 'agent',
+    settings: { ...settled, agent: ONLINE_AGENT },
+  },
+  parameters: { agent: ONLINE_AGENT },
+};
+
+/** No server: the tab says dictation is unaffected and Advanced waits below. */
+export const AgentOffline: Story = {
+  args: { ...base, initialTab: 'agent' },
+  parameters: { agent: OFFLINE_AGENT_SUMMARY },
+};
+
+/** A failed spawn stays visible with its message and a way into Advanced. */
+export const AgentTestError: Story = {
+  args: {
+    ...base,
+    initialTab: 'agent',
+    settings: { ...settled, agent: BROKEN_AGENT },
+  },
+  parameters: { agent: BROKEN_AGENT },
+};
+
+/** A waiting approval mirrors with Approve and Decline. */
+export const AgentAwaitingApproval: Story = {
+  args: {
+    ...base,
+    initialTab: 'agent',
+    settings: { ...settled, agent: WAITING_AGENT },
+  },
+  parameters: { agent: WAITING_AGENT },
 };

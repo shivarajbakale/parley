@@ -250,6 +250,7 @@ export function createOrbRenderer(
     dictate: new Float32Array(palette.aurora.flat()),
     edit: new Float32Array(palette.edit.flat()),
     explain: new Float32Array(palette.explain.flat()),
+    act: new Float32Array(palette.act.flat()),
   };
   let worn: SessionMode = 'dictate';
   gl.uniform3fv(auroraLocation, hues[worn]);

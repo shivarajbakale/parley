@@ -40,6 +40,17 @@ export interface Settings {
    * equals the dictate or the voice edit key.
    */
   explainGestureKey: GestureKey;
+  /**
+   * Same taps, fourth key: hands the speech to the Mastra agent as a command.
+   * Off while it equals any other mode's key.
+   */
+  actGestureKey: GestureKey;
+  /** Where the Mastra agent answers. Localhost URLs are managed (spawned by
+   * Parley); anything else is attach-only. */
+  agentUrl: string;
+  /** Start the managed server with the app. Off means attach-only, for
+   * debugging a toxic server. */
+  agentAutoStart: boolean;
   /** Free text, comma separated. Sent to Whisper as `prompt`, to Deepgram as keyterms. */
   vocabulary: string;
   /** Which service transcribes. Set only through `setTranscriptionProvider`,
@@ -58,11 +69,18 @@ export interface Settings {
 /** Wizard steps 0-5 are the six setup steps; the Done screen sits at 6. */
 export const WIZARD_STEP_MAX = 6;
 
+/** Mastra's default serve port. The supervisor passes the URL's own port
+ * to the child when it differs. */
+export const DEFAULT_AGENT_URL = 'http://localhost:4111';
+
 export const DEFAULT_SETTINGS: Settings = {
   gestureKey: 'AltRight',
   tapCount: 3,
   editGestureKey: 'MetaRight',
   explainGestureKey: 'CtrlRight',
+  actGestureKey: 'ShiftRight',
+  agentUrl: DEFAULT_AGENT_URL,
+  agentAutoStart: true,
   vocabulary: '',
   transcriptionProvider: 'groq',
   tickSound: true,
@@ -72,12 +90,18 @@ export const DEFAULT_SETTINGS: Settings = {
   onboardingComplete: false,
 };
 
-/** `dictate` pastes what was said; `edit` applies it to the focused field. */
-export type SessionMode = 'dictate' | 'edit' | 'explain';
+/** `dictate` pastes what was said; `edit` applies it to the focused field;
+ * `explain` answers about the selection; `act` hands it to the agent. */
+export type SessionMode = 'dictate' | 'edit' | 'explain' | 'act';
 
 /** Why `session.start()` refused the gesture — sent to the settings window
  * since opening it again is a no-op when it's already the window in front. */
-export type SessionBlockedReason = 'microphone' | 'accessibility' | 'apiKey' | 'rewriteKey';
+export type SessionBlockedReason =
+  | 'microphone'
+  | 'accessibility'
+  | 'apiKey'
+  | 'rewriteKey'
+  | 'agent';
 
 /** `notice` is the pill speaking outside a session: an offer to remember a word. */
 export type OrbPhase = 'listening' | 'transcribing' | 'done' | 'error' | 'cancelled' | 'notice';
@@ -113,6 +137,47 @@ export interface PermissionStatus {
 
 export type PermissionKind = keyof PermissionStatus;
 
+/** One MCP server the agent can reach, as the Agent tab shows it. */
+export interface AgentMcpServer {
+  name: string;
+  tools: number;
+}
+
+export type AgentServerState = 'starting' | 'online' | 'offline';
+
+/** The live run or waiting approval, read-only. The tab pairs a wait with
+ * Approve/Decline buttons. */
+export interface AgentCurrentRun {
+  status: 'working' | 'awaiting_approval';
+  summary: string;
+  /** The waiting call, for answering from the tab. Null while working. */
+  callId: string | null;
+}
+
+/** Live agent state. The store reports the offline default; main overwrites
+ * it with the supervisor's truth at `settings:get` time — the store never
+ * holds process state. */
+export interface AgentSummary {
+  online: boolean;
+  /** True while Parley owns the process — restart applies; false when attached. */
+  managed: boolean;
+  serverState: AgentServerState;
+  /** The last named failure, persisted until the next run starts. */
+  message: string;
+  currentRun: AgentCurrentRun | null;
+  mcpServers: AgentMcpServer[];
+}
+
+/** The agent before main hands over the supervisor's truth. */
+export const OFFLINE_AGENT_SUMMARY: AgentSummary = {
+  online: false,
+  managed: false,
+  serverState: 'offline',
+  message: '',
+  currentRun: null,
+  mcpServers: [],
+};
+
 /** What the settings window may see. The API key itself never leaves main. */
 export interface SettingsView extends Settings {
   /** The selected transcription provider has a key stored. */
@@ -122,6 +187,13 @@ export interface SettingsView extends Settings {
   /** Words pasted by dictation, all time. Counted in main; the renderer can
    * read it here but no patch can set it. */
   wordsDictated: number;
+  agent: AgentSummary;
+}
+
+export interface AgentTestResult {
+  ok: boolean;
+  message: string;
+  mcpServers: AgentMcpServer[];
 }
 
 export interface KeyTestResult {
@@ -171,6 +243,15 @@ export interface ParleyApi {
   setDeepgramKey(key: string): Promise<KeyTestResult>;
   setTranscriptionProvider(provider: TranscriptionProvider): Promise<SettingsView>;
   setRewriteKey(key: string): Promise<KeyTestResult>;
+  /** The agent URL: tested, then stored if the agent answers. */
+  setAgentUrl(url: string): Promise<AgentTestResult>;
+  testAgent(): Promise<AgentTestResult>;
+  /** Kills the managed child and respawns it. Refused when attached. */
+  restartAgent(): Promise<AgentTestResult>;
+  /** Answers the mirrored pending approval. False when the call is stale. */
+  decideApproval(callId: string, approved: boolean): Promise<boolean>;
+  /** Live agent state, polled by the Agent tab while it is open. */
+  agentStatus(): Promise<AgentSummary>;
   getPermissions(): Promise<PermissionStatus>;
   requestPermission(kind: PermissionKind): Promise<PermissionStatus>;
   onExplain(listener: (state: ExplainState) => void): () => void;

@@ -10,12 +10,15 @@ import {
   shell,
   Tray,
 } from 'electron';
-import { execFile } from 'node:child_process';
+import { execFile, spawn as spawnProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
 
+import { createActionConfirm } from './agent/confirm';
+import { createAgentClient } from './agent/client';
+import { createSupervisor } from './agent/supervisor';
 import { createAudioWatchdog } from './audio-watchdog';
 import { createCommonWords } from './common-words';
 import { detectCorrection } from './correction-detect';
@@ -33,13 +36,15 @@ import { parseOrbAudio } from './orb-audio';
 import { getPermissions, requestPermission } from './permissions';
 import { createRewriter } from './rewriter';
 import { createSelectionReader } from './selection-reader';
-import { createSession, type Session } from './session';
+import { createSession, ERROR_MS, type Session } from './session';
 import { createSettingsStore } from './settings-store';
 import { createTranscriber } from './transcriber';
 import { trayMenuTemplate } from './tray';
 import { createWebSearch } from './web-search';
 import { createWordOffer } from './word-offer';
 import type {
+  AgentSummary,
+  AgentTestResult,
   ExplainContent,
   KeyTestResult,
   OrbPhasePayload,
@@ -50,7 +55,7 @@ import type {
   Settings,
   TranscriptionProvider,
 } from './types';
-import { TRANSCRIPTION_PROVIDERS } from './types';
+import { NOTICE_MS, TRANSCRIPTION_PROVIDERS } from './types';
 import { explainWindowOptions, orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
 
 /**
@@ -59,6 +64,11 @@ import { explainWindowOptions, orbBounds, orbWindowOptions, settingsWindowOption
  * renderer) and recovers it with an empty, zero-duration payload.
  */
 const AUDIO_WATCHDOG_MS = 5000;
+
+/** Agent answers longer than this go to the clipboard; the pill only says so. */
+const RESULT_CHARS = 120;
+/** Quitting mid-run waits this long for the run's DELETE before giving up. */
+const QUIT_GRACE_MS = 500;
 
 /** Only ever hand `shell.openExternal` a web URL, never a custom scheme. */
 function isExternalHttpUrl(url: string): boolean {
@@ -89,6 +99,20 @@ const PRELOAD = path.join(__dirname, 'preload.mjs');
 const AX_HELPER = app.isPackaged
   ? path.join(process.resourcesPath, 'parley-ax')
   : path.join(process.env.APP_ROOT, 'resources', 'parley-ax');
+
+/**
+ * The Mastra agent Parley hands commands to. In dev it is the sibling
+ * checkout, run with its own `mastra` CLI; packaged it is the bundle laid
+ * down by `scripts/build-agent.sh`, run by the app binary itself with
+ * ELECTRON_RUN_AS_NODE — a shipped Electron app has no `node` otherwise.
+ */
+const AGENT_DEV_DIR = path.join(process.env.APP_ROOT, '..', 'Mastra', 'parley-agent');
+const AGENT_MASTRA_BIN = path.join(AGENT_DEV_DIR, 'node_modules', '.bin', 'mastra');
+const AGENT_BUNDLE_DIR = app.isPackaged
+  ? path.join(process.resourcesPath, 'parley-agent')
+  : path.join(process.env.APP_ROOT, 'resources', 'parley-agent');
+/** The build script's side of the contract: the bundled server's entry. */
+const AGENT_ENTRY = 'index.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -396,10 +420,258 @@ async function startApp() {
       if (!dictionary.isIgnored(correction.word)) wordOffer.offer(correction);
     },
   });
+  // The Mastra agent behind act mode: Parley starts its server on launch,
+  // hands it transcribed commands, and paints what comes back on the pill.
+  function isLocalhostUrl(url: string): boolean {
+    try {
+      const host = new URL(url).hostname;
+      return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+    } catch {
+      return false;
+    }
+  }
+
+  function agentPort(): number {
+    try {
+      return Number(new URL(store.get().agentUrl).port) || 4111;
+    } catch {
+      return 4111;
+    }
+  }
+
+  let agentClient = createAgentClient({ baseUrl: store.get().agentUrl });
+
+  const supervisor = createSupervisor({
+    getConfig: () => {
+      const port = agentPort();
+      const env = { ...process.env, PORT: String(port) } as Record<string, string>;
+      return {
+        autoStart: store.get().agentAutoStart,
+        managed: isLocalhostUrl(store.get().agentUrl),
+        spawn: app.isPackaged
+          ? {
+              command: process.execPath,
+              args: [path.join(AGENT_BUNDLE_DIR, AGENT_ENTRY)],
+              cwd: AGENT_BUNDLE_DIR,
+              env: { ...env, ELECTRON_RUN_AS_NODE: '1' },
+              description: 'the bundled agent server',
+            }
+          : {
+              // The checkout's own CLI by absolute path: main's PATH comes
+              // from wherever Parley was launched, not from that project.
+              command: AGENT_MASTRA_BIN,
+              args: ['dev'],
+              cwd: AGENT_DEV_DIR,
+              env,
+              description: `mastra dev (${AGENT_DEV_DIR})`,
+            },
+        port,
+      };
+    },
+    spawn: (command, args, opts) => {
+      // argv, never a shell string: the command and cwd are constants above.
+      // The cast is the augmented ProcessEnv (APP_ROOT, VITE_PUBLIC): the
+      // supervisor only promises string values, which is all spawn needs.
+      const child = spawnProcess(command, args, {
+        cwd: opts.cwd,
+        env: opts.env as NodeJS.ProcessEnv,
+        shell: false,
+        windowsHide: true,
+      });
+      return {
+        on: (event, listener) => void child.on(event, listener),
+        kill: (signal?: string) => void child.kill(signal as NodeJS.Signals),
+        get exitCode() {
+          return child.exitCode;
+        },
+        stdout: child.stdout,
+        stderr: child.stderr,
+      };
+    },
+    checkHealth: () => agentClient.checkHealth(),
+    onLog: (line) => console.log(`[agent] ${line}`),
+  });
+  supervisor.start();
+
+  let liveRun: { runId: string; abort: AbortController; lastStep: string } | null = null;
+  let awaitingApproval = false;
+  let approvalSummary: string | null = null;
+  let approvalCallId: string | null = null;
+  /** Every run and every cancel moves this on; a stale handoff lands nowhere. */
+  let runToken = 0;
+  let resultHideTimer: ReturnType<typeof setTimeout> | undefined;
+  let resultToken = 0;
+
+  function paintWorking(text: string) {
+    if (liveRun) liveRun.lastStep = text;
+    orb.setPhase({ phase: 'notice', message: text });
+  }
+
+  function hideResultSoon(visibleMs: number) {
+    const mine = ++resultToken;
+    if (resultHideTimer) clearTimeout(resultHideTimer);
+    resultHideTimer = setTimeout(() => {
+      if (mine === resultToken) orb.hide();
+    }, visibleMs);
+  }
+
+  function showResult(text: string) {
+    if (text.length <= RESULT_CHARS) {
+      orb.setPhase({ phase: 'notice', message: text });
+    } else {
+      clipboard.writeText(text);
+      orb.setPhase({ phase: 'notice', message: 'Copied — paste anywhere' });
+    }
+    hideResultSoon(NOTICE_MS);
+  }
+
+  function showRunError(message: string) {
+    orb.setPhase({ phase: 'error', message: `Agent failed · ${message}` });
+    hideResultSoon(ERROR_MS);
+  }
+
+  const actionConfirm = createActionConfirm({
+    orb,
+    key: () => store.get().actGestureKey,
+    speak: (text) => {
+      if (process.platform !== 'darwin' || !store.get().tickSound) return;
+      execFile('say', [text], () => {});
+    },
+    // The call was already matched before this runs; the POST needs the run.
+    approve: (_callId) =>
+      liveRun ? agentClient.approve(liveRun.runId, true) : Promise.resolve(),
+    decline: (_callId) =>
+      liveRun ? agentClient.approve(liveRun.runId, false) : Promise.resolve(),
+    resume: () => {
+      awaitingApproval = false;
+      approvalSummary = null;
+      approvalCallId = null;
+      if (liveRun) paintWorking(liveRun.lastStep);
+    },
+    onDecisionFailed: (error) => {
+      runToken += 1;
+      const run = liveRun;
+      liveRun = null;
+      awaitingApproval = false;
+      approvalSummary = null;
+      approvalCallId = null;
+      if (run) {
+        run.abort.abort();
+        void agentClient.cancelRun(run.runId);
+      }
+      showRunError(error instanceof Error ? error.message : 'Something went wrong');
+    },
+  });
+
+  /** The session's half of act mode: run the command, settle the pill, never throw. */
+  async function runAgent(transcript: string): Promise<void> {
+    const mine = ++runToken;
+    resultToken += 1;
+    if (resultHideTimer) clearTimeout(resultHideTimer);
+    let runId: string | null = null;
+    try {
+      runId = (await agentClient.startRun(transcript)).runId;
+      if (mine !== runToken) {
+        void agentClient.cancelRun(runId);
+        return;
+      }
+      const abort = new AbortController();
+      liveRun = { runId, abort, lastStep: 'Working…' };
+      paintWorking(liveRun.lastStep);
+      const outcome = await agentClient.streamEvents(
+        runId,
+        (event) => {
+          if (!liveRun) return;
+          if (event.kind === 'step') {
+            // Steps stop while a tool is suspended, but a trailing one must
+            // never paint over the question.
+            if (!awaitingApproval) paintWorking(event.text);
+          } else if (event.kind === 'approval_requested') {
+            awaitingApproval = true;
+            approvalSummary = event.summary;
+            approvalCallId = event.callId;
+            actionConfirm.ask({
+              callId: event.callId,
+              summary: event.summary,
+              transcript: event.transcript,
+            });
+          }
+        },
+        { signal: abort.signal }
+      );
+      if (mine !== runToken) return;
+      liveRun = null;
+      awaitingApproval = false;
+      approvalSummary = null;
+      approvalCallId = null;
+      // A question still on screen belongs to this run: drop it before the
+      // result paints, or a later tap would approve a settled run.
+      actionConfirm.cancel();
+      if (outcome.kind === 'completed') showResult(outcome.text);
+      else if (outcome.kind === 'failed') showRunError(outcome.message);
+      else orb.hide();
+    } catch (error) {
+      if (runId) void agentClient.cancelRun(runId);
+      if (mine !== runToken) return;
+      liveRun = null;
+      awaitingApproval = false;
+      approvalSummary = null;
+      approvalCallId = null;
+      actionConfirm.cancel();
+      showRunError(error instanceof Error ? error.message : 'Something went wrong');
+    }
+  }
+
+  function cancelAgent(): void {
+    runToken += 1;
+    const run = liveRun;
+    liveRun = null;
+    awaitingApproval = false;
+    approvalSummary = null;
+    approvalCallId = null;
+    actionConfirm.cancel();
+    resultToken += 1;
+    if (resultHideTimer) clearTimeout(resultHideTimer);
+    if (run) {
+      run.abort.abort();
+      void agentClient.cancelRun(run.runId);
+    }
+    orb.hide();
+  }
+
+  function currentRunSummary(): AgentSummary['currentRun'] {
+    if (!liveRun) return null;
+    return {
+      status: awaitingApproval ? 'awaiting_approval' : 'working',
+      summary: awaitingApproval && approvalSummary ? approvalSummary : liveRun.lastStep,
+      callId: awaitingApproval ? approvalCallId : null,
+    };
+  }
+
+  async function liveView() {
+    const live = await supervisor.refresh();
+    return store.view({ ...live, currentRun: currentRunSummary() });
+  }
+
   /** A new gesture owns the pill and the field; anything still learning lets go. */
   function startSession(mode: SessionMode) {
     correctionWatcher.cancel();
     wordOffer.cancel();
+    // A run in flight ends here: cancelling first returns the session to idle
+    // synchronously, so the start below is never swallowed by the busy guard.
+    // (In a dictation the cancel is a no-op and the guard still holds.)
+    if (session.state() === 'transcribing') session.cancel();
+    if (mode === 'act') {
+      void supervisor.refresh();
+      // Warmup is a pill, not a settings trip: the server is seconds away,
+      // and the Agent tab would strand the user after it lands.
+      if (supervisor.status().state === 'starting') {
+        orb.show();
+        orb.setPhase({ phase: 'notice', message: 'Agent starting — a few seconds' });
+        hideResultSoon(NOTICE_MS);
+        return;
+      }
+    }
     session.start(mode);
   }
 
@@ -426,6 +698,12 @@ async function startApp() {
     getSettings: () => store.get(),
     hasApiKey: () => store.hasApiKey(),
     hasRewriteKey: () => store.hasRewriteKey(),
+    runAgent,
+    cancelAgent,
+    isAgentReady: () => {
+      const status = supervisor.status();
+      return status.state === 'online' && status.mcpServers.length > 0;
+    },
     getPermissions,
     openSettings,
     onBlocked: (reason) => {
@@ -481,15 +759,32 @@ async function startApp() {
     onCancel: () => session.cancel(),
   });
   let explainEnabled = false;
+  // Act is the fourth sibling: the speech after the gesture is a command.
+  const actDetector = createGestureDetector({
+    key: store.get().actGestureKey,
+    tapCount: store.get().tapCount,
+    onStart: () => startSession('act'),
+    onStop: () => session.stop(),
+    onCancel: () => session.cancel(),
+  });
+  let actEnabled = false;
   const keyHook = createKeyHook(
     uIOhook,
     UiohookKey as unknown as Record<string, number>,
     (event) => {
       wordOffer.handleKey(event);
+      actionConfirm.handleKey(event);
       detector.handle(event);
       if (editEnabled) editDetector.handle(event);
       if (explainEnabled) explainDetector.handle(event);
-      if (event.type === 'down' && event.key === 'Escape') explain.dismiss();
+      if (actEnabled) actDetector.handle(event);
+      if (event.type === 'down' && event.key === 'Escape') {
+        // A waiting approval takes Esc as no; anywhere else in a run it is a
+        // cancel, and outside a run the session ignores it as before.
+        if (awaitingApproval) actionConfirm.decline();
+        else session.cancel();
+        explain.dismiss();
+      }
     }
   );
 
@@ -510,11 +805,16 @@ async function startApp() {
     detector.configure({ key: settings.gestureKey, tapCount: settings.tapCount });
     editDetector.configure({ key: settings.editGestureKey, tapCount: settings.tapCount });
     explainDetector.configure({ key: settings.explainGestureKey, tapCount: settings.tapCount });
+    actDetector.configure({ key: settings.actGestureKey, tapCount: settings.tapCount });
     explainEnabled =
       settings.explainGestureKey !== settings.gestureKey &&
       settings.explainGestureKey !== settings.editGestureKey;
     // One key cannot mean both, and dictation is the one that keeps it.
     editEnabled = settings.editGestureKey !== settings.gestureKey;
+    actEnabled =
+      settings.actGestureKey !== settings.gestureKey &&
+      settings.actGestureKey !== settings.editGestureKey &&
+      settings.actGestureKey !== settings.explainGestureKey;
     // Only the packaged app: in dev this would register the bare Electron
     // binary from node_modules as a login item.
     if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
@@ -575,14 +875,25 @@ async function startApp() {
     }
   }
 
-  ipcMain.handle('settings:get', (event) => {
+  ipcMain.handle('settings:get', async (event) => {
     onlySettingsWindow(event);
-    return store.view();
+    return liveView();
   });
-  ipcMain.handle('settings:update', (event, patch: Partial<Settings>) => {
+  ipcMain.handle('settings:update', async (event, patch: Partial<Settings>) => {
     onlySettingsWindow(event);
-    applySettings(store.update(typeof patch === 'object' && patch ? patch : {}));
-    return store.view();
+    const before = store.get();
+    const next = store.update(typeof patch === 'object' && patch ? patch : {});
+    applySettings(next);
+    if (before.agentUrl !== next.agentUrl || before.agentAutoStart !== next.agentAutoStart) {
+      // A new address or a flipped switch: the live run belongs to the old
+      // one, and the child belongs to the old config. Stop everything, then
+      // let the supervisor attach or spawn fresh.
+      cancelAgent();
+      agentClient = createAgentClient({ baseUrl: next.agentUrl });
+      supervisor.stop();
+      supervisor.start();
+    }
+    return liveView();
   });
   ipcMain.handle('settings:setApiKey', async (event, key: unknown): Promise<KeyTestResult> => {
     onlySettingsWindow(event);
@@ -604,13 +915,13 @@ async function startApp() {
     }
     return result;
   });
-  ipcMain.handle('settings:setTranscriptionProvider', (event, provider: unknown) => {
+  ipcMain.handle('settings:setTranscriptionProvider', async (event, provider: unknown) => {
     onlySettingsWindow(event);
-    if (!TRANSCRIPTION_PROVIDERS.includes(provider as never)) return store.view();
+    if (!TRANSCRIPTION_PROVIDERS.includes(provider as never)) return liveView();
     store.setTranscriptionProvider(provider as TranscriptionProvider);
     // Readiness is "the selected provider has a key", so the tray may flip.
     refreshTray();
-    return store.view();
+    return liveView();
   });
   ipcMain.handle('settings:setRewriteKey', async (event, key: unknown): Promise<KeyTestResult> => {
     onlySettingsWindow(event);
@@ -618,6 +929,57 @@ async function startApp() {
     const result = await rewriter.testKey(key.trim());
     if (result.ok) store.setRewriteKey(key.trim());
     return result;
+  });
+  ipcMain.handle('agent:setUrl', async (event, url: unknown): Promise<AgentTestResult> => {
+    onlySettingsWindow(event);
+    if (typeof url !== 'string' || url.trim() === '') {
+      return { ok: false, message: 'Enter a URL', mcpServers: [] };
+    }
+    const trimmed = url.trim();
+    if (!isLocalhostUrl(trimmed)) {
+      // A remote agent must answer before it is saved. A local one cannot be
+      // tested first — nothing answers until Parley spawns it — so it saves
+      // optimistically and the supervisor proves it, out loud, in the tab.
+      const checked = await createAgentClient({ baseUrl: trimmed }).checkHealth();
+      if (!checked.ok) return checked;
+    }
+    cancelAgent();
+    agentClient = createAgentClient({ baseUrl: trimmed });
+    store.update({ agentUrl: trimmed });
+    supervisor.stop();
+    supervisor.start();
+    const live = await supervisor.refresh();
+    return {
+      ok: true,
+      message: live.online ? 'Agent works' : 'Starting…',
+      mcpServers: live.mcpServers,
+    };
+  });
+  ipcMain.handle('agent:test', async (event): Promise<AgentTestResult> => {
+    onlySettingsWindow(event);
+    const live = await supervisor.refresh();
+    return {
+      ok: live.online,
+      message: live.online ? 'Agent works' : live.message,
+      mcpServers: live.mcpServers,
+    };
+  });
+  ipcMain.handle('agent:restart', async (event): Promise<AgentTestResult> => {
+    onlySettingsWindow(event);
+    supervisor.restart();
+    // The Agent tab polls `agent:status`, so this returns while the Restart
+    // is still warming up instead of blocking the button for thirty seconds.
+    return { ok: true, message: 'Restarting…', mcpServers: supervisor.status().mcpServers };
+  });
+  ipcMain.handle('agent:decideApproval', async (event, callId: unknown, approved: unknown) => {
+    onlySettingsWindow(event);
+    if (typeof callId !== 'string' || typeof approved !== 'boolean') return false;
+    return actionConfirm.answerFromTab(callId, approved);
+  });
+  ipcMain.handle('agent:status', async (event): Promise<AgentSummary> => {
+    onlySettingsWindow(event);
+    const live = await supervisor.refresh();
+    return { ...live, currentRun: currentRunSummary() };
   });
   ipcMain.handle('session:take-blocked', (event) => {
     onlySettingsWindow(event);
@@ -646,9 +1008,33 @@ async function startApp() {
   // Onboarding: without Accessibility the hook is blind, so a gesture can never open this.
   if (!isReady()) openSettings();
 
+  // Quitting mid-run waits for the run's DELETE (or the grace, whichever
+  // is first) so the agent does not keep working for an app that is gone.
+  // Any other quit goes straight through; a second quit during the grace
+  // finds no live run and likewise goes through.
+  let quitting = false;
+  app.on('before-quit', event => {
+    if (quitting || !liveRun) return;
+    event.preventDefault();
+    const run = liveRun;
+    cancelAgent();
+    supervisor.stop();
+    void Promise.race([
+      agentClient.cancelRun(run.runId),
+      new Promise(resolve => setTimeout(resolve, QUIT_GRACE_MS)),
+    ]).then(() => {
+      quitting = true;
+      app.quit();
+    });
+  });
+
   app.on('will-quit', () => {
     clearInterval(trustPoll);
     if (hookRunning) keyHook.stop();
+    // Best-effort: the DELETE may not land before the process is gone, but
+    // the child must never outlive the app.
+    cancelAgent();
+    supervisor.stop();
   });
 }
 

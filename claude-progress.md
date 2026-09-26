@@ -1,39 +1,55 @@
-# parley-012 — Deepgram Nova-3 as a transcription provider (branch feat/deepgram-nova3)
+# parley-013 — Act mode: voice commands handed to a Mastra agent (branch feat/parley-013-act)
 
-Deepgram Nova-3 now sits next to Groq's Whisper as a second speech-to-text
-provider. The user picks one on the Overview's Transcription row (Whisper (Groq)
-/ Deepgram Nova-3 SegmentedControl) and stores that provider's key there.
-Design approved by the user 2026-09-24. The plan is
-`parley-012.feature-plan.json`, and `FEATURE-PLAN.md` is its render.
+A fourth gesture key (default ShiftRight) turns speech into a command for
+the `parley-action` agent in a new sibling project: progress streams onto
+the pill, each write-class tool waits for one tap, and the result lands as
+one line or on the clipboard. Parley starts the server on launch and
+supervises it (attach if answering, restart on crash); the Agent settings
+tab shows health, mirrors a waiting approval with Approve/Decline, and
+keeps the last failure standing. The plan is
+`parley-013.feature-plan.json`, and `FEATURE-PLAN.md` is its render.
 
 ## Current state
 
-- Code complete on `feat/deepgram-nova3`, automated gates green (see Evidence
-  on parley-012 in `feature_list.json`). Not pushed, not merged.
-- `parley-012` stays `in_progress`: the "Deepgram Nova-3 provider (parley-012)"
-  block in `docs/MANUAL_CHECKLIST.md` needs a human with `make dev` and a real
-  Deepgram key. No live Deepgram request has been made from this repo.
-- parley-011 was moved to `blocked` (waiting only on its manual walk), so
-  parley-012 is the one feature in flight on this branch.
+- Implementation complete on `feat/parley-013-act`, automated gates
+  green (see Evidence on parley-013 in `feature_list.json`): `make
+  check` exit 0 (699 unit tests, ui-probe 136/136), the four Agent
+  stories rendered in Chromium in dark and light with zero page errors,
+  and the agent contract proven keyless end to end.
+- `parley-013` stays `in_progress`: two human steps remain — move
+  `/tmp/parley-agent` to `../Mastra/parley-agent` (its HANDOFF.md has
+  the commands), then walk the Act mode block in
+  `docs/MANUAL_CHECKLIST.md` with `make dev`, a model key and real MCP
+  servers. No live model or MCP call has been made yet.
+- The sibling scaffold is NOT in this repo: `/tmp/parley-agent`
+  (agent, six `/parley/*` routes, mock models, fixture MCP server,
+  `smoke/run.mjs` all green, `mastra build` output verified under
+  Electron-as-Node). It cannot be committed from here.
 
 ## Shape
 
-- `electron/transcriber.ts` keeps `Transcriber`, `TranscribeError` and the
-  error kinds and picks a provider per call via `getProvider()`. The providers
-  live in `electron/transcribers/` (`groq.ts`, `deepgram.ts`, `shared.ts`).
-  A `server` error names the provider ("Deepgram error").
-- Transcribe options are `{ vocabulary, terms? }`: Groq still gets the
-  `whisperPrompt` sentence, and Deepgram gets `terms` (from `vocabularyTerms` in
-  `dictionary.ts`, plus the selection words in Explain) as `keyterm` params,
-  deduplicated and capped at 100 terms / 1000 chars.
-- Settings: `transcriptionProvider` (default `groq`) is set only through
-  `settings:setTranscriptionProvider`, never by an update patch.
-  `deepgramKeyEncrypted` is a third safeStorage key. `hasApiKey()` and
-  `SettingsView.hasApiKey` mean "the selected provider has a key".
-- IPC: `settings:setDeepgramKey` (tests against `GET /v1/projects` first) and
-  `settings:setTranscriptionProvider`. The first-run wizard stays Groq-only.
+- `electron/agent/` holds the client (HTTP + SSE), the event decoder,
+  the tap-to-approve machine and the supervisor; `session.ts` adds the
+  `act` branch (transcribe, never paste; `agent` block opens the Agent
+  tab); `main.ts` wires spawn/approve/quit (warmup shows the starting
+  pill, quitting mid-run waits for the run's DELETE).
+- Agent routes live at `/parley/*`, not `/api/parley/*`: Mastra serves
+  custom routes from the root and reserves `/api/` (its own docs plus
+  the jev-poc house convention). Both sides match.
+- Packaging: `scripts/build-agent.sh` bundles the sibling into
+  `resources/parley-agent` (fails loud when the checkout is missing);
+  `electron-builder.json5` ships it on every platform; packaged main
+  runs it with `ELECTRON_RUN_AS_NODE`. The bundle is ~200M of
+  `node_modules` because `bundler.externals: false` fails on mastra
+  1.30 — recorded as a known cost, revisit on upgrade.
+- Pre-existing, not mine: the storybook-render gate fails 36 scaffold
+  Shell/Pages stories on this tree and 38 on pristine HEAD (clean
+  worktree check); the gate is not part of `make check`.
 
 ## Next step
 
-Walk the parley-012 checklist block with `make dev` and a real Deepgram key,
-record the evidence, then mark `passing` and let `make commit-feature` take it.
+Move the scaffold home (`mv /tmp/parley-agent
+~/Projects/Mastra/parley-agent`, `npm install`, `node smoke/run.mjs`
+to confirm), write a real `mcp-servers.json`, then walk the Act mode
+checklist block with `make dev`. Record the evidence, mark `passing`,
+and let `make commit-feature` take it.

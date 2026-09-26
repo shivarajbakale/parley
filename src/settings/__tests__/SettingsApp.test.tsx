@@ -6,7 +6,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '@/components/theme-provider';
 import { toast } from '@/lib/notify';
 
-import { DEFAULT_SETTINGS, type ParleyApi } from '../../../electron/types';
+import {
+  DEFAULT_SETTINGS,
+  OFFLINE_AGENT_SUMMARY,
+  type ParleyApi,
+} from '../../../electron/types';
 import { SettingsApp } from '../SettingsApp';
 
 function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
@@ -20,6 +24,7 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       hasApiKey: true,
       hasRewriteKey: true,
       wordsDictated: 0,
+      agent: OFFLINE_AGENT_SUMMARY,
     }),
     updateSettings: vi.fn().mockImplementation(async patch => ({
       ...DEFAULT_SETTINGS,
@@ -28,6 +33,7 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       ...patch,
       hasApiKey: true,
       hasRewriteKey: true,
+      agent: OFFLINE_AGENT_SUMMARY,
     })),
     setApiKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     setDeepgramKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
@@ -39,8 +45,14 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       hasApiKey: false,
       hasRewriteKey: true,
       wordsDictated: 0,
+      agent: OFFLINE_AGENT_SUMMARY,
     })),
     setRewriteKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
+    setAgentUrl: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    testAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    restartAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    decideApproval: vi.fn(async () => true),
+    agentStatus: vi.fn(async () => OFFLINE_AGENT_SUMMARY),
     getPermissions: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
     requestPermission: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
     onExplain: () => () => {},
@@ -85,6 +97,7 @@ describe('SettingsApp', () => {
           hasApiKey: true,
           hasRewriteKey: true,
           wordsDictated: 600,
+          agent: OFFLINE_AGENT_SUMMARY,
         }),
       })
     );
@@ -117,6 +130,7 @@ describe('SettingsApp', () => {
           onboardingComplete: true,
           hasApiKey: false,
           hasRewriteKey: false,
+          agent: OFFLINE_AGENT_SUMMARY,
         }),
       })
     );
@@ -158,6 +172,7 @@ describe('SettingsApp', () => {
         hasApiKey: true,
         hasRewriteKey,
         wordsDictated: 0,
+        agent: OFFLINE_AGENT_SUMMARY,
       })),
       setRewriteKey: vi.fn(async () => {
         hasRewriteKey = true;
@@ -226,6 +241,7 @@ describe('SettingsApp', () => {
       hasApiKey: true,
       hasRewriteKey: true,
       wordsDictated: 0,
+      agent: OFFLINE_AGENT_SUMMARY,
       ...over,
     });
 
@@ -311,6 +327,52 @@ describe('SettingsApp', () => {
         expect(error).toHaveBeenCalledWith('Add a Deepgram API key before trying the gesture.')
       );
       error.mockRestore();
+    });
+  });
+
+  describe('agent block', () => {
+    it('opens the Agent tab and names the fix when the agent refused the gesture', async () => {
+      const error = vi.spyOn(toast, 'error').mockImplementation(() => {});
+      mount(
+        mockApi({
+          takeBlockedReason: vi.fn(async () => 'agent' as const),
+        })
+      );
+      await waitFor(() =>
+        expect(error).toHaveBeenCalledWith('Start the agent before trying the gesture.')
+      );
+      const tab = await screen.findByRole('tab', { name: 'Agent' });
+      await waitFor(() => expect(tab).toHaveAttribute('aria-selected', 'true'));
+      error.mockRestore();
+    });
+
+    it('names the missing servers when the agent is up but cannot act', async () => {
+      const error = vi.spyOn(toast, 'error').mockImplementation(() => {});
+      mount(
+        mockApi({
+          getSettings: vi.fn().mockResolvedValue({
+            ...DEFAULT_SETTINGS,
+            tourSeen: true,
+            onboardingComplete: true,
+            hasApiKey: true,
+            hasRewriteKey: true,
+            wordsDictated: 0,
+            agent: { ...OFFLINE_AGENT_SUMMARY, online: true, serverState: 'online' as const },
+          }),
+          takeBlockedReason: vi.fn(async () => 'agent' as const),
+        })
+      );
+      await waitFor(() =>
+        expect(error).toHaveBeenCalledWith('Connect an MCP server before trying the gesture.')
+      );
+      error.mockRestore();
+    });
+
+    it('jumps from the Overview Agent row to the Agent tab', async () => {
+      mount(mockApi());
+      await userEvent.click(await screen.findByRole('button', { name: 'Open' }));
+      const tab = await screen.findByRole('tab', { name: 'Agent' });
+      await waitFor(() => expect(tab).toHaveAttribute('aria-selected', 'true'));
     });
   });
 });

@@ -45,6 +45,7 @@ function barTokens(uniforms: OrbUniforms, mode: SessionMode): [string, string] {
   if (uniforms.to === PHASE_INDEX.error) return ['--mantine-color-red-7', '--mantine-color-red-5'];
   if (mode === 'edit') return ['--app-edit-core', '--app-edit-glow'];
   if (mode === 'explain') return ['--app-explain-core', '--app-explain-glow'];
+  if (mode === 'act') return ['--app-act-core', '--app-act-glow'];
   return ['--app-aurora-core', '--app-aurora-glow'];
 }
 

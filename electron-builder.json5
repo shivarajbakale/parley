@@ -10,6 +10,9 @@
   },
   files: ['dist', 'dist-electron'],
   asarUnpack: ['node_modules/uiohook-napi/**'],
+  // The Mastra server act mode spawns; see scripts/build-agent.sh. Top level,
+  // not mac-only: the bundle is plain JS and every platform acts.
+  extraResources: [{ from: 'resources/parley-agent', to: 'parley-agent' }],
   mac: {
     // The Accessibility reader voice edit uses; see scripts/build-ax-helper.sh.
     extraResources: [{ from: 'resources/parley-ax', to: 'parley-ax' }],

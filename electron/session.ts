@@ -26,6 +26,13 @@ import type {
  * In `edit` mode the speech is an instruction, not the text: whatever is in
  * the focused field is rewritten by it and pasted back over itself.
  *
+ * In `act` mode the speech is a command for the Mastra agent: it is
+ * transcribed like a dictation, then handed to main, which runs it, paints
+ * its progress on the pill, and settles the result. The session idles the
+ * moment the handoff resolves and never touches the pill after it — a
+ * cancelled run lands nowhere, and a new session is never clobbered by the
+ * stale handoff.
+ *
  * Everything it touches is passed in, so the rules that matter — the busy
  * guard, the short-audio discard, "an error never touches the clipboard" — are
  * unit tests rather than things to try by hand.
@@ -57,6 +64,15 @@ export interface SessionDeps {
   getSettings(): Settings;
   hasApiKey(): boolean;
   hasRewriteKey(): boolean;
+  /** Act mode: run the transcribed command through the agent and settle the
+   * pill — progress, approvals, the result or the failure. Never rejects:
+   * every failure is a painted error, never a thrown one. */
+  runAgent(transcript: string): Promise<void>;
+  /** Abort the in-flight run, if any: the stream, the server run, the
+   * question on the pill. Safe to call with nothing running. */
+  cancelAgent(): void;
+  /** The agent answers and has at least one MCP server to act through. */
+  isAgentReady(): boolean;
   getPermissions(): PermissionStatus;
   /** The settings window doubles as onboarding. */
   openSettings(): void;
@@ -80,6 +96,9 @@ export interface Session {
 export function createSession(deps: SessionDeps): Session {
   let state: SessionState = 'idle';
   let mode: SessionMode = 'dictate';
+  /** Each start and each mid-run cancel moves this on, so a stale act handoff
+   * can tell it no longer owns the session when it settles. */
+  let sequence = 0;
   let maxTimer: ReturnType<typeof setTimeout> | undefined;
   /** Kicked off the instant an explain gesture starts, so it has the whole
    * recording to resolve before anything needs it. */
@@ -120,22 +139,38 @@ export function createSession(deps: SessionDeps): Session {
         deps.openSettings();
         return;
       }
-      if (!permissions.accessibility) {
-        deps.onBlocked?.('accessibility');
-        deps.openSettings();
-        return;
-      }
-      if (!deps.hasApiKey()) {
-        deps.onBlocked?.('apiKey');
-        deps.openSettings();
-        return;
-      }
-      if (requested !== 'dictate' && !deps.hasRewriteKey()) {
-        deps.onBlocked?.('rewriteKey');
-        deps.openSettings();
-        return;
+      if (requested === 'act') {
+        // No keystrokes and no MiniMax: the command is transcribed, then the
+        // agent — not the pill — does everything else.
+        if (!deps.hasApiKey()) {
+          deps.onBlocked?.('apiKey');
+          deps.openSettings();
+          return;
+        }
+        if (!deps.isAgentReady()) {
+          deps.onBlocked?.('agent');
+          deps.openSettings();
+          return;
+        }
+      } else {
+        if (!permissions.accessibility) {
+          deps.onBlocked?.('accessibility');
+          deps.openSettings();
+          return;
+        }
+        if (!deps.hasApiKey()) {
+          deps.onBlocked?.('apiKey');
+          deps.openSettings();
+          return;
+        }
+        if (requested !== 'dictate' && !deps.hasRewriteKey()) {
+          deps.onBlocked?.('rewriteKey');
+          deps.openSettings();
+          return;
+        }
       }
       mode = requested;
+      sequence += 1;
       explainSelection = mode === 'explain' ? deps.selection.read() : null;
       state = 'listening';
       deps.orb.show();
@@ -150,9 +185,19 @@ export function createSession(deps: SessionDeps): Session {
     stop,
 
     cancel() {
-      if (state !== 'listening') return;
-      clearMaxTimer();
-      finish({ phase: 'cancelled' }, 0);
+      if (state === 'listening') {
+        clearMaxTimer();
+        finish({ phase: 'cancelled' }, 0);
+        return;
+      }
+      // A run in flight belongs to main: aborting it returns the session to
+      // idle at once, and the sequence move strands whatever the handoff does
+      // when it settles.
+      if (state === 'transcribing' && mode === 'act') {
+        sequence += 1;
+        state = 'idle';
+        deps.cancelAgent();
+      }
     },
 
     async receiveAudio(audio) {
@@ -189,6 +234,34 @@ export function createSession(deps: SessionDeps): Session {
 
       if (audio.durationMs < MIN_AUDIO_MS) {
         finish({ phase: 'cancelled' }, 0);
+        return;
+      }
+
+      if (mode === 'act') {
+        state = 'transcribing';
+        const mine = sequence;
+        try {
+          const heard = await deps.transcriber.transcribe(
+            { data: audio.data, mimeType: audio.mimeType },
+            { vocabulary: deps.dictionary.prompt(), terms: deps.dictionary.terms() }
+          );
+          if (mine !== sequence) return;
+          const spoken = heard && deps.dictionary.apply(heard);
+          if (!spoken) {
+            finish({ phase: 'cancelled' }, 0);
+            return;
+          }
+          // From here the pill is main's: progress, the approval question,
+          // the result. The session only idles when the handoff resolves —
+          // or lands nowhere, if a cancel or a new session moved on first.
+          await deps.runAgent(spoken);
+        } catch (error) {
+          if (mine !== sequence) return;
+          const message = error instanceof Error ? error.message : 'Something went wrong';
+          finish({ phase: 'error', message }, ERROR_MS);
+          return;
+        }
+        if (mine === sequence) state = 'idle';
         return;
       }
 

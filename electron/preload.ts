@@ -33,6 +33,12 @@ const parley: ParleyApi = {
   setTranscriptionProvider: (provider: TranscriptionProvider) =>
     ipcRenderer.invoke('settings:setTranscriptionProvider', provider),
   setRewriteKey: (key: string) => ipcRenderer.invoke('settings:setRewriteKey', key),
+  setAgentUrl: (url: string) => ipcRenderer.invoke('agent:setUrl', url),
+  testAgent: () => ipcRenderer.invoke('agent:test'),
+  restartAgent: () => ipcRenderer.invoke('agent:restart'),
+  decideApproval: (callId: string, approved: boolean) =>
+    ipcRenderer.invoke('agent:decideApproval', callId, approved),
+  agentStatus: () => ipcRenderer.invoke('agent:status'),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   requestPermission: (kind: PermissionKind) => ipcRenderer.invoke('permissions:request', kind),
   onExplain(listener) {

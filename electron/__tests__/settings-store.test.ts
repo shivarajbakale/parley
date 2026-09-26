@@ -50,6 +50,14 @@ describe('settings store', () => {
       hasApiKey: true,
       hasRewriteKey: false,
       wordsDictated: 0,
+      agent: {
+        online: false,
+        managed: false,
+        serverState: 'offline',
+        message: '',
+        currentRun: null,
+        mcpServers: [],
+      },
     });
   });
 
@@ -232,6 +240,85 @@ describe('settings store', () => {
         JSON.stringify({ schemaVersion: 1, settings: { transcriptionProvider: 'openai' } })
       );
       expect(createSettingsStore({ dir, crypto }).get().transcriptionProvider).toBe('groq');
+    });
+  });
+
+  describe('agent settings', () => {
+    it('defaults to a managed local agent on Right Shift', () => {
+      const store = createSettingsStore({ dir, crypto });
+      expect(store.get().agentUrl).toBe('http://localhost:4111');
+      expect(store.get().agentAutoStart).toBe(true);
+      expect(store.get().actGestureKey).toBe('ShiftRight');
+    });
+
+    it('stores a valid agent URL and auto-start across instances', () => {
+      const store = createSettingsStore({ dir, crypto });
+      store.update({ agentUrl: 'http://127.0.0.1:4222', agentAutoStart: false });
+      expect(createSettingsStore({ dir, crypto }).get()).toMatchObject({
+        agentUrl: 'http://127.0.0.1:4222',
+        agentAutoStart: false,
+      });
+    });
+
+    it('rejects non-http URLs and overlong URLs instead of storing them', () => {
+      const store = createSettingsStore({ dir, crypto });
+      store.update({ agentUrl: 'http://127.0.0.1:4222' });
+      store.update({ agentUrl: 'ftp://evil/x' });
+      store.update({ agentUrl: `http://x/${'y'.repeat(300)}` });
+      store.update({ agentUrl: 'not a url' });
+      store.update({ agentUrl: 42 as never });
+      expect(store.get().agentUrl).toBe('http://127.0.0.1:4222');
+    });
+
+    it('drops a non-boolean auto-start instead of storing it', () => {
+      const store = createSettingsStore({ dir, crypto });
+      store.update({ agentAutoStart: 'yes' as never });
+      expect(store.get().agentAutoStart).toBe(true);
+    });
+
+    it('stores a valid act key and drops an invalid one', () => {
+      const store = createSettingsStore({ dir, crypto });
+      store.update({ actGestureKey: 'Shift' });
+      store.update({ actGestureKey: 'Space' as never });
+      expect(store.get().actGestureKey).toBe('Shift');
+    });
+
+    it('falls back to the agent defaults from a corrupt file', () => {
+      writeFileSync(
+        path.join(dir, 'settings.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          settings: { actGestureKey: 'Space', agentUrl: 'gopher://x', agentAutoStart: 'yes' },
+        })
+      );
+      const store = createSettingsStore({ dir, crypto });
+      expect(store.get()).toMatchObject({
+        actGestureKey: 'ShiftRight',
+        agentUrl: 'http://localhost:4111',
+        agentAutoStart: true,
+      });
+    });
+
+    it('reports the agent as offline until main hands it live state', () => {
+      const store = createSettingsStore({ dir, crypto });
+      expect(store.view().agent).toEqual({
+        online: false,
+        managed: false,
+        serverState: 'offline',
+        message: '',
+        currentRun: null,
+        mcpServers: [],
+      });
+      expect(
+        store.view({
+          online: true,
+          managed: true,
+          serverState: 'online',
+          message: '',
+          currentRun: null,
+          mcpServers: [{ name: 'Files', tools: 12 }],
+        }).agent.mcpServers
+      ).toEqual([{ name: 'Files', tools: 12 }]);
     });
   });
 });

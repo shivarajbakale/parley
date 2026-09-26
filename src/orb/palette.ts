@@ -12,6 +12,8 @@ export interface OrbPalette {
   edit: [Rgb, Rgb, Rgb];
   /** The same three depths in cyan, worn while Explain is listening. */
   explain: [Rgb, Rgb, Rgb];
+  /** The same three depths in rose, worn while the agent is working. */
+  act: [Rgb, Rgb, Rgb];
   done: Rgb;
   error: Rgb;
 }
@@ -22,6 +24,7 @@ export const PALETTE_TOKENS = {
   error: '--mantine-color-red-6',
   edit: ['--app-edit-deep', '--app-edit-core', '--app-edit-glow'],
   explain: ['--app-explain-deep', '--app-explain-core', '--app-explain-glow'],
+  act: ['--app-act-deep', '--app-act-core', '--app-act-glow'],
 } as const;
 
 export function srgbByteToLinear(byte: number): number {
@@ -47,6 +50,7 @@ export function buildPalette(readBytes: (token: string) => Rgb): OrbPalette {
     aurora: [deep, core, glow],
     edit: triple(PALETTE_TOKENS.edit),
     explain: triple(PALETTE_TOKENS.explain),
+    act: triple(PALETTE_TOKENS.act),
     done,
     error,
   };

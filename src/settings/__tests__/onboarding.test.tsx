@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 
 import {
   DEFAULT_SETTINGS,
+  OFFLINE_AGENT_SUMMARY,
   type ParleyApi,
   type PermissionStatus,
   type SettingsView,
@@ -31,6 +32,7 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
     hasApiKey: false,
     hasRewriteKey: false,
     wordsDictated: 0,
+    agent: OFFLINE_AGENT_SUMMARY,
     ...init.settings,
   };
   let permissions: PermissionStatus = init.permissions ?? {
@@ -52,6 +54,11 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
       return settings;
     }),
     setRewriteKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
+    setAgentUrl: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    testAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    restartAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    decideApproval: vi.fn(async () => true),
+    agentStatus: vi.fn(async () => OFFLINE_AGENT_SUMMARY),
     getPermissions: vi.fn(async () => permissions),
     requestPermission: vi.fn(async kind => {
       permissions = { ...permissions, [kind]: true };

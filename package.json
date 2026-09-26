@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "build:ax-helper": "bash scripts/build-ax-helper.sh",
+    "build:agent": "bash scripts/build-agent.sh",
     "predev": "npm run build:ax-helper",
     "dev": "vite",
-    "prebuild": "npm run build:ax-helper",
+    "prebuild": "npm run build:ax-helper && npm run build:agent",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",

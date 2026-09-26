@@ -283,3 +283,56 @@ Needs a MiniMax key (Settings, Overview). Default explain key is Right Control.
 - [ ] The clipboard holds what it held before each of the checks above.
 - [ ] Setting the explain key to the dictation or voice edit key turns Explain
       off and the row says so.
+
+## Act mode (parley-013)
+
+Needs the sibling `../Mastra/parley-agent` checkout with `npm install` done
+and an MCP server configured there. Default act key is ShiftRight, with the
+same number of presses as dictation. `make dev` spawns `mastra dev` itself —
+never start the server by hand except where a check says to.
+
+- [ ] Launch with the checkout in place: Settings → Agent reads Online with
+      the MCP server names and tool counts, and the Overview's Agent row
+      agrees.
+- [ ] Hold the act gesture and say a read ("what is on my calendar today"):
+      the pill shows Working… then one line per step, and the answer lands
+      as one line — or "Copied — paste anywhere" for a long one, with the
+      text on the clipboard.
+- [ ] Run a command that writes: the pill asks the summary-first question
+      with the transcript echo ("From … · Tap ShiftRight to run · Esc
+      cancels") and the question is read aloud. Tap the act key: the tool
+      runs and the run continues.
+- [ ] Run another write and press Esc: the pill flashes "Skipped —
+      continuing…" and the run goes on without that tool.
+- [ ] While a run is working, open Settings → Agent: the waiting approval
+      mirrors with Approve and Decline. Answer from the tab: the pill and
+      the run follow.
+- [ ] Press Esc mid-run with no question showing: the pill folds, nothing
+      lands, and the Agent tab keeps no failure (a cancel is not an error).
+- [ ] Start a second act command while one runs: the first run is cancelled
+      on the server and the new one takes the pill.
+- [ ] Gesture the instant the app launches, while the Agent tab says
+      Starting: the pill says "Agent starting — a few seconds" and Settings
+      stays closed.
+- [ ] With a run working, kill the server process: the pill names the
+      failure, the Agent tab keeps it standing with its recovery action,
+      and the server is back Online within seconds (retry 1 of 3).
+- [ ] `kill -9` the server mid-approval and tap the act key anyway: the
+      pill folds with "Run ended", not a hang.
+- [ ] Quit Parley mid-run: the run is cancelled on the server first (no
+      orphaned run), then the app exits.
+- [ ] Hold :4111 with a stranger (`python3 -m http.server 4111`) and
+      relaunch: the Agent tab reads Offline and names the busy port; it
+      never retries a stranger. Quit the stranger and press Restart: Online.
+- [ ] Start `mastra dev` by hand in the checkout, then launch Parley: it
+      attaches (no second server), the tab says attached, and Restart is
+      disabled with its cause.
+- [ ] Turn "Start agent with Parley" off and relaunch with no server
+      running: the tab reads Offline and says auto-start is off. Start the
+      server by hand: the next refresh reads Online.
+- [ ] Type a bad URL and Test and save: the named failure shows and nothing
+      is stored. Save a remote URL: it attaches, never spawns.
+- [ ] Setting the act key to the dictation, edit or explain key turns Act
+      off and the row says so.
+- [ ] Act works in the packaged build: `parley-agent/index.mjs` is inside
+      `Parley.app/Contents/Resources`.

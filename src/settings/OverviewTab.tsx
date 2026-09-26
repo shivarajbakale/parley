@@ -27,6 +27,7 @@ import { PROVIDER_COPY, PROVIDER_OPTIONS, providerOf } from './providers';
 import { SettingRow } from './SettingRow';
 import { SettingsGroup } from './SettingsGroup';
 import { ApiKeySection } from './SetupTab';
+import type { TabId } from './tabs';
 import { formatSaved, minutesSaved, TYPING_WPM } from './usage';
 import {
   useRequestPermission,
@@ -112,9 +113,11 @@ function KeyFix({
 export function OverviewTab({
   settings,
   permissions,
+  onSelectTab,
 }: {
   settings: SettingsView;
   permissions: PermissionStatus;
+  onSelectTab: (tab: TabId) => void;
 }) {
   const request = useRequestPermission();
   const setGroqKey = useSetApiKey();
@@ -152,6 +155,10 @@ export function OverviewTab({
     Number(!permissions.microphone) + Number(!permissions.accessibility) + Number(!settings.hasApiKey);
   const ready = missing === 0;
   const words = settings.wordsDictated ?? 0;
+  // The agent answers readiness for voice commands only: dictation stays
+  // ready while it is down, so its badge is never red.
+  const agent = settings.agent;
+  const agentTools = agent.mcpServers.reduce((total, server) => total + server.tools, 0);
 
   return (
     <StaggerGroup>
@@ -266,6 +273,34 @@ export function OverviewTab({
                 </Stack>
               </Collapse>
             </Box>
+            <SettingRow
+              label="Agent"
+              description={
+                agent.serverState === 'online'
+                  ? agent.mcpServers.length === 0
+                    ? 'Up, but no servers connected.'
+                    : `${agent.mcpServers.map(server => server.name).join(' · ')} · ${agentTools} tools`
+                  : agent.serverState === 'starting'
+                    ? 'Warming up…'
+                    : 'Needed for voice commands only.'
+              }
+            >
+              <Group gap="xs" wrap="nowrap">
+                <Badge
+                  color={agent.serverState === 'online' ? 'teal' : agent.serverState === 'starting' ? 'yellow' : 'gray'}
+                  variant="light"
+                >
+                  {agent.serverState === 'online'
+                    ? 'Online'
+                    : agent.serverState === 'starting'
+                      ? 'Starting…'
+                      : 'Offline'}
+                </Badge>
+                <Button size="xs" variant="subtle" onClick={() => onSelectTab('agent')}>
+                  Open
+                </Button>
+              </Group>
+            </SettingRow>
             <Box>
               <SettingRow label="MiniMax key" description="Only for voice edit and Explain.">
                 <KeyFix

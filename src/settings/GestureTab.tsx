@@ -13,6 +13,16 @@ import { StaggerGroup, StaggerItem } from './motion';
 import { SettingRow } from './SettingRow';
 import { SettingsGroup } from './SettingsGroup';
 
+/** The off copy names the key it collides with, like the voice edit row. */
+function actDescription(settings: SettingsView): string {
+  if (settings.actGestureKey === settings.gestureKey) return 'Off while it matches the dictate key.';
+  if (settings.actGestureKey === settings.editGestureKey)
+    return 'Off while it matches the voice edit key.';
+  if (settings.actGestureKey === settings.explainGestureKey)
+    return 'Off while it matches the Explain key.';
+  return 'Speak a command for the agent instead of dictating.';
+}
+
 export function GestureTab({
   settings,
   onChange,
@@ -81,6 +91,16 @@ export function GestureTab({
                 data={GESTURE_KEYS.map(key => ({ value: key, label: KEY_LABELS[key] }))}
                 value={settings.explainGestureKey}
                 onChange={value => value && onChange({ explainGestureKey: value as GestureKey })}
+              />
+            </SettingRow>
+            <SettingRow label="Act" description={actDescription(settings)}>
+              <Select
+                aria-label="Act key"
+                w={180}
+                allowDeselect={false}
+                data={GESTURE_KEYS.map(key => ({ value: key, label: KEY_LABELS[key] }))}
+                value={settings.actGestureKey}
+                onChange={value => value && onChange({ actGestureKey: value as GestureKey })}
               />
             </SettingRow>
           </SettingsGroup>

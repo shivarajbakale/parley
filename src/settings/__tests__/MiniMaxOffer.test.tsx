@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 
 import {
   DEFAULT_SETTINGS,
+  OFFLINE_AGENT_SUMMARY,
   type ParleyApi,
   type SessionBlockedReason,
   type SettingsView,
@@ -22,6 +23,7 @@ function mount(pending: SessionBlockedReason | null = null) {
     hasApiKey: true,
     hasRewriteKey: false,
     wordsDictated: 0,
+    agent: OFFLINE_AGENT_SUMMARY,
   };
   let push: ((reason: SessionBlockedReason) => void) | null = null;
   const api: ParleyApi = {
@@ -36,6 +38,11 @@ function mount(pending: SessionBlockedReason | null = null) {
       settings = { ...settings, hasRewriteKey: true };
       return { ok: true, message: 'Key works' };
     }),
+    setAgentUrl: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    testAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    restartAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    decideApproval: vi.fn(async () => true),
+    agentStatus: vi.fn(async () => OFFLINE_AGENT_SUMMARY),
     getPermissions: vi.fn(async () => ({ microphone: true, accessibility: true })),
     requestPermission: vi.fn(async () => ({ microphone: true, accessibility: true })),
     onExplain: () => () => {},

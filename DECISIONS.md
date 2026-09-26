@@ -6,6 +6,38 @@ silently undo.
 
 ---
 
+## 2026-09-26: Act mode hands commands to a Mastra agent Parley supervises
+
+- **What:** A fourth gesture key (`actGestureKey`, default ShiftRight) turns
+  speech into a command for the `parley-action` agent in the sibling
+  `../Mastra/parley-agent` project. Parley spawns and supervises that server
+  on launch (`mastra dev` in dev, the `mastra build` bundle from
+  `resources/parley-agent` packaged, run with `ELECTRON_RUN_AS_NODE`),
+  attaching when the port already answers. Reads run free; every write-class
+  tool suspends for a tap of the act key, Esc is no, and the approval waits
+  until answered — no timeout. Progress, the question and the one-line
+  result ride the orb pill; the Agent tab mirrors a waiting approval with
+  Approve/Decline and keeps the last failure standing. Agent routes live at
+  the server root (`/parley/run`, …), never under `/api/`.
+- **Why:** The agent owns the MCP tools, the model and the run state, so
+  Parley stays a mic, a pill and a supervisor — no tool code in the desktop
+  app, and the server stays usable from anywhere. Parley-managed (not
+  user-run) because act mode must work on first launch with no terminal.
+  Approvals wait because a timed-out yes-or-no is a destructive action taken
+  by a timer. Root paths because Mastra serves custom routes from the root
+  and reserves `/api/` for itself.
+- **Rejected alternatives:** Inline MCP tools in the Electron main process
+  (every tool reimplements streaming, suspension and retry; the app bloats
+  with server code); the user running `mastra dev` themselves (a terminal
+  dependency for a menu-bar app); approvals with a timeout (auto-decline
+  strands multi-step runs, auto-approve acts without consent); `/api/parley`
+  paths (inside Mastra's reserved namespace).
+- **Constraint:** Localhost URLs are managed (spawned); anything else is
+  attach-only and Restart is disabled. Tool calls are not transactional —
+  quit cancels the run but cannot roll a tool back. v1 has no auth on
+  localhost and no voice approval; the scaffold keeps zero native
+  dependencies so the bundle stays plain JS.
+
 ## 2026-09-24: Transcription provider is its own channel; hasApiKey follows it
 
 - **What:** `transcriptionProvider` (`groq` | `deepgram`, default `groq`) lives

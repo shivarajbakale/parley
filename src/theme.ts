@@ -210,6 +210,10 @@ const aurora = {
   '--app-explain-deep': 'oklch(0.5 0.12 235)',
   '--app-explain-core': 'oklch(0.72 0.13 225)',
   '--app-explain-glow': 'oklch(0.88 0.08 215)',
+  // Act is rose: warm like edit's amber but pink, kept clear of error red.
+  '--app-act-deep': 'oklch(0.5 0.2 12)',
+  '--app-act-core': 'oklch(0.68 0.22 12)',
+  '--app-act-glow': 'oklch(0.86 0.1 15)',
   '--app-aurora-gradient':
     'linear-gradient(120deg, var(--app-aurora-deep), var(--app-aurora-core))',
 };

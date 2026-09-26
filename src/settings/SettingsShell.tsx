@@ -1,8 +1,9 @@
 import { Alert, Box, Tabs } from '@mantine/core';
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 import type { PermissionStatus, Settings, SettingsView } from '../../electron/types';
 
+import { AgentTab } from './AgentTab';
 import { GeneralTab } from './GeneralTab';
 import { GestureTab } from './GestureTab';
 import { OverviewTab } from './OverviewTab';
@@ -17,6 +18,7 @@ export function SettingsShell({
   saveFailed,
   onChange,
   initialTab = 'overview',
+  tabRequest,
 }: {
   settings: SettingsView;
   permissions: PermissionStatus;
@@ -24,6 +26,9 @@ export function SettingsShell({
   onChange: (patch: Partial<Settings>) => void;
   /** The Overview answers "is it working?", so that is where the window opens. */
   initialTab?: TabId;
+  /** A refused gesture asking for a tab. The counter re-fires repeat refusals
+   * without remounting, so half-typed keys in other panels survive. */
+  tabRequest?: { tab: TabId; n: number } | null;
 }) {
   const needsSetup = !permissions.microphone || !permissions.accessibility || !settings.hasApiKey;
   const [active, setActive] = useState<TabId>(initialTab);
@@ -33,6 +38,12 @@ export function SettingsShell({
     setDirection(tabDirection(active, next));
     setActive(next);
   };
+
+  useEffect(() => {
+    if (tabRequest) select(tabRequest.tab);
+    // select is stable per render; the request counter is the trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabRequest]);
 
   // Panels stay mounted so a half-typed key survives a tab switch, which is why
   // the entrance is a CSS animation: it restarts by itself each time a hidden
@@ -58,7 +69,7 @@ export function SettingsShell({
         )}
         <Tabs.Panel value="overview">
           <Box className={classes.panel} style={panelStyle}>
-            <OverviewTab settings={settings} permissions={permissions} />
+            <OverviewTab settings={settings} permissions={permissions} onSelectTab={select} />
           </Box>
         </Tabs.Panel>
         <Tabs.Panel value="gesture">
@@ -69,6 +80,11 @@ export function SettingsShell({
         <Tabs.Panel value="general">
           <Box className={classes.panel} style={panelStyle}>
             <GeneralTab settings={settings} onChange={onChange} />
+          </Box>
+        </Tabs.Panel>
+        <Tabs.Panel value="agent">
+          <Box className={classes.panel} style={panelStyle}>
+            <AgentTab settings={settings} onChange={onChange} />
           </Box>
         </Tabs.Panel>
       </Box>

@@ -4,12 +4,18 @@ import path from 'node:path';
 import {
   DEFAULT_SETTINGS,
   GESTURE_KEYS,
+  OFFLINE_AGENT_SUMMARY,
   TRANSCRIPTION_PROVIDERS,
   WIZARD_STEP_MAX,
+  type AgentSummary,
   type Settings,
   type SettingsView,
   type TranscriptionProvider,
 } from './types';
+
+/** Agent URLs longer than this are rejected, never truncated — cutting a URL
+ * could produce a valid address the user never meant. */
+const AGENT_URL_MAX = 200;
 
 /** First versioned settings shape. v0 files predate the onboarding fields. */
 export const SETTINGS_SCHEMA_VERSION = 1;
@@ -24,7 +30,9 @@ export interface CryptoLike {
 export interface SettingsStore {
   get(): Settings;
   update(patch: Partial<Settings>): Settings;
-  view(): SettingsView;
+  /** `live` is the supervisor's truth, handed over by main — without it the
+   * agent reads as offline. */
+  view(live?: AgentSummary): SettingsView;
   /** The Groq key. */
   getApiKey(): string | null;
   setApiKey(key: string): void;
@@ -79,6 +87,21 @@ function sanitize(input: Partial<Settings>): Partial<Settings> {
   if (GESTURE_KEYS.includes(input.explainGestureKey as never)) {
     out.explainGestureKey = input.explainGestureKey;
   }
+  if (GESTURE_KEYS.includes(input.actGestureKey as never)) {
+    out.actGestureKey = input.actGestureKey;
+  }
+  if (typeof input.agentUrl === 'string') {
+    const url = input.agentUrl.trim();
+    if (url.length > 0 && url.length <= AGENT_URL_MAX) {
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') out.agentUrl = url;
+      } catch {
+        // Not a URL at all: dropped below.
+      }
+    }
+  }
+  if (typeof input.agentAutoStart === 'boolean') out.agentAutoStart = input.agentAutoStart;
   if (input.tapCount === 2 || input.tapCount === 3 || input.tapCount === 4) {
     out.tapCount = input.tapCount;
   }
@@ -165,11 +188,12 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       save();
       return settings;
     },
-    view: () => ({
+    view: (live?: AgentSummary) => ({
       ...settings,
       hasApiKey: hasApiKey(),
       hasRewriteKey: rewriteKeyEncrypted !== null,
       wordsDictated,
+      agent: live ?? OFFLINE_AGENT_SUMMARY,
     }),
     hasApiKey,
     hasGroqKey,

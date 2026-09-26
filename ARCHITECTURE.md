@@ -3,11 +3,8 @@
 A map of parley: where things live, how a request or a command flows
 through it, and which invariants the layout encodes.
 
-It points at files rather than reproducing them, because a copy of code is a copy
-that goes stale, and it deliberately does not repeat the stack, the entry point
-or the commands — those are in [AGENTS.md](AGENTS.md), which is read every
-session. This one is read on demand, which is what keeps that one short: anything
-an agent needs *in order to find its way around* belongs here rather than there.
+It points at files rather than reproducing them, and it does not repeat the
+stack, entry point or commands — those are in [AGENTS.md](AGENTS.md).
 
 ## Parley
 
@@ -20,6 +17,7 @@ an agent needs *in order to find its way around* belongs here rather than there.
 | `electron/injector.ts` | Clipboard snapshot, paste keystroke, restore |
 | `electron/settings-store.ts` | JSON settings, the transcription provider, and the encrypted Groq, Deepgram and MiniMax keys |
 | `electron/session.ts` | Orchestrates one dictation session |
+| `electron/agent/` | Act mode: the agent supervisor, HTTP/SSE client and tap-to-approve |
 | `electron/windows.ts` | Pure window option and bounds functions for orb and settings windows |
 | `electron/permissions.ts` | Microphone and Accessibility status, request, System Settings deep links |
 | `electron/tray.ts` | Menu bar item and menu |
@@ -49,6 +47,10 @@ already takes. `main.ts` also takes a single-instance lock so a second launch
 opens settings instead of doubling the key hook and tray icon, quits if startup
 fails, hands `shell.openExternal` only an http(s) URL, and sets the login item
 only when packaged. The settings window shows an inline Alert on an IPC failure.
+Act mode hands the transcript to the Mastra agent in the sibling
+`../Mastra/parley-agent` checkout — dev spawns its `mastra dev`, packaged
+spawns the `resources/parley-agent` bundle — and the pill carries progress,
+approvals and the one-line result.
 
 <!-- rocketship:own shape -->
 ## The shape
@@ -89,8 +91,7 @@ Query, shell state in `useShellNav`, the rest in the router.
 ## How a screen is built
 
 ```
-route in router.tsx -> page in pages/ -> query hook in hooks/
-   -> service in api/services/ -> axios client -> MSW handler or the real API
+route -> page -> query hook -> service -> axios client -> MSW handler or the real API
 ```
 
 A native capability takes the other path: renderer -> `preload.ts` bridge ->
@@ -133,9 +134,8 @@ client and the types; types have no runtime imports.
 
 ## The reference slice
 
-**Projects** is implemented across every layer; copy it rather than inventing a
-shape. `src/pages/Projects/ProjectsPage.tsx` is one component serving both
-`/projects` and `/projects/$projectId`.
+**Projects** is implemented across every layer; copy it rather than inventing a shape.
+`src/pages/Projects/ProjectsPage.tsx` is one component serving both `/projects` and `/projects/$projectId`.
 
 ## Where to add a thing
 

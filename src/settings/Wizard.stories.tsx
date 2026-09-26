@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 import {
   DEFAULT_SETTINGS,
+  OFFLINE_AGENT_SUMMARY,
   type ParleyApi,
   type PermissionStatus,
   type SettingsView,
@@ -31,6 +32,11 @@ function withParley(settings: SettingsView, permissions: PermissionStatus) {
         return current;
       },
       setRewriteKey: async () => ({ ok: true, message: 'Key works' }),
+      setAgentUrl: async () => ({ ok: true, message: 'Agent works', mcpServers: [] }),
+      testAgent: async () => ({ ok: true, message: 'Agent works', mcpServers: [] }),
+      restartAgent: async () => ({ ok: true, message: 'Agent works', mcpServers: [] }),
+      decideApproval: async () => true,
+      agentStatus: async () => OFFLINE_AGENT_SUMMARY,
       getPermissions: async () => permissions,
       requestPermission: async () => permissions,
       onExplain: () => () => {},
@@ -52,6 +58,7 @@ const fresh: SettingsView = {
   hasApiKey: false,
   hasRewriteKey: false,
   wordsDictated: 0,
+  agent: OFFLINE_AGENT_SUMMARY,
 };
 
 /** First-run flow: one screen at a time under the ring, opened mid-flow as a resume would. */

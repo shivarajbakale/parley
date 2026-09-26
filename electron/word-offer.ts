@@ -15,7 +15,7 @@ import {
  * dictation gesture itself begins with a tap of the same key.
  */
 
-const KEY_LABELS: Record<GestureKey, string> = {
+export const KEY_LABELS: Record<GestureKey, string> = {
   AltRight: 'Right Option',
   Alt: 'Option',
   CtrlRight: 'Right Control',

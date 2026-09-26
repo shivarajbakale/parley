@@ -9,6 +9,7 @@ import type { PermissionKind, Settings, TranscriptionProvider } from '../../elec
 
 const SETTINGS = ['parley', 'settings'] as const;
 const PERMISSIONS = ['parley', 'permissions'] as const;
+const AGENT_STATUS = ['parley', 'agent', 'status'] as const;
 
 export function useSettings() {
   return useQuery({ queryKey: SETTINGS, queryFn: () => window.parley.getSettings() });
@@ -70,5 +71,46 @@ export function useSetRewriteKey() {
   return useMutation({
     mutationFn: (key: string) => window.parley.setRewriteKey(key),
     onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
+  });
+}
+
+/** Polled, because the supervisor starts, crashes and restarts on its own. */
+export function useAgentStatus() {
+  return useQuery({
+    queryKey: AGENT_STATUS,
+    queryFn: () => window.parley.agentStatus(),
+    refetchInterval: 2000,
+  });
+}
+
+export function useSetAgentUrl() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (url: string) => window.parley.setAgentUrl(url),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: SETTINGS });
+      client.invalidateQueries({ queryKey: AGENT_STATUS });
+    },
+  });
+}
+
+export function useTestAgent() {
+  return useMutation({ mutationFn: () => window.parley.testAgent() });
+}
+
+export function useRestartAgent() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => window.parley.restartAgent(),
+    onSuccess: () => client.invalidateQueries({ queryKey: AGENT_STATUS }),
+  });
+}
+
+export function useDecideApproval() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ callId, approved }: { callId: string; approved: boolean }) =>
+      window.parley.decideApproval(callId, approved),
+    onSuccess: () => client.invalidateQueries({ queryKey: AGENT_STATUS }),
   });
 }

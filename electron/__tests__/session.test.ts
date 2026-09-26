@@ -31,6 +31,9 @@ function setup(overrides: Partial<SessionDeps> = {}) {
     getSettings: () => DEFAULT_SETTINGS,
     hasApiKey: () => true,
     hasRewriteKey: () => true,
+    isAgentReady: () => true,
+    runAgent: vi.fn().mockResolvedValue(undefined),
+    cancelAgent: vi.fn(),
     getPermissions: () => ({ microphone: true, accessibility: true }),
     openSettings: vi.fn(),
     onTranscript: vi.fn(),
@@ -417,6 +420,113 @@ describe('session', () => {
       await session.receiveAudio(audio());
       expect(deps.editTargets.capture).toHaveBeenCalledTimes(1);
       expect(deps.injector.paste).toHaveBeenCalledWith('hello world');
+    });
+  });
+
+  describe('act mode', () => {
+    it('is blocked with the agent reason when the agent is not ready', async () => {
+      const onBlocked = vi.fn();
+      const { deps, session } = setup({ isAgentReady: () => false, onBlocked });
+      session.start('act');
+      expect(onBlocked).toHaveBeenCalledWith('agent');
+      expect(deps.openSettings).toHaveBeenCalled();
+      expect(deps.orb.show).not.toHaveBeenCalled();
+      expect(session.state()).toBe('idle');
+    });
+
+    it('needs no accessibility permission and no rewrite key', () => {
+      const { session } = setup({
+        getPermissions: () => ({ microphone: true, accessibility: false }),
+        hasRewriteKey: () => false,
+      });
+      session.start('act');
+      expect(session.state()).toBe('listening');
+    });
+
+    it('still needs the microphone and a transcription key', () => {
+      const blocked: string[] = [];
+      const micless = setup({
+        getPermissions: () => ({ microphone: false, accessibility: true }),
+        onBlocked: reason => void blocked.push(reason),
+      });
+      micless.session.start('act');
+      const keyless = setup({
+        hasApiKey: () => false,
+        onBlocked: reason => void blocked.push(reason),
+      });
+      keyless.session.start('act');
+      expect(blocked).toEqual(['microphone', 'apiKey']);
+    });
+
+    it('hands the transcribed words to the agent and pastes nothing', async () => {
+      const { deps, session } = setup();
+      session.start('act');
+      session.stop();
+      await session.receiveAudio(audio());
+      expect(deps.runAgent).toHaveBeenCalledWith('hello world');
+      expect(deps.injector.paste).not.toHaveBeenCalled();
+      expect(deps.onTranscript).not.toHaveBeenCalled();
+      expect(session.state()).toBe('idle');
+      expect(deps.orb.hide).not.toHaveBeenCalled();
+    });
+
+    it('runs nothing on short audio or an empty transcript', async () => {
+      const short = setup();
+      short.session.start('act');
+      short.session.stop();
+      await short.session.receiveAudio(audio(100));
+      expect(short.deps.runAgent).not.toHaveBeenCalled();
+
+      const empty = setup({ transcriber: { transcribe: vi.fn().mockResolvedValue('') } });
+      empty.session.start('act');
+      empty.session.stop();
+      await empty.session.receiveAudio(audio());
+      expect(empty.deps.runAgent).not.toHaveBeenCalled();
+    });
+
+    it('cancel during the run aborts at once; the late handoff lands nowhere', async () => {
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => (release = resolve));
+      const { deps, session } = setup({ runAgent: vi.fn().mockReturnValue(gate) });
+      session.start('act');
+      session.stop();
+      const flight = session.receiveAudio(audio());
+      await Promise.resolve();
+      session.cancel();
+      expect(deps.cancelAgent).toHaveBeenCalledTimes(1);
+      expect(session.state()).toBe('idle');
+      release();
+      await flight;
+      expect(session.state()).toBe('idle');
+      expect(deps.orb.hide).not.toHaveBeenCalled();
+    });
+
+    it('a rejected handoff still lands the pill on an error', async () => {
+      const { deps, session } = setup({
+        runAgent: vi.fn().mockRejectedValue(new Error('Agent unreachable')),
+      });
+      session.start('act');
+      session.stop();
+      await session.receiveAudio(audio());
+      expect(deps.orb.setPhase).toHaveBeenLastCalledWith({
+        phase: 'error',
+        message: 'Agent unreachable',
+      });
+    });
+
+    it('a new session after cancel is not clobbered by the stale run', async () => {
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => (release = resolve));
+      const { session } = setup({ runAgent: vi.fn().mockReturnValue(gate) });
+      session.start('act');
+      session.stop();
+      const flight = session.receiveAudio(audio());
+      await Promise.resolve();
+      session.cancel();
+      session.start();
+      release();
+      await flight;
+      expect(session.state()).toBe('listening');
     });
   });
 });

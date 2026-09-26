@@ -5,7 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ThemeProvider } from '@/components/theme-provider';
 
-import { DEFAULT_SETTINGS, type ParleyApi } from '../../../electron/types';
+import {
+  DEFAULT_SETTINGS,
+  OFFLINE_AGENT_SUMMARY,
+  type ParleyApi,
+} from '../../../electron/types';
 import { SettingsApp } from '../SettingsApp';
 
 function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
@@ -19,6 +23,7 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       hasApiKey: true,
       hasRewriteKey: true,
       wordsDictated: 0,
+      agent: OFFLINE_AGENT_SUMMARY,
     }),
     updateSettings: vi.fn().mockImplementation(async patch => ({
       ...DEFAULT_SETTINGS,
@@ -27,6 +32,7 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       ...patch,
       hasApiKey: true,
       hasRewriteKey: true,
+      agent: OFFLINE_AGENT_SUMMARY,
     })),
     setApiKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     setDeepgramKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
@@ -38,8 +44,14 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       hasApiKey: true,
       hasRewriteKey: true,
       wordsDictated: 0,
+      agent: OFFLINE_AGENT_SUMMARY,
     })),
     setRewriteKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
+    setAgentUrl: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    testAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    restartAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
+    decideApproval: vi.fn(async () => true),
+    agentStatus: vi.fn(async () => OFFLINE_AGENT_SUMMARY),
     getPermissions: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
     requestPermission: vi.fn().mockResolvedValue({ microphone: true, accessibility: true }),
     onExplain: () => () => {},
@@ -85,12 +97,41 @@ describe('SettingsShell tab persistence', () => {
   it('every tab resolves aria-controls to a panel present in the DOM', async () => {
     mount(mockApi());
 
-    for (const name of ['Overview', 'Gesture', 'General']) {
+    for (const name of ['Overview', 'Gesture', 'General', 'Agent']) {
       const tab = await screen.findByRole('tab', { name });
       const controls = tab.getAttribute('aria-controls');
       expect(controls).toBeTruthy();
       const panel = controls ? document.getElementById(controls) : null;
       expect(panel).toBeInTheDocument();
     }
+  });
+
+  it('opens the Agent tab with its safety contract when selected', async () => {
+    mount(mockApi());
+    await userEvent.click(await screen.findByRole('tab', { name: 'Agent' }));
+    expect(
+      await screen.findByText('Parley always asks before changing anything.')
+    ).toBeInTheDocument();
+  });
+
+  it('names the colliding key on the Act row', async () => {
+    mount(
+      mockApi({
+        getSettings: vi.fn().mockResolvedValue({
+          ...DEFAULT_SETTINGS,
+          tourSeen: true,
+          onboardingComplete: true,
+          hasApiKey: true,
+          hasRewriteKey: true,
+          wordsDictated: 0,
+          agent: OFFLINE_AGENT_SUMMARY,
+          gestureKey: 'AltRight',
+          actGestureKey: 'AltRight',
+        }),
+      })
+    );
+    await userEvent.click(await screen.findByRole('tab', { name: 'Gesture' }));
+    expect(await screen.findByText('Off while it matches the dictate key.')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Act key' })).toBeInTheDocument();
   });
 });
