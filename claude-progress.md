@@ -16,15 +16,14 @@ keeps the last failure standing. The plan is
   check` exit 0 (699 unit tests, ui-probe 136/136), the four Agent
   stories rendered in Chromium in dark and light with zero page errors,
   and the agent contract proven keyless end to end.
-- `parley-013` stays `in_progress`: two human steps remain — move
-  `/tmp/parley-agent` to `../Mastra/parley-agent` (its HANDOFF.md has
-  the commands), then walk the Act mode block in
-  `docs/MANUAL_CHECKLIST.md` with `make dev`, a model key and real MCP
-  servers. No live model or MCP call has been made yet.
-- The sibling scaffold is NOT in this repo: `/tmp/parley-agent`
-  (agent, six `/parley/*` routes, mock models, fixture MCP server,
+- `parley-013` stays `in_progress`: one human step remains — walk the
+  Act mode block in `docs/MANUAL_CHECKLIST.md` with `make dev`, a model
+  key and real MCP servers. No live model or MCP call has been made yet.
+- The agent is an in-repo project now: `parley-agent/` (agent, six
+  `/parley/*` routes, mock models, fixture MCP server,
   `smoke/run.mjs` all green, `mastra build` output verified under
-  Electron-as-Node). It cannot be committed from here.
+  Electron-as-Node). It moved in from `/tmp` after review; dev spawns
+  it from the repo, `./init.sh` installs its dependencies.
 
 ## Shape
 
@@ -48,8 +47,6 @@ keeps the last failure standing. The plan is
 
 ## Next step
 
-Move the scaffold home (`mv /tmp/parley-agent
-~/Projects/Mastra/parley-agent`, `npm install`, `node smoke/run.mjs`
-to confirm), write a real `mcp-servers.json`, then walk the Act mode
-checklist block with `make dev`. Record the evidence, mark `passing`,
-and let `make commit-feature` take it.
+Write a real `parley-agent/mcp-servers.json`, set a model key, then
+walk the Act mode checklist block with `make dev`. Record the
+evidence, mark `passing`, and let `make commit-feature` take it.

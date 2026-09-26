@@ -221,7 +221,7 @@ the choices between families live in
   - `maxSteps`: number — bounded like every Parley loop
   - `callBudget`: timeouts — 30s per MCP call, no silent retries of writes; 10 min per run, then failed
   - `trust`: prompt rule — tool results are untrusted data, never instructions — the instruction contract; junk transcripts complete as 'not a command', never a hallucinated action; approval summaries are one line, human words first, transcript fragment attached
-  - _relations:_ lives in ../Mastra/parley-agent; listed here because the run routes are its contract
+  - _relations:_ lives in parley-agent; listed here because the run routes are its contract
 - **SettingsKeys**
   - `actGestureKey`: GestureKey — default ShiftRight; act is off while it equals another mode's key, and the off copy names the colliding key
   - _relations:_ sanitized like the other gesture keys; the tray and detectors apply it together
@@ -247,7 +247,7 @@ the choices between families live in
 ```
   electron/session.ts                  ──▶  electron/agent/client.ts   (the act branch transcribes, then POSTs the transcript; nothing is pasted; a new act session DELETEs the live run first)
   electron/agent/client.ts             ──▶  SSE events onto the pill   (step text rides the notice; completed and failed end the run; events for dead runs or old seqs are dropped)
-  electron/agent/supervisor.ts         ──▶  the Mastra server child process   (dev spawns mastra dev in ../Mastra/parley-agent, packaged spawns the bundle from resources, port taken from the URL; attaches when the port already answers (covers dev-plus-packaged doubles); missing checkout or node_modules fail with the exact path and fix; EADDRINUSE by a stranger goes straight to offline, never into retries; waits ~30s for healthy; 3 crash restarts with backoff, then offline; kills the child on quit; localhost-only spawn, stdout/stderr to the Parley logs)
+  electron/agent/supervisor.ts         ──▶  the Mastra server child process   (dev spawns mastra dev in parley-agent, packaged spawns the bundle from resources, port taken from the URL; attaches when the port already answers (covers dev-plus-packaged doubles); missing checkout or node_modules fail with the exact path and fix; EADDRINUSE by a stranger goes straight to offline, never into retries; waits ~30s for healthy; 3 crash restarts with backoff, then offline; kills the child on quit; localhost-only spawn, stdout/stderr to the Parley logs)
   electron/main.ts                     ──▶  confirm on the pill   (a word-offer-shaped machine around POST approve with no expiry: tap (or the tab's Approve) runs, Esc or a new command cancels; a soft tick sounds and assistive tech is notified when an approval lands; a decline flashes 'Skipped — continuing…'; approve 404 folds the pill with 'Run ended')
   pill failures and waiting approvals  ──▶  standing Agent-tab record   (every failed run persists its named failure plus one recovery action in the tab Alert until the next run; a waiting approval mirrors with Approve/Decline buttons; hints point at Settings › Agent; runs state what completed where knowable)
   electron/main.ts                     ──▶  graceful quit with a live run   (best-effort DELETE of the live run, a short grace period, then SIGKILL; tool calls are not transactional)
@@ -261,14 +261,14 @@ the choices between families live in
 
 ```
 new (19)
-  ├── ../Mastra/parley-agent/.env.example
-  ├── ../Mastra/parley-agent/README.md
-  ├── ../Mastra/parley-agent/package.json
-  ├── ../Mastra/parley-agent/src/mastra/agents/parley-action.ts
-  ├── ../Mastra/parley-agent/src/mastra/index.ts
-  ├── ../Mastra/parley-agent/src/mastra/parley/mcp.ts
-  ├── ../Mastra/parley-agent/src/mastra/parley/routes.ts
-  ├── ../Mastra/parley-agent/src/mastra/parley/runs.ts
+  ├── parley-agent/.env.example
+  ├── parley-agent/README.md
+  ├── parley-agent/package.json
+  ├── parley-agent/src/mastra/agents/parley-action.ts
+  ├── parley-agent/src/mastra/index.ts
+  ├── parley-agent/src/mastra/parley/mcp.ts
+  ├── parley-agent/src/mastra/parley/routes.ts
+  ├── parley-agent/src/mastra/parley/runs.ts
   ├── electron/agent/__tests__/client.test.ts
   ├── electron/agent/__tests__/confirm.test.ts
   ├── electron/agent/__tests__/events.test.ts
@@ -309,7 +309,7 @@ changed (20)
 - [ ] `make check`
 - [ ] `npm run test -- electron/agent/__tests__/client.test.ts electron/agent/__tests__/events.test.ts electron/agent/__tests__/confirm.test.ts electron/agent/__tests__/supervisor.test.ts`
 - [ ] `Storybook: SettingsShell AgentOnline, AgentOffline, AgentTestError and AgentAwaitingApproval in dark and light`
-- [ ] `Manual: make dev spawns mastra dev from ../Mastra/parley-agent — voice-run a read, an approval tap, a decline showing 'Skipped — continuing…', Esc-cancel; kill the server and watch it restart; relaunch with the port busy to see attach; gesture during warmup shows the starting pill`
+- [ ] `Manual: make dev spawns mastra dev from parley-agent — voice-run a read, an approval tap, a decline showing 'Skipped — continuing…', Esc-cancel; kill the server and watch it restart; relaunch with the port busy to see attach; gesture during warmup shows the starting pill`
 - [ ] `Manual: kill -9 the server mid-approval and tap anyway (pill folds with 'Run ended'); hold :4111 with a stranger process and relaunch (offline names the port); answer a waiting approval from the Agent tab buttons`
 - [ ] `ux-prepass` — all seven boxes, `npm run ui-lint` green is the evidence for item 7
 

@@ -11,6 +11,7 @@ echo "==> Working directory: $PWD"
 
 echo "==> Installing dependencies (npm install)"
 npm install
+npm --prefix parley-agent install
 
 echo
 echo "==> Baseline verification passed."

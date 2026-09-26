@@ -47,9 +47,9 @@ already takes. `main.ts` also takes a single-instance lock so a second launch
 opens settings instead of doubling the key hook and tray icon, quits if startup
 fails, hands `shell.openExternal` only an http(s) URL, and sets the login item
 only when packaged. The settings window shows an inline Alert on an IPC failure.
-Act mode hands the transcript to the Mastra agent in the sibling
-`../Mastra/parley-agent` checkout — dev spawns its `mastra dev`, packaged
-spawns the `resources/parley-agent` bundle — and the pill carries progress,
+Act mode hands the transcript to the Mastra agent in the in-repo
+`parley-agent/` project — dev spawns its `mastra dev`, packaged spawns
+the `resources/parley-agent` bundle — and the pill carries progress,
 approvals and the one-line result.
 
 <!-- rocketship:own shape -->

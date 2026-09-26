@@ -28,6 +28,7 @@ help:
 
 setup:
 	$(NPM) install
+	$(NPM) --prefix parley-agent install
 
 type-check:
 	$(NPM) run type-check

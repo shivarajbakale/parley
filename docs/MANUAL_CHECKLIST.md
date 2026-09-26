@@ -286,10 +286,11 @@ Needs a MiniMax key (Settings, Overview). Default explain key is Right Control.
 
 ## Act mode (parley-013)
 
-Needs the sibling `../Mastra/parley-agent` checkout with `npm install` done
-and an MCP server configured there. Default act key is ShiftRight, with the
-same number of presses as dictation. `make dev` spawns `mastra dev` itself —
-never start the server by hand except where a check says to.
+Needs the in-repo `parley-agent/` project with its dependencies installed
+(`./init.sh` covers it) and an MCP server configured there. Default act key
+is ShiftRight, with the same number of presses as dictation. `make dev`
+spawns `mastra dev` itself — never start the server by hand except where a
+check says to.
 
 - [ ] Launch with the checkout in place: Settings → Agent reads Online with
       the MCP server names and tool counts, and the Overview's Agent row

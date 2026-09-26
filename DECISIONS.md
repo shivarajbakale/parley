@@ -9,8 +9,8 @@ silently undo.
 ## 2026-09-26: Act mode hands commands to a Mastra agent Parley supervises
 
 - **What:** A fourth gesture key (`actGestureKey`, default ShiftRight) turns
-  speech into a command for the `parley-action` agent in the sibling
-  `../Mastra/parley-agent` project. Parley spawns and supervises that server
+  speech into a command for the `parley-action` agent in the in-repo
+  `parley-agent/` project. Parley spawns and supervises that server
   on launch (`mastra dev` in dev, the `mastra build` bundle from
   `resources/parley-agent` packaged, run with `ELECTRON_RUN_AS_NODE`),
   attaching when the port already answers. Reads run free; every write-class

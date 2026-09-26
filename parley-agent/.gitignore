@@ -1,0 +1,9 @@
+node_modules/
+.mastra/
+dist/
+mcp-servers.json
+mcp-servers.smoke.json
+.env
+*.db
+*.db-shm
+*.db-wal

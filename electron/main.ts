@@ -101,12 +101,12 @@ const AX_HELPER = app.isPackaged
   : path.join(process.env.APP_ROOT, 'resources', 'parley-ax');
 
 /**
- * The Mastra agent Parley hands commands to. In dev it is the sibling
- * checkout, run with its own `mastra` CLI; packaged it is the bundle laid
+ * The Mastra agent Parley hands commands to. In dev it is the in-repo
+ * project, run with its own `mastra` CLI; packaged it is the bundle laid
  * down by `scripts/build-agent.sh`, run by the app binary itself with
  * ELECTRON_RUN_AS_NODE — a shipped Electron app has no `node` otherwise.
  */
-const AGENT_DEV_DIR = path.join(process.env.APP_ROOT, '..', 'Mastra', 'parley-agent');
+const AGENT_DEV_DIR = path.join(process.env.APP_ROOT, 'parley-agent');
 const AGENT_MASTRA_BIN = path.join(AGENT_DEV_DIR, 'node_modules', '.bin', 'mastra');
 const AGENT_BUNDLE_DIR = app.isPackaged
   ? path.join(process.resourcesPath, 'parley-agent')

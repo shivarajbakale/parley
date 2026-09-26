@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
-# Bundles the sibling parley-agent checkout (../Mastra/parley-agent) into
+# Bundles the in-repo parley-agent project (parley-agent/) into
 # resources/parley-agent, the server the packaged app spawns for act mode.
-# Self-contained: `mastra build` emits index.mjs plus chunks with no runtime
-# dependencies, and main runs it with ELECTRON_RUN_AS_NODE. Skips the work
-# when the bundle is already newer than the checkout. Fails loud when the
-# checkout or its node_modules are missing — a packaged app without the
-# bundle would ship a dead Agent tab.
+# `mastra build` emits index.mjs plus its node_modules (~200M; externals
+# cannot be bundled on mastra 1.30), and main runs it with
+# ELECTRON_RUN_AS_NODE. Skips the work when the bundle is already newer
+# than the project. Fails loud when node_modules are missing — a packaged
+# app without the bundle would ship a dead Agent tab.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-AGENT_DIR=../Mastra/parley-agent
+AGENT_DIR=parley-agent
 OUT=resources/parley-agent
 
 if [[ ! -d "$AGENT_DIR" ]]; then
-  echo "build-agent: no parley-agent checkout at $AGENT_DIR" >&2
-  echo "build-agent: scaffold it (see the parley-013 handoff notes), then rebuild" >&2
+  echo "build-agent: no parley-agent project at $AGENT_DIR" >&2
   exit 1
 fi
 if [[ ! -x "$AGENT_DIR/node_modules/.bin/mastra" ]]; then
