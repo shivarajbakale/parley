@@ -34,3 +34,7 @@ tsconfig.node.tsbuildinfo
 
 # Compiled from native/parley-ax.swift by scripts/build-ax-helper.sh.
 resources/parley-ax
+
+# Stray root bundle (real entry is dist-electron/main.js) and agent tool scratch.
+/main.js
+.memsearch/
