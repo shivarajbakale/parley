@@ -12,11 +12,16 @@ the question waits until answered — there is no timeout.
 
 ```sh
 npm install
-cp .env.example .env   # then set GROQ_API_KEY (or your provider's key)
 ```
 
-Write your MCP servers to `mcp-servers.json` (same shape as the MCPClient
-`servers` map, optionally wrapped in a `{"servers": …}` object):
+Parley hands its stored MiniMax key over at spawn, so running under the
+desktop app needs no key setup. Running the server by hand needs
+`MINIMAX_API_KEY` (or your provider's key) in a `.env` — see
+`.env.example`.
+
+To add real servers, write `mcp-servers.json` (same shape as the
+MCPClient `servers` map, optionally wrapped in a `{"servers": …}`
+object). Without one, the dummy notes server below answers:
 
 ```json
 {
@@ -29,9 +34,9 @@ Write your MCP servers to `mcp-servers.json` (same shape as the MCPClient
 npm run dev    # serves :4111, the address Parley expects
 ```
 
-No `mcp-servers.json` means no servers: health still answers, the Agent
-tab says no servers are connected, and the act gesture blocks until one
-is. A malformed file fails the boot out loud.
+With no `mcp-servers.json` of your own, the dummy notes server below
+answers instead — act mode works with zero configuration. A malformed
+file fails the boot out loud.
 
 ## Contract (what Parley calls)
 
@@ -64,12 +69,13 @@ you trust.
 
 ## Keyless verification
 
-`PARLEY_MODEL=mock:<read|write|plain>` swaps the model for a canned
-script, so the whole contract runs with no key and no network:
+`PARLEY_MODEL=mock:<read|write|plain|notes>` swaps the model for a
+canned script, so the whole contract runs with no key and no network:
 
 - `mock:read` — one free read, then the one-line answer
 - `mock:write` — one write (suspends), then the one-line answer
 - `mock:plain` — a refusal with no tools
+- `mock:notes` — a read plus a write against the shipped dummy below
 
 The mocks answer the same way whatever was said; the write script's
 post-decline text still says "deleted". The smoke asserts the server's
@@ -80,14 +86,23 @@ PARLEY_MODEL=mock:write PARLEY_MCP_SERVERS_FILE=./mcp-servers.smoke.json npm run
 ```
 
 `node smoke/run.mjs` drives the whole contract against fresh boots —
-read, approve, decline, cancel-suspended and the 404s — and asserts
-every event shape. It writes `mcp-servers.smoke.json` itself, pointing
-at the two-tool fixture notes server (`smoke/fixture-mcp.mjs`:
-`list_notes` read-only, `delete_note` destructive) by absolute path,
-because a stdio spawn starts in the bundler's directory, not the
-project root — real configs should use absolute paths too (or a
-PATH-resolved command). `PARLEY_DEBUG=1` logs every Mastra stream
-chunk while a run pumps.
+read, approve, decline, cancel-suspended, the dummy end to end and the
+404s — and asserts every event shape. It writes
+`mcp-servers.smoke.json` itself, pointing at the two-tool fixture
+notes server (`smoke/fixture-mcp.mjs`: `list_notes` read-only,
+`delete_note` destructive) by absolute path. `PARLEY_DEBUG=1` logs
+every Mastra stream chunk while a run pumps.
+
+## The dummy notes server
+
+`example-mcp/notes.mjs` (list/add/delete) with `mcp-servers.example.json`
+is the default when no `mcp-servers.json` exists, so act mode answers
+its first command with zero configuration. Relative script paths in any
+servers file resolve against the project root; a bare `node` command
+runs through `PARLEY_NODE_BIN` when set (the packaged app points it at
+itself). To keep the dummy alongside real servers, copy its entry into
+your own file — a present `mcp-servers.json` replaces the example, it
+never merges with it.
 
 ## Layout
 

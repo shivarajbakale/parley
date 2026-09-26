@@ -12,11 +12,12 @@ import { createParleyRoutes } from './parley/routes';
  * approvals and health back to the desktop app.
  *
  * The model is `PARLEY_MODEL` (a Mastra `provider/id` string, default
- * Groq's gpt-oss) or `mock:<read|write|plain>` for keyless end-to-end
- * verification — see `parley/mock.ts`.
+ * MiniMax-M3 — the same model and key Parley's voice edit uses, handed
+ * over by the desktop app at spawn) or `mock:<read|write|plain|notes>`
+ * for keyless end-to-end verification — see `parley/mock.ts`.
  */
 
-const MODEL_FALLBACK = 'groq/openai/gpt-oss-20b';
+const MODEL_FALLBACK = 'minimax/MiniMax-M3';
 
 type AgentModel = ConstructorParameters<typeof Agent>[0]['model'];
 

@@ -73,6 +73,8 @@ export interface SessionDeps {
   cancelAgent(): void;
   /** The agent answers and has at least one MCP server to act through. */
   isAgentReady(): boolean;
+  /** True while Parley owns the server process — the MiniMax gate applies. */
+  isAgentManaged(): boolean;
   getPermissions(): PermissionStatus;
   /** The settings window doubles as onboarding. */
   openSettings(): void;
@@ -140,8 +142,8 @@ export function createSession(deps: SessionDeps): Session {
         return;
       }
       if (requested === 'act') {
-        // No keystrokes and no MiniMax: the command is transcribed, then the
-        // agent — not the pill — does everything else.
+        // No keystrokes: the command is transcribed, then the agent — not
+        // the pill — does everything else.
         if (!deps.hasApiKey()) {
           deps.onBlocked?.('apiKey');
           deps.openSettings();
@@ -149,6 +151,14 @@ export function createSession(deps: SessionDeps): Session {
         }
         if (!deps.isAgentReady()) {
           deps.onBlocked?.('agent');
+          deps.openSettings();
+          return;
+        }
+        // A server Parley spawned thinks with the stored MiniMax key, so a
+        // missing key blocks with the same offer voice edit uses. An
+        // attached server brings its own model and is left alone.
+        if (deps.isAgentManaged() && !deps.hasRewriteKey()) {
+          deps.onBlocked?.('rewriteKey');
           deps.openSettings();
           return;
         }

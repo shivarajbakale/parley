@@ -57,6 +57,26 @@ function text(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
 }
 
+function safeJson(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  try {
+    const rendered = JSON.stringify(value);
+    return rendered === undefined ? null : rendered;
+  } catch {
+    return null;
+  }
+}
+
+/** Provider errors arrive as objects — the pill wants the message, not the stack. */
+function errorDetail(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value !== null) {
+    const message = (value as Record<string, unknown>).message;
+    if (typeof message === 'string' && message) return message;
+  }
+  return safeJson(value);
+}
+
 /** `calendar_delete_event` reads as "Delete event" on the pill. */
 function shortToolName(toolName: string): string {
   const bare = toolName.includes('_') ? toolName.slice(toolName.indexOf('_') + 1) : toolName;
@@ -184,7 +204,7 @@ export function createRunStore(agent: Pumpable, toolDescriptions: Map<string, st
             return;
           }
           case 'error': {
-            throw new Error(text(payload.error) ?? 'model stream failed');
+            throw new Error(errorDetail(payload.error) || 'model stream failed');
           }
           default:
             break;

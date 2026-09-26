@@ -10,11 +10,12 @@ const CLOSE_AFTER_MS = 1600;
 const MODES = [
   { name: 'Voice edit', color: 'var(--app-edit-core)', copy: 'rewrites the text in a field.' },
   { name: 'Explain', color: 'var(--app-explain-core)', copy: 'answers a question about a selection.' },
+  { name: 'Act', color: 'var(--app-act-core)', copy: 'runs voice commands through an agent.' },
 ];
 
 /**
  * MiniMax is asked for at the moment it is first needed, not during setup:
- * the first voice edit or Explain gesture with no key opens this over
+ * the first voice edit, Explain or act gesture with no key opens this over
  * whatever the settings window is showing.
  */
 export function MiniMaxOffer({
@@ -44,7 +45,7 @@ export function MiniMaxOffer({
     <Modal
       opened={opened}
       onClose={onClose}
-      title="Voice edit and Explain need MiniMax"
+      title="Voice edit, Explain and Act need MiniMax"
       centered
       withinPortal={withinPortal}
     >
@@ -63,7 +64,7 @@ export function MiniMaxOffer({
           ))}
         </Stack>
         <Text size="sm" c="dimmed">
-          Both send your words to MiniMax. Dictation keeps working without it.
+          All three send your words to MiniMax. Dictation keeps working without it.
         </Text>
         {stored ? (
           <Alert color="teal" variant="light" title="MiniMax is set up">

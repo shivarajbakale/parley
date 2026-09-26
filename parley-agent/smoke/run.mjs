@@ -40,14 +40,15 @@ async function waitForHealth(timeoutMs = 90000) {
   }
 }
 
-function boot(model) {
+function boot(model, serversFile = `${DIR}/mcp-servers.smoke.json`) {
+  const env = { ...process.env, PARLEY_MODEL: model };
+  // An explicit null boots with no servers file at all: the default chain
+  // (mcp-servers.json, then the shipped example) decides.
+  if (serversFile !== null) env.PARLEY_MCP_SERVERS_FILE = serversFile;
+  else delete env.PARLEY_MCP_SERVERS_FILE;
   const child = spawn(`${DIR}/node_modules/.bin/mastra`, ['dev'], {
     cwd: DIR,
-    env: {
-      ...process.env,
-      PARLEY_MODEL: model,
-      PARLEY_MCP_SERVERS_FILE: `${DIR}/mcp-servers.smoke.json`,
-    },
+    env,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let logged = '';
@@ -334,6 +335,57 @@ async function scenarioCancelSuspended() {
   }
 }
 
+async function scenarioNotes() {
+  console.log('--- mock:notes on the shipped dummy (read, approval, completed) ---');
+  // The example file itself, by absolute path: its relative script arg
+  // still exercises root resolution, whatever the user configured.
+  const { child, logs } = boot('mock:notes', `${DIR}/mcp-servers.example.json`);
+  try {
+    const health = await waitForHealth();
+    check(
+      'dummy notes server lists 3 tools',
+      Array.isArray(health.mcpServers) &&
+        health.mcpServers.length === 1 &&
+        health.mcpServers[0].name === 'notes' &&
+        health.mcpServers[0].tools === 3,
+      JSON.stringify(health.mcpServers)
+    );
+    const started = await fetch(`${BASE}/parley/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: 'read my notes, then delete the first' }),
+    });
+    const { runId } = await started.json();
+    const { events } = await collectSSE(runId, e => e.event === 'approval_requested');
+    const kinds = events.map(e => e.event);
+    check(
+      'free read streams a step first',
+      kinds.includes('step') && events.find(e => e.event === 'step')?.body.text === 'Using List notes…',
+      kinds.join(',')
+    );
+    const asked = events.find(e => e.event === 'approval_requested');
+    check('write suspends for approval', !!asked, kinds.join(','));
+    check('approval names the dummy tool', asked?.body.tool === 'notes_delete_note');
+    const answer = await fetch(`${BASE}/parley/runs/${runId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approved: true }),
+    });
+    check('approve is 200', answer.ok);
+    const rest = await collectSSE(runId, e => e.event === 'completed' || e.event === 'failed');
+    check(
+      'run completes after approve',
+      rest.events.some(e => e.event === 'completed'),
+      rest.events.map(e => e.event).join(',')
+    );
+    const done = rest.events.find(e => e.event === 'completed');
+    check('completed text arrives', done?.body.text === 'Done — deleted note n1, one left.');
+  } finally {
+    await stop(child);
+    if (failures) console.log(logs().slice(-2000));
+  }
+}
+
 async function scenarioGone() {
   console.log('--- unknown runs (404s) ---');
   const { child, logs } = boot('mock:plain');
@@ -367,6 +419,7 @@ await scenarioRead();
 await scenarioWriteApprove();
 await scenarioWriteDecline();
 await scenarioCancelSuspended();
+await scenarioNotes();
 await scenarioGone();
 console.log(failures === 0 ? '\nSMOKE: all green' : `\nSMOKE: ${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);

@@ -18,6 +18,7 @@ import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 import { createActionConfirm } from './agent/confirm';
 import { createAgentClient } from './agent/client';
+import { buildAgentEnv } from './agent/env';
 import { createSupervisor } from './agent/supervisor';
 import { createAudioWatchdog } from './audio-watchdog';
 import { createCommonWords } from './common-words';
@@ -444,7 +445,13 @@ async function startApp() {
   const supervisor = createSupervisor({
     getConfig: () => {
       const port = agentPort();
-      const env = { ...process.env, PORT: String(port) } as Record<string, string>;
+      const env = buildAgentEnv({
+        processEnv: process.env,
+        port,
+        rewriteKey: store.getRewriteKey(),
+        packaged: app.isPackaged,
+        execPath: process.execPath,
+      });
       return {
         autoStart: store.get().agentAutoStart,
         managed: isLocalhostUrl(store.get().agentUrl),
@@ -453,7 +460,7 @@ async function startApp() {
               command: process.execPath,
               args: [path.join(AGENT_BUNDLE_DIR, AGENT_ENTRY)],
               cwd: AGENT_BUNDLE_DIR,
-              env: { ...env, ELECTRON_RUN_AS_NODE: '1' },
+              env,
               description: 'the bundled agent server',
             }
           : {
@@ -704,6 +711,7 @@ async function startApp() {
       const status = supervisor.status();
       return status.state === 'online' && status.mcpServers.length > 0;
     },
+    isAgentManaged: () => supervisor.status().managed,
     getPermissions,
     openSettings,
     onBlocked: (reason) => {

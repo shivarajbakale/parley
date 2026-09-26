@@ -16,9 +16,11 @@ keeps the last failure standing. The plan is
   check` exit 0 (699 unit tests, ui-probe 136/136), the four Agent
   stories rendered in Chromium in dark and light with zero page errors,
   and the agent contract proven keyless end to end.
-- `parley-013` stays `in_progress`: one human step remains — walk the
-  Act mode block in `docs/MANUAL_CHECKLIST.md` with `make dev`, a model
-  key and real MCP servers. No live model or MCP call has been made yet.
+- `parley-013` stays `in_progress`: one human step remains — say
+  "what are my notes" to `make dev` with a MiniMax key saved. The dummy
+  answers with zero MCP setup; the fake-key run already proved the
+  request reaches MiniMax correctly formed. Then walk the rest of the
+  Act mode block in `docs/MANUAL_CHECKLIST.md`.
 - The agent is an in-repo project now: `parley-agent/` (agent, six
   `/parley/*` routes, mock models, fixture MCP server,
   `smoke/run.mjs` all green, `mastra build` output verified under

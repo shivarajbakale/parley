@@ -6,6 +6,33 @@ silently undo.
 
 ---
 
+## 2026-09-26: Act mode thinks with MiniMax and ships a dummy MCP server
+
+- **What:** The default model is `minimax/MiniMax-M3` — the same model
+  and the same stored key voice edit uses. Parley passes the key as
+  `MINIMAX_API_KEY` in the spawned server's environment (an explicitly
+  exported one wins), and a managed act gesture with no key saved opens
+  the same MiniMax offer voice edit uses, now listing all three modes.
+  An attached server brings its own model and is never key-gated. A
+  dummy notes MCP server (list/add/delete) is the default when no
+  `mcp-servers.json` exists, so the first command works with zero
+  configuration; a present file replaces it, never merges.
+- **Why:** Act mode must be testable end to end the first time it runs —
+  a second key to save and a server to configure before the first
+  command would strand every trial. Matching the rewriter's model
+  keeps one key, one vendor, one offer.
+- **Rejected alternatives:** Groq as the default model (a key most
+  users never saved, and a second vendor in the threat model);
+  `minimax/` via a hand-built OpenAI-compatible client (the gateway
+  resolves it from models.dev with no new dependency); merging the
+  dummy with user servers (a toy in every serious run's tool list).
+- **Constraint:** The key travels in the child process environment —
+  same-user local, never logged. The gateway points `minimax/` at
+  `api.minimax.io/anthropic` while the rewriter uses
+  `api.minimax.io/v1`; a fake key provably reaches MiniMax ("login
+  fail"), but only a real key proves the stored key is valid on both
+  doors. Dummy state is in-memory and resets with the server.
+
 ## 2026-09-26: Act mode hands commands to a Mastra agent Parley supervises
 
 - **What:** A fourth gesture key (`actGestureKey`, default ShiftRight) turns

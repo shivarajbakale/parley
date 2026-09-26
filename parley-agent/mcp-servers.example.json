@@ -1,0 +1,6 @@
+{
+  "notes": {
+    "command": "node",
+    "args": ["example-mcp/notes.mjs"]
+  }
+}

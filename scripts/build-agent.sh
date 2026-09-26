@@ -29,4 +29,8 @@ fi
 rm -rf "$OUT"
 mkdir -p "$OUT"
 cp -R "$AGENT_DIR/.mastra/output/." "$OUT/"
+# The dummy notes server rides along: the example config resolves its
+# relative script path against the bundle directory at runtime.
+cp -R "$AGENT_DIR/example-mcp" "$OUT/example-mcp"
+cp "$AGENT_DIR/mcp-servers.example.json" "$OUT/mcp-servers.example.json"
 echo "build-agent: bundled $AGENT_DIR/.mastra/output into $OUT"

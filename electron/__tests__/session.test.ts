@@ -32,6 +32,7 @@ function setup(overrides: Partial<SessionDeps> = {}) {
     hasApiKey: () => true,
     hasRewriteKey: () => true,
     isAgentReady: () => true,
+    isAgentManaged: () => false,
     runAgent: vi.fn().mockResolvedValue(undefined),
     cancelAgent: vi.fn(),
     getPermissions: () => ({ microphone: true, accessibility: true }),
@@ -434,11 +435,32 @@ describe('session', () => {
       expect(session.state()).toBe('idle');
     });
 
-    it('needs no accessibility permission and no rewrite key', () => {
+    it('needs no accessibility permission, and no rewrite key when attached', () => {
       const { session } = setup({
         getPermissions: () => ({ microphone: true, accessibility: false }),
         hasRewriteKey: () => false,
+        isAgentManaged: () => false,
       });
+      session.start('act');
+      expect(session.state()).toBe('listening');
+    });
+
+    it('is blocked with the rewrite-key reason when managed with no MiniMax key', () => {
+      const onBlocked = vi.fn();
+      const { deps, session } = setup({
+        hasRewriteKey: () => false,
+        isAgentManaged: () => true,
+        onBlocked,
+      });
+      session.start('act');
+      expect(onBlocked).toHaveBeenCalledWith('rewriteKey');
+      expect(deps.openSettings).toHaveBeenCalled();
+      expect(deps.orb.show).not.toHaveBeenCalled();
+      expect(session.state()).toBe('idle');
+    });
+
+    it('runs managed with a MiniMax key', () => {
+      const { session } = setup({ hasRewriteKey: () => true, isAgentManaged: () => true });
       session.start('act');
       expect(session.state()).toBe('listening');
     });

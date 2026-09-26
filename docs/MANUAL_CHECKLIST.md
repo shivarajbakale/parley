@@ -287,11 +287,25 @@ Needs a MiniMax key (Settings, Overview). Default explain key is Right Control.
 ## Act mode (parley-013)
 
 Needs the in-repo `parley-agent/` project with its dependencies installed
-(`./init.sh` covers it) and an MCP server configured there. Default act key
-is ShiftRight, with the same number of presses as dictation. `make dev`
-spawns `mastra dev` itself — never start the server by hand except where a
-check says to.
+(`./init.sh` covers it) and a MiniMax key saved (voice edit's — act mode
+thinks with the same one). Default act key is ShiftRight, with the same
+number of presses as dictation. `make dev` spawns `mastra dev` itself —
+never start the server by hand except where a check says to. No MCP
+setup is needed for the first run: the dummy notes server answers
+until a real `mcp-servers.json` replaces it.
 
+- [ ] With no MiniMax key saved, hold the act gesture: the MiniMax offer
+      opens, now listing Voice edit, Explain and Act. Save the key there:
+      the gesture works on the next try.
+- [ ] Fresh, with no `mcp-servers.json`: Settings → Agent reads Online
+      with `notes` and 3 tools, and the Overview's Agent row agrees.
+- [ ] Hold the act gesture and say "what are my notes": the pill works,
+      then answers with the two seeded notes ("water the plants", "read
+      the act-mode manual"). No approval is asked for a read.
+- [ ] Say "note down buy milk": the pill asks first. Tap the act key:
+      it answers done. Ask "what are my notes" again: milk is there.
+- [ ] Say "delete the milk note" and press Esc at the question: the
+      pill flashes "Skipped — continuing…", and the note survives.
 - [ ] Launch with the checkout in place: Settings → Agent reads Online with
       the MCP server names and tool counts, and the Overview's Agent row
       agrees.

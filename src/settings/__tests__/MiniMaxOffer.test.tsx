@@ -67,7 +67,7 @@ function mount(pending: SessionBlockedReason | null = null) {
   return { api, push: (reason: SessionBlockedReason) => act(() => push?.(reason)) };
 }
 
-const TITLE = 'Voice edit and Explain need MiniMax';
+const TITLE = 'Voice edit, Explain and Act need MiniMax';
 
 describe('MiniMax first-use offer', () => {
   it('stays closed on a normal open', async () => {

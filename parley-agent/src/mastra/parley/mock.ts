@@ -10,11 +10,12 @@ import {
  * network, against the fixture MCP server or none at all. Never for real
  * commands: the mock answers the same way whatever was said.
  *
- * Tool names match the smoke fixture (`parley-smoke` server); with no
- * servers configured the calls fail closed and the run reports it.
+ * Tool names match the smoke fixture (`parley-smoke` server) or the
+ * shipped dummy (`notes` server); with no servers configured the calls
+ * fail closed and the run reports it.
  */
 
-export type MockScenario = 'read' | 'write' | 'plain';
+export type MockScenario = 'read' | 'write' | 'plain' | 'notes';
 
 const TEXT_ID = 'mock-text-1';
 const USAGE = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
@@ -78,9 +79,21 @@ export function createMockModel(scenario: MockScenario): MastraLanguageModelV2Mo
         modelId: 'mock:plain',
         doStream: script([textStream('Sorry — I cannot do that with the tools I have.')]),
       });
+    case 'notes':
+      // The dummy end to end: a free read that really executes, then a
+      // write that suspends, then the one-line answer.
+      return new MastraLanguageModelV2Mock({
+        provider: 'parley-mock',
+        modelId: 'mock:notes',
+        doStream: script([
+          toolStream('mock-call-1', 'notes_list_notes', {}),
+          toolStream('mock-call-2', 'notes_delete_note', { id: 'n1' }),
+          textStream('Done — deleted note n1, one left.'),
+        ]),
+      });
   }
 }
 
 export function isMockScenario(value: string): value is MockScenario {
-  return value === 'read' || value === 'write' || value === 'plain';
+  return value === 'read' || value === 'write' || value === 'plain' || value === 'notes';
 }
