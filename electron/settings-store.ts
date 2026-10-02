@@ -96,6 +96,10 @@ function isProvider(value: unknown): value is TranscriptionProvider {
 
 const SYNC_EMAIL_MAX = 200;
 
+/** Settings that belong to this device, never to the synced blob. Keep in step
+ * with `localSettingsBlob` in sync/engine.ts. */
+const DEVICE_LOCAL_KEYS: (keyof Settings)[] = ['syncEmail', 'syncEnabled', 'syncUrl'];
+
 /** A trimmed http(s) URL within the length cap, or null. */
 function cleanUrl(value: unknown): string | null {
   if (typeof value !== 'string') return null;
@@ -228,8 +232,10 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     get: () => settings,
     update(patch) {
       const clean = sanitize(patch);
+      // Device-local sync keys never stamp: signing in on a new device must not
+      // make its settings look newer than the account's.
       const changed = (Object.keys(clean) as (keyof Settings)[]).some(
-        k => clean[k] !== settings[k]
+        k => !DEVICE_LOCAL_KEYS.includes(k) && clean[k] !== settings[k]
       );
       settings = { ...settings, ...clean };
       if (changed) settingsUpdatedAt = Date.now();

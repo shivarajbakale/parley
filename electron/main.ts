@@ -876,6 +876,11 @@ async function startApp() {
     syncEvery = setInterval(syncInBackground, SYNC_EVERY_MS);
   }
   /** One run; a pulled gesture key or tap count takes effect straight away. */
+  /** A new account or server starts from zero: no cursor, no push window, no stale outcome. */
+  function resetSyncWindow() {
+    store.setSyncCursor(0);
+    store.recordSync({ at: 0 });
+  }
   async function runSync(): Promise<SyncOutcome> {
     if (!syncEngine) return { ok: false, pushed: 0, pulled: 0, message: 'Sign in to sync', at: Date.now() };
     const outcome = await syncEngine.syncNow();
@@ -961,6 +966,7 @@ async function startApp() {
     const stampBefore = store.settingsUpdatedAt();
     const next = store.update(typeof patch === 'object' && patch ? patch : {});
     applySettings(next);
+    if (before.syncUrl !== next.syncUrl) resetSyncWindow();
     if (before.syncUrl !== next.syncUrl || before.syncEnabled !== next.syncEnabled) rebuildSync();
     // Only a patch that changed a value is worth pushing.
     if (store.settingsUpdatedAt() !== stampBefore) scheduleSyncSoon();
@@ -1072,6 +1078,7 @@ async function startApp() {
       const { token } = await createSyncClient({ baseUrl: store.get().syncUrl, token: null }).signIn(address);
       store.setSyncToken(token);
       store.update({ syncEmail: address, syncEnabled: true });
+      resetSyncWindow();
       rebuildSync();
       const outcome = await runSync();
       return { ok: outcome.ok, message: outcome.ok ? 'Signed in and synced' : outcome.message };
@@ -1083,6 +1090,7 @@ async function startApp() {
     onlySettingsWindow(event);
     store.setSyncToken(null);
     store.update({ syncEnabled: false });
+    resetSyncWindow();
     rebuildSync();
     return liveView();
   });

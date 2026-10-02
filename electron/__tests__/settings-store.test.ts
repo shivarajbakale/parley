@@ -372,6 +372,15 @@ describe('settings store', () => {
     expect(createSettingsStore({ dir, crypto }).getSyncCursor()).toBe(5);
   });
 
+  it('device-local sync keys never move settingsUpdatedAt; a mixed patch still stamps', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.update({ syncEmail: 'a@b.co', syncEnabled: true, syncUrl: 'https://sync.example.com' });
+    expect(store.settingsUpdatedAt()).toBe(0);
+    expect(store.get().syncEmail).toBe('a@b.co');
+    store.update({ syncEmail: 'c@d.co', tickSound: false });
+    expect(store.settingsUpdatedAt()).toBeGreaterThan(0);
+  });
+
   it('applies a remote patch under the remote stamp, sanitized like update', () => {
     const store = createSettingsStore({ dir, crypto });
     store.applyRemote({ tickSound: false, tapCount: 9 as never }, 100);
