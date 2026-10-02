@@ -1,0 +1,70 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Fastlane — generated reports + store secrets (NEVER commit credentials)
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+**/play-store-key.json
+*.keystore
+*.jks
+*.p8
+ios/ExportOptions.plist
+
+# Build-time env files (may hold secrets passed via --dart-define-from-file)
+/env/*.json
+
+# Golden diffs. `matchesGoldenFile` writes the isolated/masked/test/reference
+# quartet here on a mismatch — look at them, then either fix the widget or run
+# `make golden-update`. The baselines themselves (test/golden/goldens/) are
+# committed and must stay so.
+test/golden/failures/*
+!test/golden/failures/README.md
+
+# Harness evals: dependencies and run output
+/evals/node_modules/
+/evals/results/

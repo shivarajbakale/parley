@@ -1,0 +1,59 @@
+name: Release
+
+# Manual store release via Fastlane. SKELETON — won't do anything useful until
+# you add the secrets below in repo Settings → Secrets and variables → Actions,
+# and wire signing (Android upload keystore; iOS match/API key). See
+# docs/MODULES.md#release.
+#
+# Required secrets (suggested names):
+#   Android: PLAY_STORE_JSON_KEY (base64), ANDROID_KEYSTORE_BASE64,
+#            ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS
+#   iOS:     ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY (base64 .p8), MATCH_PASSWORD,
+#            MATCH_GIT_URL
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to release
+        type: choice
+        options: [android, ios]
+        default: android
+
+jobs:
+  release:
+    runs-on: ${{ inputs.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Same pin as ci.yml — a release must not be built by a different
+          # SDK than the one the gate ran against.
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - run: flutter pub get
+
+      - name: Android — beta to Play Store
+        if: ${{ inputs.platform == 'android' }}
+        working-directory: android
+        run: bundle exec fastlane beta
+        env:
+          # TODO: materialize PLAY_STORE_JSON_KEY into a file + wire the keystore
+          # in android/app/build.gradle before this will succeed.
+          ANDROID_PACKAGE_NAME: ${{ vars.ANDROID_PACKAGE_NAME }}
+
+      - name: iOS — beta to TestFlight
+        if: ${{ inputs.platform == 'ios' }}
+        working-directory: ios
+        run: bundle exec fastlane beta
+        env:
+          # TODO: provide ExportOptions.plist + signing (match) + ASC API key.
+          IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}

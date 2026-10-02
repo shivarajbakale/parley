@@ -1,0 +1,281 @@
+{
+  "note": [
+    "The corpus both implementations of doc-lint are run against.",
+    "",
+    "`tool/doc_lint.dart` in this project and `scripts/doc-lint.mjs` in",
+    "create-react-app (and the other Node scaffolders) are the same nine-rule",
+    "linter written twice, in two languages, against two dependency manifests",
+    "(pubspec.yaml for Flutter, package.json for Node). Two implementations of",
+    "one contract drift; these cases are what stops them drifting silently.",
+    "",
+    "Each case names a tree of files written to a temp dir before the linter",
+    "runs. Both implementations run against the same bytes; `violations[].rule`",
+    "and `violations[].match` are the contract — `match` is the substring that",
+    "must appear in the rejection message, deliberately a phrase both",
+    "implementations word identically, so the prose can still improve on",
+    "either side without breaking the corpus.",
+    "",
+    "The corpus exercises both manifest shapes — pubspec.yaml and package.json —",
+    "so the Flutter-only path and the Node-parity path are both pinned. D6",
+    "fires for both; the corpus uses one of each so a rule added to one",
+    "manifest and forgotten in the other goes red on both."
+  ],
+  "cases": [
+    {
+      "case": "clean-pubspec",
+      "expect": "pass",
+      "why": "The shape both dialects agree is a harnessed Flutter project: four entry files inside budget, prelude inside budget, one constraint each that names its consequence, a feature the register can point at and the evidence file the rule D9 expects.",
+      "files": {
+        "pubspec.yaml": "name: app\nenvironment:\n  sdk: '>=3.8.0 <4.0.0'\ndependencies:\n  flutter:\n    sdk: flutter\n  go_router: ^14.0.0\n",
+        "Makefile": "help:\n\techo ok\n\ncheck:\n\ttrue\n",
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n- Never weaken a test. — because a deleted test converts a known failure into an unknown one.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n\n- `make check` is the gate.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n\n## Tree\n\n- `lib/` — code\n- `tool/` — gates\n",
+        "claude-progress.md": "# State\n\nNothing in flight.\n",
+        "feature_list.json": "[{\"id\":\"f-1\",\"status\":\"passing\"}]\n",
+        "docs/evidence/f-1.md": "# f-1 — done\n\n## Evidence\n\n- ran\n",
+        "docs/history/completed-features.md": "# archive\n"
+      },
+      "violations": []
+    },
+    {
+      "case": "D1-oversized-agents",
+      "expect": "violation",
+      "why": "D1 catches AGENTS.md past its budget. The case puts 200 lines of filler in the file and the corpus asserts D1 fires.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n- Never weaken a test. — because a deleted test converts a known failure into an unknown one.\n\n## Filler\n\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "fill": "AGENTS.md",
+      "fillLines": 160,
+      "violations": [
+        {"rule": "D1", "match": "AGENTS.md is"}
+      ]
+    },
+    {
+      "case": "D2-oversized-claude",
+      "expect": "violation",
+      "why": "D2 catches CLAUDE.md past its 30-line budget. The case inflates CLAUDE.md and the corpus asserts D2 fires.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "fill": "CLAUDE.md",
+      "fillLines": 35,
+      "violations": [
+        {"rule": "D2", "match": "CLAUDE.md is"}
+      ]
+    },
+    {
+      "case": "D3-missing-architecture",
+      "expect": "violation",
+      "why": "D3 catches a project with no ARCHITECTURE.md. The case omits the file entirely.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "violations": [
+        {"rule": "D3", "match": "no ARCHITECTURE.md"}
+      ]
+    },
+    {
+      "case": "D3-code-block-too-large",
+      "expect": "violation",
+      "why": "D3 catches an ARCHITECTURE.md that reproduces files instead of pointing at them. The case ships a code block over 20 lines.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\n```dart\nLine 0.\nLine 1.\nLine 2.\nLine 3.\nLine 4.\nLine 5.\nLine 6.\nLine 7.\nLine 8.\nLine 9.\nLine 10.\nLine 11.\nLine 12.\nLine 13.\nLine 14.\nLine 15.\nLine 16.\nLine 17.\nLine 18.\nLine 19.\nLine 20.\nLine 21.\nLine 22.\nLine 23.\nLine 24.\n```\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "violations": [
+        {"rule": "D3", "match": "code block(s) over 20 lines"}
+      ]
+    },
+    {
+      "case": "D4-oversized-progress",
+      "expect": "violation",
+      "why": "D4 catches claude-progress.md past its 120-line budget, accumulating session entries that should live in docs/history/.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "fill": "claude-progress.md",
+      "fillLines": 130,
+      "violations": [
+        {"rule": "D4", "match": "claude-progress.md is"}
+      ]
+    },
+    {
+      "case": "D6-relative-import-missing",
+      "expect": "violation",
+      "why": "D6 catches a code sample importing a relative path that does not resolve. The case puts an unfindable import in AGENTS.md.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n\n```ts\nimport { foo } from './nope';\n```\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "package.json": "{}\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "violations": [
+        {"rule": "D6", "match": "imports \"./nope\""}
+      ]
+    },
+    {
+      "case": "D6-package-not-a-dep",
+      "expect": "violation",
+      "why": "D6 catches a code sample importing a package the manifest does not declare. The case has `import { x } from 'riverpod'` in a project whose manifest does not declare riverpod.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n\n```ts\nimport { foo } from 'riverpod';\n```\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\nenvironment:\n  sdk: '>=3.8.0 <4.0.0'\ndependencies:\n  flutter:\n    sdk: flutter\n  go_router: ^14.0.0\n",
+        "package.json": "{\"dependencies\":{\"go_router\":\"14.0.0\"}}\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "violations": [
+        {"rule": "D6", "match": "imports \"riverpod\""}
+      ]
+    },
+    {
+      "case": "D6-stack-choice-heading",
+      "expect": "violation",
+      "why": "D6 catches a heading naming a stack choice the manifest does not declare. The case has a `## TypeORM` heading in a project whose manifest has no typeorm.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n\n## TypeORM Repository Methods\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\nenvironment:\n  sdk: '>=3.8.0 <4.0.0'\ndependencies:\n  flutter:\n    sdk: flutter\n  go_router: ^14.0.0\n",
+        "package.json": "{\"dependencies\":{\"go_router\":\"14.0.0\"}}\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "violations": [
+        {"rule": "D6", "match": "TypeORM"}
+      ]
+    },
+    {
+      "case": "D6-make-target-missing",
+      "expect": "violation",
+      "why": "D6 catches a `make <target>` the Makefile does not define. The case has `make superplan` in AGENTS.md but no superplan target.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n\nRun `make superplan` first.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "package.json": "{}\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "violations": [
+        {"rule": "D6", "match": "documents `make superplan`"}
+      ]
+    },
+    {
+      "case": "D7-broken-link",
+      "expect": "violation",
+      "why": "D7 catches a markdown link to a file that is not there. The case links from CLAUDE.md to a missing docs file.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n\nSee [the missing thing](docs/MISSING.md).\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "violations": [
+        {"rule": "D7", "match": "links to docs/MISSING.md"}
+      ]
+    },
+    {
+      "case": "D8-constraint-without-consequence",
+      "expect": "violation",
+      "why": "D8 catches a constraint that does not say what goes wrong without it. The case puts a one-line bullet with no `—`, no `because`, no `otherwise`.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight.\n- Never weaken a test.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n"
+      },
+      "violations": [
+        {"rule": "D8", "match": "do not say what goes wrong without them"}
+      ]
+    },
+    {
+      "case": "D9-passing-without-evidence",
+      "expect": "violation",
+      "why": "D9 catches a passing feature whose evidence is missing. The case has a passing feature in feature_list.json, an empty docs/evidence/ directory, and no matching evidence file.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[{\"id\":\"f-2\",\"status\":\"passing\"}]\n",
+        "docs/evidence/.keep": ""
+      },
+      "violations": [
+        {"rule": "D9", "match": "f-2 is passing but docs/evidence/f-2.md is missing"}
+      ]
+    },
+    {
+      "case": "D9-evidence-without-feature",
+      "expect": "violation",
+      "why": "D9 catches an evidence file with no feature in the register or archive. The case has docs/evidence/orphan.md and nothing in feature_list.json or the archive.",
+      "files": {
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n",
+        "claude-progress.md": "# State\n",
+        "pubspec.yaml": "name: app\n",
+        "Makefile": "check:\n\ttrue\n",
+        "feature_list.json": "[]\n",
+        "docs/evidence/orphan.md": "# orphan\n",
+        "docs/history/completed-features.md": "# archive\n"
+      },
+      "violations": [
+        {"rule": "D9", "match": "docs/evidence/orphan.md has no feature orphan"}
+      ]
+    },
+    {
+      "case": "clean-package-json",
+      "expect": "pass",
+      "why": "The Node parity path. The case mirrors `clean-pubspec` but uses `package.json` and an `npm run` Makefile-equivalent. D6 must accept this shape.",
+      "files": {
+        "package.json": "{\"dependencies\":{\"next\":\"14.0.0\"},\"scripts\":{\"check\":\"true\"}}\n",
+        "Makefile": "check:\n\tnpm run check\n",
+        "AGENTS.md": "# AGENTS\n\n## Constraints\n\n- One feature in flight. — because two half-finished leave a tree nobody can verify.\n- Never weaken a test. — because a deleted test converts a known failure into an unknown one.\n",
+        "CLAUDE.md": "# CLAUDE.md\n\n[AGENTS.md](AGENTS.md) is the contract.\n\n- `make check` is the gate.\n",
+        "ARCHITECTURE.md": "# ARCHITECTURE\n\nWhere things live.\n\n## Tree\n\n- `src/` — code\n",
+        "claude-progress.md": "# State\n\nNothing in flight.\n",
+        "feature_list.json": "[{\"id\":\"f-3\",\"status\":\"passing\"}]\n",
+        "docs/evidence/f-3.md": "# f-3 — done\n\n## Evidence\n\n- ran\n",
+        "docs/history/completed-features.md": "# archive\n"
+      },
+      "violations": []
+    }
+  ]
+}

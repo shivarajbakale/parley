@@ -1,0 +1,32 @@
+# Android release lanes. Needs: a Play Store service-account JSON
+# (PLAY_STORE_JSON_KEY_PATH) and an upload keystore wired in
+# android/app/build.gradle signingConfigs. See docs/MODULES.md#release.
+default_platform(:android)
+
+platform :android do
+  desc "Build a signed release App Bundle (.aab)"
+  lane :build do
+    Dir.chdir("../..") do
+      sh("flutter build appbundle --release --dart-define=ENV=prod")
+    end
+  end
+
+  desc "Build + upload to the Play Store internal testing track"
+  lane :beta do
+    build
+    upload_to_play_store(
+      track: "internal",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      skip_upload_apk: true,
+    )
+  end
+
+  desc "Build + promote to production"
+  lane :release do
+    build
+    upload_to_play_store(
+      track: "production",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+    )
+  end
+end

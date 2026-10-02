@@ -1,0 +1,2097 @@
+{
+  "version": 1,
+  "generatedFrom": "lib/design_system/",
+  "components": [
+    {
+      "kit": "DSAvatar",
+      "kind": "media",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "collection"
+      ],
+      "file": "ds_avatar.dart",
+      "tier": "atom",
+      "summary": "A person or an entity's likeness."
+    },
+    {
+      "kit": "DSAvatarGroup",
+      "kind": "media",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "collection"
+      ],
+      "file": "ds_avatar.dart",
+      "tier": "atom",
+      "summary": "A stack of overlapping avatars with a \"+n\" tail."
+    },
+    {
+      "kit": "DSBadge",
+      "kind": "tag",
+      "archetypeFit": [
+        "collection",
+        "focal",
+        "form",
+        "settings"
+      ],
+      "file": "ds_badge.dart",
+      "tier": "atom",
+      "summary": "Read-only status, as a pill.",
+      "useWhen": "the state is not something the user can change here",
+      "instead": "`DSChip` when it can be tapped, selected or removed — that is the distinction, not the size, and \"small pill with a label\" describes both"
+    },
+    {
+      "kit": "DSBadgeDot",
+      "kind": "tag",
+      "archetypeFit": [
+        "collection",
+        "focal",
+        "form",
+        "settings"
+      ],
+      "file": "ds_badge.dart",
+      "tier": "atom",
+      "summary": "The small filled circle a badge can carry before its label."
+    },
+    {
+      "kit": "DSBottomNavBar",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_bottom_nav_bar.dart",
+      "tier": "molecule",
+      "summary": "The app's bottom navigation: three to five top-level destinations, always visible, above the content.",
+      "useWhen": "there are 3–5 top-level destinations, each with its own navigation stack",
+      "instead": "six or more, or a tablet width, is a `DSSidebar`; peer views inside one destination are a `DSTabBar`; two choices are a `DSSegmentedButton`"
+    },
+    {
+      "kit": "DSBottomSheet",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_bottom_sheet.dart",
+      "tier": "molecule",
+      "summary": "A surface that rises from the bottom edge carrying content secondary to the screen behind it, which stays visible and in place."
+    },
+    {
+      "kit": "DSButton",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_button.dart",
+      "tier": "atom",
+      "summary": "The primary action control."
+    },
+    {
+      "kit": "DSButtonCount",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_button.dart",
+      "tier": "atom",
+      "summary": "A count beside a label — the intended occupant of [DSButton.trailing]."
+    },
+    {
+      "kit": "DSButtonGroup",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_button.dart",
+      "tier": "atom",
+      "summary": "Several buttons that belong together."
+    },
+    {
+      "kit": "DSButtonIcon",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_button.dart",
+      "tier": "atom",
+      "summary": "The intended occupant of [DSButton.iconSlot], for a caller who needs a glyph the button did not size."
+    },
+    {
+      "kit": "DSCard",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_card.dart",
+      "tier": "molecule",
+      "summary": "The one raised surface in the kit."
+    },
+    {
+      "kit": "DSCardFooter",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_card.dart",
+      "tier": "molecule",
+      "summary": "A card's action row — the intended occupant of [DSCard.footer]."
+    },
+    {
+      "kit": "DSCardHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_card.dart",
+      "tier": "molecule",
+      "summary": "A card's title row — the intended occupant of [DSCard.header]."
+    },
+    {
+      "kit": "DSCardHelperText",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_card.dart",
+      "tier": "atom",
+      "summary": "The line of explanation beside a card's actions."
+    },
+    {
+      "kit": "DSCardMedia",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_card.dart",
+      "tier": "atom",
+      "summary": "An image that bleeds to the card's own corners — the intended occupant of [DSCard.media]."
+    },
+    {
+      "kit": "DSChart",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_chart.dart",
+      "tier": "atom",
+      "summary": "A plotted shape: a trend beside a figure, a line over a run, bars over categories.",
+      "useWhen": "the *shape* of a set of numbers is the point — how a value moved over seven days, how four categories compare",
+      "instead": "`DSMetricBar` when there is one value against a maximum and the shape is a single proportion; `DSProgressRing` when that proportion is the screen's subject; `DSStatTile` when the number itself is the message and the trend is a delta beside it"
+    },
+    {
+      "kit": "DSChatBubble",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_chat_bubble.dart",
+      "tier": "molecule",
+      "summary": "One turn in a conversation, on the side of whoever said it.",
+      "useWhen": "the screen is a thread: messages accumulate, the newest is at the bottom, and who spoke is part of the content",
+      "instead": "`DSMessage` for a banner the app says *about* the screen — a message from the system to the user is not a turn in a conversation, and giving it a bubble puts the app's voice inside the transcript"
+    },
+    {
+      "kit": "DSCheckbox",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_checkbox.dart",
+      "tier": "atom",
+      "summary": "A box that is ticked, unticked, or — when [tristate] — neither.",
+      "useWhen": "a selection is committed by something else — a form's submit, a list's \"delete selected\"",
+      "instead": "[DSSwitch] when the change takes effect the moment it is made"
+    },
+    {
+      "kit": "DSCheckboxTile",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_control_tile.dart",
+      "tier": "molecule",
+      "summary": "A row whose control is a checkbox."
+    },
+    {
+      "kit": "DSChevron",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_list_tile.dart",
+      "tier": "atom",
+      "summary": "The trailing mark on a row that goes somewhere."
+    },
+    {
+      "kit": "DSChip",
+      "kind": "tag",
+      "archetypeFit": [
+        "collection",
+        "focal",
+        "form",
+        "settings"
+      ],
+      "file": "ds_chip.dart",
+      "tier": "atom",
+      "summary": "A small, compact element carrying an attribute, a filter, or a value the user entered.",
+      "useWhen": "the content is short, secondary, and one of several — a filter row, a set of tags, a token in an input",
+      "instead": "two to four visible, mutually exclusive options are a `DSSegmentedButton`; a count or a status that is not interactive is a `DSBadge`; the page's own search filters are `DSSearchChip`"
+    },
+    {
+      "kit": "DSChipAvatar",
+      "kind": "media",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "collection"
+      ],
+      "file": "ds_chip.dart",
+      "tier": "atom",
+      "summary": "An avatar inside an input chip — the occupant of [DSChip.leading]."
+    },
+    {
+      "kit": "DSChipCount",
+      "kind": "tag",
+      "archetypeFit": [
+        "collection",
+        "focal",
+        "form",
+        "settings"
+      ],
+      "file": "ds_chip.dart",
+      "tier": "atom",
+      "summary": "The count on a chip, in tabular figures so a row of them does not jitter."
+    },
+    {
+      "kit": "DSChipGroup",
+      "kind": "tag",
+      "archetypeFit": [
+        "collection",
+        "focal",
+        "form",
+        "settings"
+      ],
+      "file": "ds_chip.dart",
+      "tier": "atom",
+      "summary": "A row of chips with the gaps, the wrap-or-scroll decision, and the overflow the chips cannot decide for themselves."
+    },
+    {
+      "kit": "DSChipSeparator",
+      "kind": "tag",
+      "archetypeFit": [
+        "collection",
+        "focal",
+        "form",
+        "settings"
+      ],
+      "file": "ds_chip.dart",
+      "tier": "atom",
+      "summary": "A vertical hairline between two groups of chips in one row."
+    },
+    {
+      "kit": "DSCompactAppBar",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_compact_app_bar.dart",
+      "tier": "molecule",
+      "summary": "The navigation-bar half of [DSPageHeader]: `DSPageHeader.compactSliver` is the name to use, and this is what it builds.",
+      "useWhen": "the header has nothing to say beyond the screen's name",
+      "instead": "[DSLargeAppBar] when the header carries the page's own headline — a subtitle, an eyebrow, a tab strip"
+    },
+    {
+      "kit": "DSComposer",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_composer.dart",
+      "tier": "molecule",
+      "summary": "The bar a conversation is written in.",
+      "useWhen": "the screen is a thread and the user's turn is composed in place: chat, an assistant, a comment stream, a support ticket",
+      "instead": "`DSPinnedActionBar` when the pinned control is a decision rather than an input — Buy, Save, Continue — and `DSTextField` on its own inside a `DSPage` when the writing is a field in a form that gets submitted and left"
+    },
+    {
+      "kit": "DSControlTile",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_control_tile.dart",
+      "tier": "molecule",
+      "summary": "The labelled control row — one implementation, where there were four.",
+      "useWhen": "a control needs a name beside it",
+      "instead": "[DSListTile] when the row navigates somewhere"
+    },
+    {
+      "kit": "DSDateStrip",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_date_strip.dart",
+      "tier": "molecule",
+      "summary": "A horizontal, scrollable run of dates with one selected."
+    },
+    {
+      "kit": "DSDateStripDay",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_date_strip.dart",
+      "tier": "molecule",
+      "summary": "One day cell, as the strip draws it by default — and what a `dayBuilder` can return unchanged if it only wants to wrap it."
+    },
+    {
+      "kit": "DSDateStripHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_date_strip.dart",
+      "tier": "molecule",
+      "summary": "The month-and-chevrons row above the strip — the intended occupant of [DSDateStrip.header]."
+    },
+    {
+      "kit": "DSDialog",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_dialog.dart",
+      "tier": "molecule",
+      "summary": "A surface that interrupts, states one thing, and requires a decision before the task continues."
+    },
+    {
+      "kit": "DSDialogActions",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_dialog.dart",
+      "tier": "molecule",
+      "summary": "A dialog's actions, as a group rather than as a list."
+    },
+    {
+      "kit": "DSDialogIcon",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_dialog.dart",
+      "tier": "atom",
+      "summary": "The tinted well behind a dialog's glyph."
+    },
+    {
+      "kit": "DSDismissibleTile",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_dismissible_tile.dart",
+      "tier": "atom",
+      "summary": "A row that can be swiped away, with the panel that says what the swipe will do."
+    },
+    {
+      "kit": "DSDivider",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_divider.dart",
+      "tier": "atom",
+      "summary": "One hairline, in the kit's weight and the kit's grey.",
+      "useWhen": "two blocks of content are adjacent and neither is a card — a run of rows, a menu, a stat strip",
+      "instead": "whitespace first"
+    },
+    {
+      "kit": "DSDot",
+      "kind": "tag",
+      "archetypeFit": [
+        "collection",
+        "focal",
+        "form",
+        "settings"
+      ],
+      "file": "ds_badge.dart",
+      "tier": "atom",
+      "summary": "A notification dot, or the count it becomes."
+    },
+    {
+      "kit": "DSDragHandle",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_overlay.dart",
+      "tier": "atom",
+      "summary": "The grabber at the top edge of a sheet."
+    },
+    {
+      "kit": "DSEmptyState",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_status_state.dart",
+      "tier": "molecule",
+      "summary": "Nothing to show — and which kind of nothing.",
+      "useWhen": "the list is legitimately empty",
+      "instead": "[DSErrorState] when something failed, `DSSkeleton` while it is still coming, `DSMessage` for a condition beside content that *is* shown"
+    },
+    {
+      "kit": "DSErrorDetails",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_status_state.dart",
+      "tier": "atom",
+      "summary": "The technical string, behind a disclosure."
+    },
+    {
+      "kit": "DSErrorState",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_status_state.dart",
+      "tier": "molecule",
+      "summary": "Something failed, and what to do about it."
+    },
+    {
+      "kit": "DSExpansion",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_expansion.dart",
+      "tier": "molecule",
+      "summary": "One question with its answer folded away under it.",
+      "useWhen": "the content is secondary to the row that names it and most readers will not open it — an FAQ, a \"what's included\" list, the technical detail behind a failure, an advanced settings block",
+      "instead": "`DSListTile` with an `onTap` when the content deserves its own screen: a disclosure that opens onto three paragraphs and four controls is a route pretending to be a row"
+    },
+    {
+      "kit": "DSFab",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection"
+      ],
+      "file": "ds_fab.dart",
+      "tier": "atom",
+      "summary": "The one action a screen exists for, floating over its content."
+    },
+    {
+      "kit": "DSFieldBox",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_text_field.dart",
+      "tier": "atom",
+      "summary": "The box a field is drawn in: the fill, the outline, the radius, the minimum height and the horizontal inset."
+    },
+    {
+      "kit": "DSFieldGroup",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_field_group.dart",
+      "tier": "atom",
+      "summary": "A group of form controls under an optional eyebrow.",
+      "instead": "`DSSettingsSection` when the children are rows that navigate, report or toggle rather than fields you type into"
+    },
+    {
+      "kit": "DSFieldHelper",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_text_field.dart",
+      "tier": "atom",
+      "summary": "One slot, one height, whatever it holds: the helper line under a field, or the error that replaces it in place."
+    },
+    {
+      "kit": "DSFieldLabel",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_text_field.dart",
+      "tier": "atom",
+      "summary": "The label above a field."
+    },
+    {
+      "kit": "DSFocusRing",
+      "kind": "a11y",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_pressable.dart",
+      "tier": "foundation",
+      "summary": "The focus ring, drawn outside the thing it rings."
+    },
+    {
+      "kit": "DSFormPage",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_form_page.dart",
+      "tier": "template",
+      "summary": "A page whose title stays put and whose primary action is pinned.",
+      "useWhen": "a screen's job is to be filled in or chosen from and its primary action is a pinned bar — sign-in, sign-up, create, edit, a step of a flow",
+      "instead": "[DSPage] when the content is the subject and the header may scroll away — which is nearly every other screen; [DSPage.surface] when there is a fixed header but the body manages its own space rather than scrolling"
+    },
+    {
+      "kit": "DSGround",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_ground.dart",
+      "tier": "atom",
+      "summary": "The page ground: a soft wash of colour at the top of the page that fades into the palette background, with white cards sitting on it."
+    },
+    {
+      "kit": "DSGroundSlice",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_ground.dart",
+      "tier": "atom",
+      "summary": "An opaque band that paints the slice of the page's wash behind it — a pinned header the rows scroll under, with no edge where it meets the page."
+    },
+    {
+      "kit": "DSGutter",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_page.dart",
+      "tier": "template",
+      "summary": "The page gutter, and nothing else.",
+      "useWhen": "something needs the page's reading edge and supplies its own vertical rhythm",
+      "instead": "[DSPageSection], which is this plus the gap above it and the label over it — reach for this one only when that rhythm belongs to something else"
+    },
+    {
+      "kit": "DSHeaderActions",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_page_header.dart",
+      "tier": "organism",
+      "summary": "The toolbar's action group, at the small size a toolbar wants."
+    },
+    {
+      "kit": "DSHero",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_hero.dart",
+      "tier": "atom",
+      "summary": "The plate that heads the first screen of a flow.",
+      "useWhen": "the screen is the entry point to a flow and has to say what app this is — sign-in, sign-up, a paywall, a first-run welcome",
+      "instead": "[DSPageHeader] for every screen after the first, where the question is \"where am I\" rather than \"what is this\"; [DSLargeAppBar] when the title must collapse as content scrolls under it, which a hero never does"
+    },
+    {
+      "kit": "DSIconButton",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_icon_button.dart",
+      "tier": "atom",
+      "summary": "An action with no label: a glyph, a target, and a name that only assistive technology and a long-press ever see.",
+      "useWhen": "the glyph is unambiguous *and* space genuinely does not allow a label — an app bar, a row's trailing slot, a toolbar",
+      "instead": "in a form or a pinned action bar, a labelled `DSButton`, always"
+    },
+    {
+      "kit": "DSIconButtonBadge",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_icon_button.dart",
+      "tier": "atom",
+      "summary": "The count on an icon button, drawn as a pill and read out as part of the button's name rather than as a control of its own."
+    },
+    {
+      "kit": "DSIconButtonGroup",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_icon_button.dart",
+      "tier": "atom",
+      "summary": "A row of icon buttons with the gap that keeps their targets apart."
+    },
+    {
+      "kit": "DSIllustration",
+      "kind": "media",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "collection"
+      ],
+      "file": "ds_illustration.dart",
+      "tier": "atom",
+      "summary": "A drawing, for the moments where a picture is the content.",
+      "useWhen": "the moment happens once or rarely: first run, onboarding, a full-screen failure, a permission ask, a paywall",
+      "instead": "a glyph in a `DSWell` — which is what `DSEmptyState` draws by default — for an ordinary empty state, and nothing at all for an empty filter result inside a list, where a drawing above every result is noise"
+    },
+    {
+      "kit": "DSImage",
+      "kind": "media",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "collection"
+      ],
+      "file": "ds_image.dart",
+      "tier": "atom",
+      "summary": "A picture the app did not ship in its bundle."
+    },
+    {
+      "kit": "DSInkSurface",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_pressable.dart",
+      "tier": "foundation",
+      "summary": "The ink layer, as one component."
+    },
+    {
+      "kit": "DSLargeAppBar",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_large_app_bar.dart",
+      "tier": "molecule",
+      "summary": "Editorial large-title app bar for top-level pages."
+    },
+    {
+      "kit": "DSListTile",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_list_tile.dart",
+      "tier": "molecule",
+      "summary": "The app's standard list row — a themed [ListTile].",
+      "useWhen": "the row is text-led",
+      "instead": "an image-led row is a `DSMediaRow` — a 64dp picture is a different vertical rhythm"
+    },
+    {
+      "kit": "DSListTileGroup",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_list_tile.dart",
+      "tier": "molecule",
+      "summary": "A run of rows separated by the identity's [DividerPolicy]."
+    },
+    {
+      "kit": "DSListTileMeta",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_list_tile.dart",
+      "tier": "atom",
+      "summary": "The intended occupant of [DSListTile.meta] — a timestamp, a count, a status word, small and quiet under the subtitle."
+    },
+    {
+      "kit": "DSListTileWell",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_list_tile.dart",
+      "tier": "atom",
+      "summary": "The tinted frame behind a list row's leading glyph."
+    },
+    {
+      "kit": "DSMediaHero",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_media_hero.dart",
+      "tier": "molecule",
+      "summary": "The one item a page leads with, at the size that says so.",
+      "useWhen": "a surface has a single featured item above everything else — a top story, the album a screen is about, the video a tab opens on",
+      "instead": "`DSMediaTile` the moment there are two of them; two heroes is a grid whose cells are too big"
+    },
+    {
+      "kit": "DSMediaMeta",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_media_row.dart",
+      "tier": "atom",
+      "summary": "One fact in the meta row — the intended occupant of [DSMediaRow.meta], and a widget of its own so a caller composing one by hand gets the same treatment."
+    },
+    {
+      "kit": "DSMediaRow",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_media_row.dart",
+      "tier": "molecule",
+      "summary": "A list row led by a picture: thumbnail, title, a supporting line, a row of small facts, and one optional action."
+    },
+    {
+      "kit": "DSMediaSurface",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_media.dart",
+      "tier": "atom",
+      "summary": "A surface widget from the kit."
+    },
+    {
+      "kit": "DSMediaTile",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_media_tile.dart",
+      "tier": "molecule",
+      "summary": "One item as a picture with its name under it — a poster in a grid, a card in a carousel, an album in a shelf.",
+      "useWhen": "the picture is how the reader recognises the item and the layout is two-dimensional or horizontal: a grid (`width: null`, so the tile fills its column) or a carousel (a token width, so a `Row` of tiles is the whole carousel)",
+      "instead": "`DSMediaRow` when the layout is a vertical list — a row gives the text three times the width and is what a long list is scanned in"
+    },
+    {
+      "kit": "DSMenu",
+      "kind": "overlay",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_menu.dart",
+      "tier": "molecule",
+      "summary": "A short list of actions anchored to the control that opened it."
+    },
+    {
+      "kit": "DSMenuCheckItem",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_menu.dart",
+      "tier": "molecule",
+      "summary": "A toggle. Stays open, which is the whole point of it: turning on three view options should not mean opening the menu three times."
+    },
+    {
+      "kit": "DSMenuItem",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_menu.dart",
+      "tier": "molecule",
+      "summary": "A command. Runs, and closes the menu."
+    },
+    {
+      "kit": "DSMenuRadioItem",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_menu.dart",
+      "tier": "molecule",
+      "summary": "One of a group. Picks, and closes."
+    },
+    {
+      "kit": "DSMenuSection",
+      "kind": "grouping",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_menu.dart",
+      "tier": "molecule",
+      "summary": "A non-selectable label over a group of items."
+    },
+    {
+      "kit": "DSMenuSeparator",
+      "kind": "overlay",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_menu.dart",
+      "tier": "atom",
+      "summary": "A hairline between groups."
+    },
+    {
+      "kit": "DSMenuSurface",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_menu.dart",
+      "tier": "molecule",
+      "summary": "The surface a menu's items are drawn on, with its keyboard model."
+    },
+    {
+      "kit": "DSMessage",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_message.dart",
+      "tier": "molecule",
+      "summary": "A persistent message about the state of something.",
+      "useWhen": "the message must survive until it is acted on",
+      "instead": "`DSSnackBar` when it merely confirms something that already happened; `DSDialog` when the user must answer before anything else can happen; `DSTextField.errorText` when it belongs to one field"
+    },
+    {
+      "kit": "DSMessageActions",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_message.dart",
+      "tier": "molecule",
+      "summary": "The container a caller puts two actions in, so both read as belonging to the message rather than to the screen."
+    },
+    {
+      "kit": "DSMetricBar",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_metric_bar.dart",
+      "tier": "molecule",
+      "summary": "A horizontal determinate meter: one value against one ceiling, read as a proportion, in one line of vertical space."
+    },
+    {
+      "kit": "DSMetricBarLegend",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_metric_bar.dart",
+      "tier": "atom",
+      "summary": "The dot-per-segment legend under a stacked bar — the intended occupant of [DSMetricBar.legend]."
+    },
+    {
+      "kit": "DSMultiSelect",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_select.dart",
+      "tier": "organism",
+      "summary": "Several values from a known set."
+    },
+    {
+      "kit": "DSOverlayFooter",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_overlay.dart",
+      "tier": "atom",
+      "summary": "The pinned block at the bottom of a surface, below the scroll and above the safe area."
+    },
+    {
+      "kit": "DSOverlayHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_overlay.dart",
+      "tier": "atom",
+      "summary": "The pinned block at the top of a surface: what it is, and the way out."
+    },
+    {
+      "kit": "DSOverlaySurface",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_overlay.dart",
+      "tier": "atom",
+      "summary": "The shape, the colour and the depth of a floating surface, with no route around it."
+    },
+    {
+      "kit": "DSPage",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_page.dart",
+      "tier": "template",
+      "summary": "The app's page scaffold: a header, a scroll, and the clearance under both.",
+      "useWhen": "a screen is a title over scrolling content — which is nearly every screen",
+      "instead": "a bare `Scaffold` when the screen has no header and no scroll at all (a splash, a full-bleed player); [DSPage.surface] when it has a header but its body manages its own space"
+    },
+    {
+      "kit": "DSPageHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_page_header.dart",
+      "tier": "organism",
+      "summary": "The screen's own title, fixed or collapsing.",
+      "useWhen": "the screen needs its own title",
+      "instead": "[DSSectionHeader] for a section within it"
+    },
+    {
+      "kit": "DSPageSection",
+      "kind": "grouping",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_page.dart",
+      "tier": "template",
+      "summary": "One block of box content on a [DSPage]: the page gutter, the gap above it, and — when it has one — its label, aligned to the same gutter as the content beneath.",
+      "useWhen": "a page needs a block of box content — a card, a form, a paragraph, a grid — with or without a label over it",
+      "instead": "[DSPageSectionHeader] when the body is a sliver rather than a box, because a list inside a `SliverToBoxAdapter` is a list that builds all of itself at once; [DSGutter] when the block needs the inset but not the rhythm"
+    },
+    {
+      "kit": "DSPageSectionHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_page.dart",
+      "tier": "template",
+      "summary": "A section's label on its own, for when its body is a sliver rather than a box.",
+      "useWhen": "the block under the label is a list",
+      "instead": "[DSPageSection] when it is a box"
+    },
+    {
+      "kit": "DSPillIndicator",
+      "kind": "navigation",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tab_bar.dart",
+      "tier": "atom",
+      "summary": "A raised slot behind the selected tab."
+    },
+    {
+      "kit": "DSPinnedActionBar",
+      "kind": "chrome",
+      "archetypeFit": [
+        "detail",
+        "form"
+      ],
+      "file": "ds_pinned_action_bar.dart",
+      "tier": "atom",
+      "summary": "The primary action, pinned to the bottom edge over the content."
+    },
+    {
+      "kit": "DSPinnedHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_pinned_header.dart",
+      "tier": "atom",
+      "summary": "The controls that filter a list, pinned to the top edge under the header.",
+      "useWhen": "a filter, a search field or a tab bar has to stay on screen while the list under it scrolls",
+      "instead": "`DSPageHeader.sliver`'s `below` slot when the control belongs to the title block and should collapse with it, `DSPinnedActionBar` for an action at the bottom edge, and a plain `SliverToBoxAdapter` for a band that is content and may leave"
+    },
+    {
+      "kit": "DSPressable",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_pressable.dart",
+      "tier": "foundation",
+      "summary": "Press feedback, as one component."
+    },
+    {
+      "kit": "DSProgressIndicator",
+      "kind": "navigation",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_progress_indicator.dart",
+      "tier": "atom",
+      "summary": "A design-system progress indicator with linear and circular variants."
+    },
+    {
+      "kit": "DSProgressRing",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_progress_ring.dart",
+      "tier": "atom",
+      "summary": "A circular determinate meter: one value against one target, with the value legible without reading the ring."
+    },
+    {
+      "kit": "DSProgressRingCenter",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_progress_ring.dart",
+      "tier": "atom",
+      "summary": "The value-and-caption stack that sits inside a stacked ring — the intended occupant of [DSProgressRing.center], and a widget of its own so a caller composing one by hand gets the same type treatment."
+    },
+    {
+      "kit": "DSPullQuote",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_pull_quote.dart",
+      "tier": "atom",
+      "summary": "A sentence lifted out of the article it came from.",
+      "useWhen": "a paragraph contains one line that carries the piece — the argument in a sentence — and it is worth a reader who is skimming stopping on",
+      "instead": "`DSMessage` when the words are the app talking to the user rather than the article talking about itself, and a plain `Text` in the body when the sentence is simply the next sentence"
+    },
+    {
+      "kit": "DSRadio",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_radio.dart",
+      "tier": "molecule",
+      "summary": "One of a set of options, exactly one of which is chosen.",
+      "useWhen": "two to five options must all stay visible while one is picked",
+      "instead": "[DSSegmentedButton] when the options are short enough to sit in one row and the choice changes what is displayed, `DSSelect` past five"
+    },
+    {
+      "kit": "DSRadioGroup",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_radio.dart",
+      "tier": "molecule",
+      "summary": "The set a [DSRadio] belongs to."
+    },
+    {
+      "kit": "DSRadioTile",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_control_tile.dart",
+      "tier": "molecule",
+      "summary": "A row whose control is a radio. It reads its group from the enclosing [DSRadioGroup], exactly as a bare [DSRadio] does."
+    },
+    {
+      "kit": "DSRangeSlider",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_slider.dart",
+      "tier": "atom",
+      "summary": "Two thumbs on one track: a price filter, a date window, brightness bounds."
+    },
+    {
+      "kit": "DSRatioTransition",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "_ratio_transition.dart",
+      "tier": "foundation",
+      "summary": "Drives a 0..1 ratio toward its target and rebuilds on every frame of it."
+    },
+    {
+      "kit": "DSRefresh",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_refresh.dart",
+      "tier": "atom",
+      "summary": "Pull-to-refresh, with the three things every hand-written one forgets.",
+      "useWhen": "a screen shows data the server can change and the user has no other way to ask for it again",
+      "instead": "a `DSButton` labelled Retry inside `DSStatusState` when the *last* load failed — a pull is the gesture for \"this is stale\", not for \"this is broken\", and a screen showing an error has nothing to pull"
+    },
+    {
+      "kit": "DSSearchBar",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_search_bar.dart",
+      "tier": "organism",
+      "summary": "The field a query is typed into, and the row of chips that scopes it.",
+      "useWhen": "the user is entering a query",
+      "instead": "`DSTextField` for a form field, `DSSelect` for choosing from a known list, `DSChipGroup` for filters with no query"
+    },
+    {
+      "kit": "DSSearchRecent",
+      "kind": "search",
+      "archetypeFit": [
+        "collection"
+      ],
+      "file": "ds_search_bar.dart",
+      "tier": "organism",
+      "summary": "A query the user ran before."
+    },
+    {
+      "kit": "DSSearchScopes",
+      "kind": "search",
+      "archetypeFit": [
+        "collection"
+      ],
+      "file": "ds_search_bar.dart",
+      "tier": "organism",
+      "summary": "The chip row that scopes a query."
+    },
+    {
+      "kit": "DSSearchSuggestion",
+      "kind": "search",
+      "archetypeFit": [
+        "collection"
+      ],
+      "file": "ds_search_bar.dart",
+      "tier": "organism",
+      "summary": "A completion offered while typing."
+    },
+    {
+      "kit": "DSSection",
+      "kind": "grouping",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_page_header.dart",
+      "tier": "organism",
+      "summary": "A section header and the content under it."
+    },
+    {
+      "kit": "DSSectionAction",
+      "kind": "grouping",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_section_header.dart",
+      "tier": "molecule",
+      "summary": "The one action a section may carry, in the accent the label gave up."
+    },
+    {
+      "kit": "DSSectionHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_section_header.dart",
+      "tier": "molecule",
+      "summary": "The label above a section of content, and the one action that belongs to it.",
+      "useWhen": "a run of content needs naming",
+      "instead": "`DSPageHeader` for the screen's own title, `DSMessage` for something that needs attention"
+    },
+    {
+      "kit": "DSSegment",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_segmented_button.dart",
+      "tier": "molecule",
+      "summary": "One option in a [DSSegmentedButton]."
+    },
+    {
+      "kit": "DSSegmentCount",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_segmented_button.dart",
+      "tier": "atom",
+      "summary": "The count pill a segment carries."
+    },
+    {
+      "kit": "DSSegmentedButton",
+      "kind": "button",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_segmented_button.dart",
+      "tier": "molecule",
+      "summary": "A flat set of two to five options, all visible, where choosing one changes what is displayed rather than performing an action.",
+      "useWhen": "the choice changes a value in place",
+      "instead": "`DSTabBar` to navigate between panels, `DSChipGroup` for filters that may be multiple or many, `DSSelect` past five options"
+    },
+    {
+      "kit": "DSSegmentedProgress",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_segmented_progress.dart",
+      "tier": "molecule",
+      "summary": "An ordinal position in a fixed, countable sequence: step 3 of 5."
+    },
+    {
+      "kit": "DSSelect",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_select.dart",
+      "tier": "organism",
+      "summary": "A control that shows the current choice and, when opened, presents the available choices."
+    },
+    {
+      "kit": "DSSelectList",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "_ds_select_list.dart",
+      "tier": "molecule",
+      "summary": "The list inside the surface: search, keyboard navigation, type-ahead."
+    },
+    {
+      "kit": "DSSelectOption",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "_ds_select_parts.dart",
+      "tier": "atom",
+      "summary": "One row of a select's list."
+    },
+    {
+      "kit": "DSSelectSection",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "_ds_select_parts.dart",
+      "tier": "atom",
+      "summary": "A non-selectable group header inside a list."
+    },
+    {
+      "kit": "DSSelectSeparator",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "_ds_select_parts.dart",
+      "tier": "atom",
+      "summary": "A hairline between groups."
+    },
+    {
+      "kit": "DSSelectTrigger",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "_ds_select_list.dart",
+      "tier": "molecule",
+      "summary": "The field a select is opened from."
+    },
+    {
+      "kit": "DSSettingsRow",
+      "kind": "row",
+      "archetypeFit": [
+        "settings",
+        "detail"
+      ],
+      "file": "ds_settings.dart",
+      "tier": "molecule",
+      "summary": "A single settings row."
+    },
+    {
+      "kit": "DSSettingsSection",
+      "kind": "grouping",
+      "archetypeFit": [
+        "settings",
+        "detail"
+      ],
+      "file": "ds_settings.dart",
+      "tier": "molecule",
+      "summary": "Editorial settings section: an optional uppercase eyebrow, a tinted rounded container holding rows separated by hairlines, and an optional muted footer caption below."
+    },
+    {
+      "kit": "DSSheetFooter",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_bottom_sheet.dart",
+      "tier": "molecule",
+      "summary": "The sheet's pinned action block."
+    },
+    {
+      "kit": "DSSheetHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_bottom_sheet.dart",
+      "tier": "molecule",
+      "summary": "The sheet's pinned title block."
+    },
+    {
+      "kit": "DSShortTrack",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "_tap_target.dart",
+      "tier": "foundation",
+      "summary": "Lays a control out at the tap floor while it paints a shorter track."
+    },
+    {
+      "kit": "DSSidebar",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_sidebar.dart",
+      "tier": "molecule",
+      "summary": "The app's navigation drawer, built on Material 3's [NavigationDrawer]."
+    },
+    {
+      "kit": "DSSidebarHeader",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail"
+      ],
+      "file": "ds_sidebar.dart",
+      "tier": "molecule",
+      "summary": "Brand header for [DSSidebar] — mark, wordmark, and an optional caption."
+    },
+    {
+      "kit": "DSSkeleton",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_skeleton.dart",
+      "tier": "atom",
+      "summary": "Loading skeletons, built on the `skeletonizer` package."
+    },
+    {
+      "kit": "DSSkeletonList",
+      "kind": "feedback",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_list_tile.dart",
+      "tier": "molecule",
+      "summary": "A ready-made skeleton for list screens: [itemCount] rows in the same [DSListTile] shape the loaded list uses. The default drop-in for `AsyncValue.loading` on list screens."
+    },
+    {
+      "kit": "DSSlider",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_slider.dart",
+      "tier": "atom",
+      "summary": "A value on a continuum, where roughly where it sits matters more than the exact number.",
+      "useWhen": "the position is the point",
+      "instead": "`DSStepper` for an exact small count, a `DSTextField` for an exact large number"
+    },
+    {
+      "kit": "DSSnackBar",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_snack_bar.dart",
+      "tier": "molecule",
+      "summary": "The app's transient message."
+    },
+    {
+      "kit": "DSSnackBarAction",
+      "kind": "chrome",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_snack_bar.dart",
+      "tier": "molecule",
+      "summary": "The one action a snack bar is allowed to carry."
+    },
+    {
+      "kit": "DSStatTile",
+      "kind": "row",
+      "archetypeFit": [
+        "settings",
+        "detail"
+      ],
+      "file": "ds_stat_tile.dart",
+      "tier": "molecule",
+      "summary": "One number, its label, and an optional mark of which category it belongs to."
+    },
+    {
+      "kit": "DSStatTileDelta",
+      "kind": "row",
+      "archetypeFit": [
+        "settings",
+        "detail"
+      ],
+      "file": "ds_stat_tile.dart",
+      "tier": "atom",
+      "summary": "The arrow-and-percentage chip under a figure — the intended occupant of [DSStatTile.deltaSlot], and a widget in its own right so a caller can put one somewhere else."
+    },
+    {
+      "kit": "DSStatTileGrid",
+      "kind": "row",
+      "archetypeFit": [
+        "settings",
+        "detail"
+      ],
+      "file": "ds_stat_tile.dart",
+      "tier": "molecule",
+      "summary": "N tiles in one card, with hairline dividers and no per-cell surface."
+    },
+    {
+      "kit": "DSStatTileMark",
+      "kind": "row",
+      "archetypeFit": [
+        "settings",
+        "detail"
+      ],
+      "file": "ds_stat_tile.dart",
+      "tier": "atom",
+      "summary": "The Ø8 category dot. Its own widget so a caller can put one in a legend, and so the tile has one implementation of it rather than an inline `Container` nobody can reach."
+    },
+    {
+      "kit": "DSStatusAction",
+      "kind": "grouping",
+      "archetypeFit": [
+        "settings",
+        "detail"
+      ],
+      "file": "ds_status_state.dart",
+      "tier": "molecule",
+      "summary": "The one action a status state carries."
+    },
+    {
+      "kit": "DSStepper",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_stepper.dart",
+      "tier": "molecule",
+      "summary": "A bounded numeric control: decrement, the value, increment."
+    },
+    {
+      "kit": "DSSubmenu",
+      "kind": "overlay",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_menu.dart",
+      "tier": "molecule",
+      "summary": "A nested menu. Declared so the API does not have to change when it lands, and deferred so that its hover intent, flip logic and nested focus model are designed rather than improvised."
+    },
+    {
+      "kit": "DSSwitch",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_switch.dart",
+      "tier": "atom",
+      "summary": "A control whose two positions take effect the moment they are moved.",
+      "useWhen": "flipping it *is* the action — cellular sync on, notifications off",
+      "instead": "[DSCheckbox] when something else commits the choice"
+    },
+    {
+      "kit": "DSSwitchTile",
+      "kind": "row",
+      "archetypeFit": [
+        "collection",
+        "detail",
+        "focal",
+        "settings"
+      ],
+      "file": "ds_control_tile.dart",
+      "tier": "molecule",
+      "summary": "A row whose control is a switch. The switch is always on the trailing edge: a switch is the row's outcome, and both platforms put it at the end."
+    },
+    {
+      "kit": "DSTab",
+      "kind": "navigation",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tab_bar.dart",
+      "tier": "molecule",
+      "summary": "One tab in a [DSTabBar]."
+    },
+    {
+      "kit": "DSTabBar",
+      "kind": "navigation",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tab_bar.dart",
+      "tier": "molecule",
+      "summary": "A row of labels that switches between sibling panels, keeping the user in place.",
+      "useWhen": "the row changes *which panel is shown*",
+      "instead": "`DSSegmentedButton` to switch a value in place, `DSBottomNavBar` for top-level destinations, `DSChipGroup` for filters"
+    },
+    {
+      "kit": "DSTabCount",
+      "kind": "navigation",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tab_bar.dart",
+      "tier": "atom",
+      "summary": "The count beside a tab's label."
+    },
+    {
+      "kit": "DSText",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_text.dart",
+      "tier": "atom",
+      "summary": "Every piece of text the app draws, named by what it is.",
+      "useWhen": "you are about to write a `Text` — which is always, unless you are inside `ds_text.dart` itself",
+      "instead": "a raw `Text` with a `Theme.of(context).textTheme.x.copyWith(...)` — that is the same decision re-made at every call site, and it is how the kit ended up with twenty-one places that clip without an ellipsis and three `semanticsLabel`s in two hundred and thirty-seven strings"
+    },
+    {
+      "kit": "DSTextField",
+      "kind": "input",
+      "archetypeFit": [
+        "form",
+        "settings",
+        "detail"
+      ],
+      "file": "ds_text_field.dart",
+      "tier": "atom",
+      "summary": "The text input. One skin, one geometry.",
+      "instead": "a choice from a known set is `DSSelect` or `DSSegmentedButton`; a bounded number is `DSStepper`; a date is `DSDateStrip` or `showDatePicker`; a search that filters as you type is `DSSearchBar`, which owns its own debounce and clear"
+    },
+    {
+      "kit": "DSThemeModePicker",
+      "kind": "theme",
+      "archetypeFit": [
+        "settings"
+      ],
+      "file": "ds_theme_mode_picker.dart",
+      "tier": "molecule",
+      "summary": "A segmented button for selecting Light / System / Dark theme mode."
+    },
+    {
+      "kit": "DSTimeGrid",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_time_grid.dart",
+      "tier": "atom",
+      "summary": "A day as a column of hours, with what is booked drawn on it.",
+      "useWhen": "the question is *when*, and the answer is read from the shape of the day: where the gaps are, what runs long, what collides",
+      "instead": "`DSListTile` rows under a `DSSectionHeader` when the question is *what* — an agenda of five things spread over ten hours is nine hours of empty grid, and the list says the same thing in a fifth of the height"
+    },
+    {
+      "kit": "DSTour",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tour.dart",
+      "tier": "molecule",
+      "summary": "A first-run sequence: a handful of slides, ending in a commitment.",
+      "useWhen": "a new user has to be told what the app does before they can use it, and the telling is worth the taps — which is to say, when the last slide hands over to something rather than merely getting out of the way",
+      "instead": "an empty state on the screen itself, which introduces a feature at the moment it is wanted rather than four screens early"
+    },
+    {
+      "kit": "DSTourCanvas",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tour_art.dart",
+      "tier": "atom",
+      "summary": "The fixed-width board every tour illustration is composed on.",
+      "useWhen": "drawing a slide's picture: put the drawing inside this, and let [DSTourSlide] scale the whole board into whatever room the words leave over",
+      "instead": "[DSIllustration] for one of the six generic states the kit already draws — empty, search, offline, done, locked, error"
+    },
+    {
+      "kit": "DSTourDots",
+      "kind": "tag",
+      "archetypeFit": [
+        "collection",
+        "focal",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tour_dots.dart",
+      "tier": "atom",
+      "summary": "Where you are in a [DSTour].",
+      "useWhen": "a paged sequence needs to say how long it is and how far through it you are",
+      "instead": "[DSSegmentedProgress] for a checklist, where the segments are discrete tasks that stay done"
+    },
+    {
+      "kit": "DSTourFillSlot",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tour_art.dart",
+      "tier": "atom",
+      "summary": "A blank ruled slot that fills with real content as its slide arrives.",
+      "useWhen": "the argument for the tour is that the app *has* something afterwards it does not have now — a name on an invoice, a client in a list",
+      "instead": "[DSSkeleton] when the content is genuinely still loading"
+    },
+    {
+      "kit": "DSTourSlide",
+      "kind": "misc",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tour.dart",
+      "tier": "molecule",
+      "summary": "One stop of a [DSTour]: a picture, a claim, and the sentence behind it.",
+      "useWhen": "composing a tour by hand — a sequence that is not a [PageView], or one stop shown on its own in a gallery",
+      "instead": "[DSTour], which builds these for you from a list of [DSTourStop]s and drives the offset"
+    },
+    {
+      "kit": "DSUnderlineIndicator",
+      "kind": "navigation",
+      "archetypeFit": [
+        "focal",
+        "collection",
+        "detail",
+        "form",
+        "settings"
+      ],
+      "file": "ds_tab_bar.dart",
+      "tier": "atom",
+      "summary": "A rounded rule under the selected label."
+    },
+    {
+      "kit": "DSWell",
+      "kind": "surface",
+      "archetypeFit": [
+        "focal",
+        "detail",
+        "settings"
+      ],
+      "file": "ds_well.dart",
+      "tier": "atom",
+      "summary": "The tinted container behind a glyph."
+    }
+  ]
+}

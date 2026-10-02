@@ -1,0 +1,70 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.shivarajbakale.parley"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+        freeCompilerArgs += ["-Xexpect-actual-classes"]
+    }
+
+    defaultConfig {
+        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        applicationId = "com.shivarajbakale.parley"
+        // You can update the following values to match your application needs.
+        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // The accessibility overlay, AudioRecord and EncryptedSharedPreferences paths assume 26+.
+        minSdk = Math.max(flutter.minSdkVersion, 26)
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
+            signingConfig = signingConfigs.debug
+        }
+    }
+
+    testOptions {
+        unitTests {
+            // Robolectric runs without the merged manifest: plugin receivers in it
+            // (e.g. Amazon IAP) fail bytecode verification, and no test needs resources.
+            includeAndroidResources = false
+            returnDefaultValues = true
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    implementation "androidx.core:core-ktx:1.13.1"
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "androidx.security:security-crypto:1.1.0-alpha06"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
+
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.robolectric:robolectric:4.14.1"
+    testImplementation "androidx.test:core:1.6.1"
+    testImplementation "com.squareup.okhttp3:mockwebserver:4.12.0"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1"
+    // android.jar's org.json is a stub under plain JVM tests; the real one runs the rewriter tests.
+    testImplementation "org.json:json:20250107"
+}

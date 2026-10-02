@@ -1,0 +1,9 @@
+# Tags used by this suite. Declaring them keeps `flutter test` from warning
+# about an unknown tag, and it is the list `--tags` / `--exclude-tags` select
+# from.
+tags:
+  golden:
+    # Pixel baselines. Host-dependent by nature — text rasterisation differs
+    # between operating systems — so they are recorded on, and verified on,
+    # the one host named by GOLDEN_HOST in the Makefile. `make test` excludes
+    # them; `make golden` runs them.

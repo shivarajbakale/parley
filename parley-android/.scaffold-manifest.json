@@ -1,0 +1,34 @@
+{
+  "manifestVersion": 1,
+  "scaffolder": "create-flutter-app",
+  "scaffolderVersion": "0.3.0",
+  "framework": "flutter",
+  "language": "dart",
+  "category": "mobile",
+  "projectName": "parley_android",
+  "description": "Floating-orb voice dictation for Android.",
+  "bundleId": "com.shivarajbakale.parley",
+  "entrypoint": "lib/main.dart",
+  "scripts": {
+    "dev": "flutter run",
+    "build": "flutter build apk",
+    "test": "flutter test",
+    "analyze": "flutter analyze"
+  },
+  "defaultPort": null,
+  "healthcheck": null,
+  "packageManager": "dart",
+  "capabilities": [
+    "flutter",
+    "riverpod",
+    "go-router",
+    "dio",
+    "drift",
+    "freezed"
+  ],
+  "monorepoHints": {
+    "packageNameField": "pubspec.yaml#name",
+    "tsconfigExtendsField": null,
+    "portEnvVar": null
+  }
+}

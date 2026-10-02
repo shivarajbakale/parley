@@ -1,0 +1,25 @@
+# iOS release lanes. Code signing is the hard part: use `match` (recommended)
+# or manual certs/profiles, and an App Store Connect API key for upload.
+# See docs/MODULES.md#release for the secrets checklist.
+default_platform(:ios)
+
+platform :ios do
+  desc "Build a release IPA"
+  lane :build do
+    Dir.chdir("../..") do
+      # Provide ios/ExportOptions.plist (method: app-store, your team id).
+      sh("flutter build ipa --release --dart-define=ENV=prod " \
+         "--export-options-plist=ios/ExportOptions.plist")
+    end
+  end
+
+  desc "Build + upload to TestFlight"
+  lane :beta do
+    # TODO: set up signing first, e.g. `match(type: 'appstore', readonly: true)`.
+    build
+    upload_to_testflight(
+      ipa: "../build/ios/ipa/Runner.ipa",
+      skip_waiting_for_build_processing: true,
+    )
+  end
+end

@@ -1,0 +1,3 @@
+# Plug in via env (CI secrets), or edit the fallbacks. Keep secrets OUT of git.
+json_key_file(ENV["PLAY_STORE_JSON_KEY_PATH"] || "fastlane/play-store-key.json")
+package_name(ENV["ANDROID_PACKAGE_NAME"] || "com.shivarajbakale.parley")

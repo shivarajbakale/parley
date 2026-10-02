@@ -1,0 +1,311 @@
+{
+  "project": "parley_android",
+  "last_updated": "2026-09-28",
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "parley-a01",
+      "priority": 1,
+      "area": "native",
+      "title": "Accessibility service and orb overlay run on a device",
+      "user_visible_behavior": "With Parley enabled in Accessibility, the Aurora orb floats over every app, can be dragged and docks to an edge.",
+      "status": "passing",
+      "verification": [
+        "cd android && ./gradlew testDebugUnitTest",
+        "flutter build apk --debug",
+        "Install on emulator/phone, enable the service with adb, confirm onServiceConnected in logcat and the overlay window in dumpsys window",
+        "Screenshot of the orb over another app saved under docs/evidence/parley-a01/"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)",
+        "flutter build apk --debug -> ✓ Built build/app/outputs/flutter-apk/app-debug.apk",
+        "adb logcat (emulator-5554, API 36) -> ParleyRuntime: accessibility service connected; dumpsys window lists Window{… Parley orb}. Screenshots: docs/evidence/parley-a01/orb-over-messages.png, orb-error-no-key.png",
+        "adb input swipe hold on the orb (emulator-5554) -> dumpsys window lists Parley orb + Parley pill; docs/evidence/parley-a01/pill-listening.png shows \"Listening 0:04\""
+      ],
+      "notes": "docs/plans/native-core.md build step 1. Built in parallel with the Flutter side by a delegated agent."
+    },
+    {
+      "id": "parley-a02",
+      "priority": 2,
+      "area": "native",
+      "title": "Hold the orb to dictate into any text field",
+      "user_visible_behavior": "Holding the orb records, releasing sends the audio to Groq, and the text lands at the cursor of the focused field (set text, then paste, then clipboard).",
+      "status": "in_progress",
+      "verification": [
+        "Unit tests: splicing, WAV writer, GroqTranscriber against MockWebServer, session transitions",
+        "On device with a real Groq key: dictate into a chat app and a browser field; history records the insert method"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!"
+      ],
+      "notes": "docs/plans/native-core.md build step 2. On the Oppo CPH2791 (Android 16) with the user's Groq key, holding the orb recorded, transcribed and inserted text into the Settings search field (2026-09-24). Still to verify: a chat app and a browser field, and the insert method recorded in history."
+    },
+    {
+      "id": "parley-a03",
+      "priority": 3,
+      "area": "native",
+      "title": "Volume-down tap-tap-hold starts dictation",
+      "user_visible_behavior": "Two taps and a held third press of volume-down dictates; single presses still change the volume.",
+      "status": "passing",
+      "verification": [
+        "Unit tests: VolumeGestureDetector timing table",
+        "On device: gesture dictates, single press changes volume"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "adb shell uinput virtual keyboard (emulator-5554) -> logcat: volume gesture: tap-tap-hold, session started; a single press replayed ~430 ms after key-down"
+      ],
+      "notes": "docs/plans/native-core.md build step 3."
+    },
+    {
+      "id": "parley-a05",
+      "priority": 4,
+      "area": "theme",
+      "title": "Aurora identity replaces the template theme",
+      "user_visible_behavior": "Every screen uses the Aurora palette (dark by default, light supported), Instrument Serif / Geist / Geist Mono, and the orb's mode colours.",
+      "status": "passing",
+      "verification": [
+        "make palette-lint",
+        "make design-md",
+        "flutter test",
+        "make golden (baselines regenerated deliberately with make golden-update)"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make check -> superplan-lint: 1 superplan valid, SUPERPLAN.md in sync (0 violations)"
+      ],
+      "notes": "SUPERPLAN.json theme; mockups https://claude.ai/artifact/KHuAChbQqTC4rzpxnreHBj"
+    },
+    {
+      "id": "parley-r01",
+      "priority": 5,
+      "area": "screen",
+      "title": "Setup sequence",
+      "user_visible_behavior": "First launch walks through keys, microphone, accessibility, battery and a practice dictation, then hands over to Overview.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/setup_page_test.dart",
+        "make ui-probe",
+        "make run-capture frame"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:setup"
+    },
+    {
+      "id": "parley-r02",
+      "priority": 6,
+      "area": "screen",
+      "title": "Overview",
+      "user_visible_behavior": "Shows whether Parley is ready, an on/off switch, words and time saved this week, and the last dictation.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/overview_page_test.dart",
+        "make ui-probe",
+        "make run-capture frame"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:overview"
+    },
+    {
+      "id": "parley-a04",
+      "priority": 7,
+      "area": "native",
+      "title": "Voice edit rewrites the selection or the field",
+      "user_visible_behavior": "Double-tap then hold the orb, speak an instruction, and MiniMax rewrites the selection (or the whole field); tapping the orb within 10 s undoes it.",
+      "status": "blocked",
+      "verification": [
+        "Unit tests: MiniMaxRewriter against MockWebServer, range replace",
+        "On device with a MiniMax key: rewrite a selection in a mail app and undo it"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make check exit 0 on 2026-09-24: native-test 106 Kotlin test(s), 0 failure(s) — includes four new refusal tests (password field, hint-only field, over-cap field, and the dictation-into-password guard) plus the TextSplicer cap boundary.",
+        "make check exit 0 on 2026-09-24: native-test 122 Kotlin test(s), 0 failure(s) — adds SlideZonesTest (detent thresholds, floors, hysteresis, snap), the live mode-switch cases in SessionTest, and the scope label in PillContentTest.",
+        "make check exit 0 on 2026-09-24 after the capsule rework: native-test 120 Kotlin test(s), 0 failure(s). Release build installed on CPH2791; one Parley orb window, service enabled."
+      ],
+      "notes": "docs/plans/native-core.md build step 6. BLOCKED: voice edit needs the user's MiniMax key (and a Groq key). MiniMaxRewriter is covered by MockWebServer tests; not exercised live. Hardening done 2026-09-24 without a key: an edit is now refused before the mic opens, with a distinct reason — No text field / Can't edit a password field / Nothing to edit / Too much text to edit. FieldTarget carries `secure` from node.isPassword, so a password field's text never reaches MiniMax, and TextSplicer.MAX_EDIT_CHARS caps a whole-field rewrite at 8000 characters, matching the Mac app's edit-target.ts. Still BLOCKED on a live MiniMax key for the on-device rewrite and undo. The gesture was replaced on 2026-09-24: double-tap-then-hold is gone, and one hold now slides through three detents toward the centre of the screen — rest dictates, ~40 dp edits, ~96 dp cancels — snapping to each with a haptic, and the mode is decided on release. Refusals moved again: the edit detent simply does not exist when the field cannot be rewritten, and the capsule says why at rest. NOT verified on a device: adb-injected touches do not register as a hold on the accessibility overlay, so the slide, the snap and the colour change have never been seen running. On device the first capsule was wrong: the slide hint and the waveform drew in the same strip and overlapped, and the Cancel label landed mid-capsule. The capsule now hands over instead of sharing — the recording fades out as the slide track fades in — and the track is drawn, not written: a pencil at the edit detent and a cross at the cancel detent, each absorbed into the sphere when it parks there. No text during a slide, so the Edit selection / Edit all distinction is gone for now. The edit detent moved to half the cancel travel (48 dp of 96)."
+    },
+    {
+      "id": "parley-r03",
+      "priority": 8,
+      "area": "screen",
+      "title": "History",
+      "user_visible_behavior": "Search and filter past dictations and edits, swipe to delete with undo, long-press to copy.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/history_page_test.dart",
+        "make ui-probe"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:history"
+    },
+    {
+      "id": "parley-r04",
+      "priority": 9,
+      "area": "screen",
+      "title": "Transcript detail",
+      "user_visible_behavior": "One entry in full with its details and a pinned Copy.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/history_detail_page_test.dart"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:history-detail"
+    },
+    {
+      "id": "parley-r05",
+      "priority": 10,
+      "area": "screen",
+      "title": "Settings",
+      "user_visible_behavior": "Triggers, dictation, keys, history retention and system rows; changes apply to the running service.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/parley_settings_page_test.dart",
+        "make ui-probe"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:settings"
+    },
+    {
+      "id": "parley-r06",
+      "priority": 11,
+      "area": "screen",
+      "title": "API keys",
+      "user_visible_behavior": "Replace or remove the Groq and MiniMax keys; each is verified before it is saved.",
+      "status": "passing",
+      "verification": [
+        "flutter test test/screens/api_keys_page_test.dart"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 220 file(s) scanned, 0 violation(s)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "make check -> All tests passed!",
+        "make run-capture -> ==> Captured docs/evidence/parley-r01/run-capture.png (193056 bytes)"
+      ],
+      "notes": "route:api-keys"
+    },
+    {
+      "id": "parley-r07",
+      "priority": 12,
+      "area": "screen",
+      "title": "Nunito type and animated empty states",
+      "user_visible_behavior": "Interface text is set in Nunito Sans and titles and figures in rounded Nunito, replacing Geist, Geist Mono and Instrument Serif. Empty states show a looping drawn scene and one short line: History first run (orb dictating into a field, action Try it opens a practice sheet), History while Parley cannot run (dozing orb, action Turn on fixes the first blocker), History search with no match (magnifier over ghost rows, action Clear), and Overview before the first dictation (a ring around the orb lighting one segment per setup step, replacing the zero figures). A transcript that no longer exists returns to History with a snack bar instead of a dead-end screen.",
+      "status": "passing",
+      "verification": [
+        "make check",
+        "make run-capture"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 223 file(s) scanned, 0 violation(s)",
+        "make check -> All tests passed! (unit, ui-probe 1915, goldens 131; 122 goldens re-baselined for Nunito)",
+        "make check -> native-test: 92 Kotlin test(s), 0 failure(s)",
+        "make run-capture -d emulator-5554 -> Captured docs/evidence/parley-r07/run-capture.png",
+        "emulator frames: docs/evidence/parley-r07/overview-setup-ring.png, history-off.png, history-no-match.png; notes in docs/evidence/parley-r07.md",
+        "ui-evaluator review -> Revise; applied: Clear search label, setup card names the next step, duplicate orb removed, card surface matches the hero"
+      ],
+      "notes": "Spec agreed with the owner in chat on 2026-09-24: Avenir rejected (Monotype licence, not bundleable); Nunito Sans + Nunito chosen. Scenes are CustomPainter in lib/screens/parley/empty_scene.dart, loop on OrbMotion.breathe, hold still under reduce-motion and flutter test. Built on branch nunito-empty-states in a worktree while the orb redesign was in flight in the main tree."
+    },
+    {
+      "id": "parley-r08",
+      "priority": 13,
+      "area": "native",
+      "title": "Launcher icon matches the Mac app",
+      "user_visible_behavior": "Parley's Android launcher icon is the Mac app's icon (a glass pill of waveform bars on an indigo squircle), as an adaptive icon that reads correctly under circle and squircle masks, with a monochrome layer for Android 13 themed icons.",
+      "status": "passing",
+      "verification": [
+        "make check",
+        "adb install on emulator-5554; launcher search shows the icon"
+      ],
+      "evidence": [
+        "make check -> ui-lint: 223 file(s) scanned, 0 violation(s)",
+        "make check -> All tests passed! (unit, ui-probe 1915, goldens 131)",
+        "make check -> native-test: 101 Kotlin test(s), 0 failure(s)",
+        "adb install -r (emulator-5554) -> Success; docs/evidence/parley-r08/launcher.png shows the icon; notes in docs/evidence/parley-r08.md"
+      ],
+      "notes": "Source: parley/build/icon.svg copied to assets/icon/. Adaptive layers are SVGs in assets/icon/ rendered to PNG with headless Chrome; flutter_launcher_icons generates the mipmaps with adaptive_icon_foreground_inset 0. iOS left off. Built while parley-a02 was in_progress in another session; r08 is a self-contained asset change."
+    },
+    {
+      "id": "parley-a06",
+      "priority": 14,
+      "area": "native",
+      "title": "Deepgram Nova-3 as a transcription provider",
+      "user_visible_behavior": "API keys offers a choice of transcription provider, Whisper (Groq) or Deepgram Nova-3, with a key field for the chosen one. Each key is checked with its own provider before it is saved, and switching to Deepgram needs a Deepgram key. Dictation then sends the recording to the chosen provider; Parley is ready when that provider has a key, and Setup, Overview and Settings name the provider in use. Existing installs stay on Groq.",
+      "status": "not_started",
+      "verification": [
+        "make check",
+        "flutter test test/screens/api_keys_page_test.dart",
+        "native-test: DeepgramTranscriberTest, StoresTest, SessionTest"
+      ],
+      "evidence": [
+        "make check exit 0 on feat/deepgram-nova3: 144 Kotlin tests, flutter tests green, goldens re-baselined (api_keys, api_keys_text2x, setup_key); notes in docs/evidence/parley-a06.md"
+      ],
+      "notes": "Demoted to not_started 2026-09-28 to clear constraint 1 (a02 was also in_progress). Nothing lost: the plan and the approved design are untouched and it can be picked straight back up. The one step remaining is a device walk with a real Deepgram key, which is a key to obtain rather than work to do. Plan: parley-a06.feature-plan.json (FEATURE-PLAN.md). Design approved by the owner in chat on 2026-09-24. Not yet walked on a device with a real Deepgram key; stays in_progress until that walk."
+    },
+    {
+      "id": "parley-a07",
+      "priority": 15,
+      "area": "native",
+      "title": "Ask Parley — a screen-aware agent that can act",
+      "user_visible_behavior": "Triple-tap the orb to turn on Ask mode, hold to speak a question about whatever is on screen, and the orb opens a sheet: it reads the app's node tree, shows the steps it wants to take graded read/write/irreversible, runs the ones that are confirmed, and records the whole run in History.",
+      "status": "not_started",
+      "verification": [
+        "Kotlin unit tests: ScreenContextSerializer (pruning, dedupe, visible-fraction, char budget, truncation flagged), AgentPolicy (step class, allowlist, orb/self-window refusal, step budget, one irreversible per run), AgentPlanner against MockWebServer (malformed JSON, a step naming a node that is not on screen, step budget honoured), AgentJournal (10s window, one step back, irreversible has no undo).",
+        "Flutter tests: agent settings page across its four states and the not-loaded-versus-off distinction; agent run transcript streaming a live run; FakeParleyBridge carries the new methods and event; History gains the agent filter; goldens for both pages in both themes.",
+        "make check (analyze, ui-lint, palette-lint, plan-lint, superplan-lint, doc-lint, design-md, tests, ui-probe, golden) green.",
+        "On the Oppo CPH2791 with a real MiniMax key, in three apps with different node trees (Settings, Chrome, a chat app): a question answered with nothing sent to a tool; a four-step run with one irreversible step confirmed on its own; a refused step showing its reason; a run stopped mid-way. adb screenrecord and screenshots under docs/evidence/parley-a07/."
+      ],
+      "evidence": [
+        "cd android && ./gradlew :app:testDebugUnitTest --rerun-tasks -> BUILD SUCCESSFUL, 14 suites, 200 tests, 0 failures (2026-09-28)",
+        "dart run tool/plan_lint.dart -> 2 plan(s) valid, FEATURE-PLAN.md in sync (0 violations)",
+        "dart run tool/feature_plan.dart parley-a07.feature-plan.json --check -> valid (2 surfaces)"
+      ],
+      "notes": "Plan: parley-a07.feature-plan.json, rendered with `make plan PLAN=parley-a07.feature-plan.json`; the native half — the context serialiser, the action sandbox, the sheet, the undo journal — is docs/plans/agent.md. Not started: parley-a02 is the one in_progress feature (a06 was demoted to not_started on 2026-09-28 to clear constraint 1; a02 is one device walk from passing). a07 does not go in flight until a02 closes. PART BUILT ANYWAY 2026-09-28: ScreenContextSerializer.kt + ScreenContextSerializerTest.kt landed (26 tests, 200 native tests total, 0 failures) because the serialiser is the same work whether the feature ships answer-only or the full agent, and it is what every other a07 part depends on. Still not written: the AccessibilityNodeInfo -> SourceNode adapter, AgentPolicy, AgentPlanner, AgentSession, the sheet, and every Flutter surface. Not passing, and it cannot be: parley-a02 holds the slot and a07 has no device evidence."
+    }
+  ]
+}

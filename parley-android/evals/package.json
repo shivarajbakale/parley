@@ -1,0 +1,14 @@
+{
+  "name": "mobile-app-harness-evals",
+  "private": true,
+  "type": "module",
+  "description": "Does the .claude/ harness make an agent finish real tasks in this app? Runs each task with and without it and grades the result with the project's own gates.",
+  "scripts": {
+    "eval": "promptfoo eval -c promptfooconfig.yaml --no-cache -o results/latest.json",
+    "view": "promptfoo view"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.270",
+    "promptfoo": "0.123.0"
+  }
+}

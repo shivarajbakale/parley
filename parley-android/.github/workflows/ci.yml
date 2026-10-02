@@ -1,0 +1,104 @@
+name: CI
+
+# Plug-and-play: pushing to GitHub runs analyze + test on every PR and on the
+# default branch. No secrets required. This mirrors `./init.sh`. Release
+# signing/upload lanes need store credentials and are intentionally separate.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so a new Flutter stable that breaks this app is found by CI
+    # rather than by a user running `make check` on a fresh clone.
+    - cron: "0 6 * * 1"
+
+env:
+  # Pinned, not `channel: stable`. A floating channel means a green PR and a
+  # red clone a week later: Flutter 3.47 stopped re-exporting Cupertino from
+  # material.dart and this app failed to build with nothing in the diff to
+  # explain it. Bump this deliberately, with the analyze/test run to prove it.
+  FLUTTER_VERSION: "3.47.1"
+
+jobs:
+  analyze-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: UI contract
+        run: dart run tool/ui_lint.dart
+
+      - name: Feature plans
+        run: dart run tool/plan_lint.dart
+
+      - name: Design-system reference is current
+        run: dart run tool/design_system_reference.dart --check
+
+      - name: Test
+        # Not the goldens: this runner is Linux and the baselines were recorded
+        # elsewhere. The `goldens` job below runs them on the host they belong
+        # to. See GOLDEN_HOST in the Makefile.
+        run: flutter test --exclude-tags golden
+
+  # The pixel baselines, on the host that owns them. Text rasterisation differs
+  # between operating systems, so this job's runner and GOLDEN_HOST in the
+  # Makefile are one setting written in two places — change them together.
+  goldens:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Goldens
+        run: flutter test --tags golden
+
+      # The diff images, so a failure can be looked at instead of guessed at.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-failures
+          path: test/golden/failures/
+
+  # The drift alarm: the same gate against whatever stable is today. It is the
+  # job that goes red first when the SDK moves under the app.
+  latest-stable:
+    if: github.event_name == 'schedule' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Report the version under test
+        run: flutter --version
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: dart run tool/ui_lint.dart
+      - run: dart run tool/plan_lint.dart
+      - run: dart run tool/design_system_reference.dart --check
+      # Same reason as the pinned job: goldens belong to one host.
+      - run: flutter test --exclude-tags golden
