@@ -12,10 +12,9 @@ echo "==> Working directory: $PWD"
 echo "==> Installing dependencies (npm install)"
 npm install
 npm --prefix parley-agent install
-echo "==> API dependencies and schema (parley-api)"
+echo "==> API dependencies (parley-api)"
 (cd parley-api && [ -f .env ] || cp .env.example .env)
 npm --prefix parley-api install
-npm --prefix parley-api run db:push
 if command -v "${FLUTTER_BIN:-flutter}" >/dev/null 2>&1; then
   echo "==> Android dependencies (flutter pub get)"
   (cd parley-android && "${FLUTTER_BIN:-flutter}" pub get)

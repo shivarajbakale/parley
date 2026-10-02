@@ -32,7 +32,7 @@ setup:
 	$(NPM) --prefix parley-api install
 
 api-check:
-	$(MAKE) -C parley-api check
+	$(NPM) --prefix parley-api run check
 
 # The Android app verifies with its own harness. Skipped, not failed, when
 # flutter is absent: the desktop baseline must stay runnable without it.
