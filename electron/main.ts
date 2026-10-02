@@ -39,6 +39,8 @@ import { createRewriter } from './rewriter';
 import { createSelectionReader } from './selection-reader';
 import { createSession, ERROR_MS, type Session } from './session';
 import { createSettingsStore } from './settings-store';
+import { createSyncClient } from './sync/client';
+import { createSyncEngine } from './sync/engine';
 import { createTranscriber } from './transcriber';
 import { trayMenuTemplate } from './tray';
 import { createWebSearch } from './web-search';
@@ -54,6 +56,8 @@ import type {
   SessionBlockedReason,
   SessionMode,
   Settings,
+  SyncOutcome,
+  SyncSignInResult,
   TranscriptionProvider,
 } from './types';
 import { NOTICE_MS, TRANSCRIPTION_PROVIDERS } from './types';
@@ -411,7 +415,12 @@ async function startApp() {
     orb,
     isIdle: () => session.state() === 'idle',
     key: () => store.get().gestureKey,
-    onAccept: ({ heard, word }) => dictionary.upsert({ word, soundsLike: [heard] }),
+    onAccept: ({ heard, word }) => {
+      const saved = dictionary.upsert({ word, soundsLike: [heard] });
+      // A taught word is a dictionary change the other devices should see soon.
+      if (saved) scheduleSyncSoon();
+      return saved;
+    },
     onDecline: ({ word }) => dictionary.decline(word),
   });
   const correctionWatcher = createCorrectionWatcher({
@@ -829,6 +838,65 @@ async function startApp() {
   }
   applySettings(store.get());
 
+  // Sync with parley-api: only while switched on and signed in. The engine
+  // never throws and never blocks dictation; a failure lands in the view.
+  const SYNC_FIRST_MS = 10_000;
+  const SYNC_EVERY_MS = 5 * 60_000;
+  const SYNC_SOON_MS = 30_000;
+  let syncEngine: ReturnType<typeof createSyncEngine> | null = null;
+  let syncFirst: NodeJS.Timeout | null = null;
+  let syncEvery: NodeJS.Timeout | null = null;
+  let syncSoon: NodeJS.Timeout | null = null;
+  function clearSyncTimers() {
+    if (syncFirst) clearTimeout(syncFirst);
+    if (syncEvery) clearInterval(syncEvery);
+    if (syncSoon) clearTimeout(syncSoon);
+    syncFirst = syncEvery = syncSoon = null;
+  }
+  /** Called whenever the URL, the switch or the token changes. */
+  function rebuildSync() {
+    clearSyncTimers();
+    const token = store.getSyncToken();
+    const settings = store.get();
+    if (!token || !settings.syncEnabled) {
+      syncEngine = null;
+      return;
+    }
+    syncEngine = createSyncEngine({
+      client: createSyncClient({ baseUrl: settings.syncUrl, token }),
+      dictionary,
+      settings: store,
+      cursor: { get: () => store.getSyncCursor(), set: value => store.setSyncCursor(value) },
+      lastSyncAt: () => store.view().syncLastAt,
+    });
+    syncFirst = setTimeout(() => {
+      syncFirst = null;
+      syncInBackground();
+    }, SYNC_FIRST_MS);
+    syncEvery = setInterval(syncInBackground, SYNC_EVERY_MS);
+  }
+  /** One run; a pulled gesture key or tap count takes effect straight away. */
+  async function runSync(): Promise<SyncOutcome> {
+    if (!syncEngine) return { ok: false, pushed: 0, pulled: 0, message: 'Sign in to sync', at: Date.now() };
+    const outcome = await syncEngine.syncNow();
+    if (outcome.ok) applySettings(store.get());
+    return outcome;
+  }
+  /** Timer runs have no caller to hand a failure to; the view already records it. */
+  function syncInBackground() {
+    runSync().catch(err => console.warn('sync run failed', err instanceof Error ? err.message : err));
+  }
+  /** Debounced: a burst of edits becomes one run, 30 s after the last. */
+  function scheduleSyncSoon() {
+    if (!syncEngine) return;
+    if (syncSoon) clearTimeout(syncSoon);
+    syncSoon = setTimeout(() => {
+      syncSoon = null;
+      syncInBackground();
+    }, SYNC_SOON_MS);
+  }
+  rebuildSync();
+
   // Clicking anywhere outside the card dismisses it. The window never has focus,
   // so there is no blur event to listen for.
   uIOhook.on('mousedown', () => {
@@ -890,8 +958,12 @@ async function startApp() {
   ipcMain.handle('settings:update', async (event, patch: Partial<Settings>) => {
     onlySettingsWindow(event);
     const before = store.get();
+    const stampBefore = store.settingsUpdatedAt();
     const next = store.update(typeof patch === 'object' && patch ? patch : {});
     applySettings(next);
+    if (before.syncUrl !== next.syncUrl || before.syncEnabled !== next.syncEnabled) rebuildSync();
+    // Only a patch that changed a value is worth pushing.
+    if (store.settingsUpdatedAt() !== stampBefore) scheduleSyncSoon();
     if (before.agentUrl !== next.agentUrl || before.agentAutoStart !== next.agentAutoStart) {
       // A new address or a flipped switch: the live run belongs to the old
       // one, and the child belongs to the old config. Stop everything, then
@@ -989,6 +1061,35 @@ async function startApp() {
     const live = await supervisor.refresh();
     return { ...live, currentRun: currentRunSummary() };
   });
+  ipcMain.handle('sync:signIn', async (event, email: unknown): Promise<SyncSignInResult> => {
+    onlySettingsWindow(event);
+    if (typeof email !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+      return { ok: false, message: 'Enter an email address' };
+    }
+    const address = email.trim();
+    try {
+      // No token yet: this client only asks for one.
+      const { token } = await createSyncClient({ baseUrl: store.get().syncUrl, token: null }).signIn(address);
+      store.setSyncToken(token);
+      store.update({ syncEmail: address, syncEnabled: true });
+      rebuildSync();
+      const outcome = await runSync();
+      return { ok: outcome.ok, message: outcome.ok ? 'Signed in and synced' : outcome.message };
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : 'Sign-in failed' };
+    }
+  });
+  ipcMain.handle('sync:signOut', async (event) => {
+    onlySettingsWindow(event);
+    store.setSyncToken(null);
+    store.update({ syncEnabled: false });
+    rebuildSync();
+    return liveView();
+  });
+  ipcMain.handle('sync:now', async (event): Promise<SyncOutcome> => {
+    onlySettingsWindow(event);
+    return runSync();
+  });
   ipcMain.handle('session:take-blocked', (event) => {
     onlySettingsWindow(event);
     const reason = pendingBlocked;
@@ -1038,6 +1139,7 @@ async function startApp() {
 
   app.on('will-quit', () => {
     clearInterval(trustPoll);
+    clearSyncTimers();
     if (hookRunning) keyHook.stop();
     // Best-effort: the DELETE may not land before the process is gone, but
     // the child must never outlive the app.

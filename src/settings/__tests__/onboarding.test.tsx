@@ -62,6 +62,9 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
     restartAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
     decideApproval: vi.fn(async () => true),
     agentStatus: vi.fn(async () => OFFLINE_AGENT_SUMMARY),
+    signInSync: vi.fn(),
+    signOutSync: vi.fn(),
+    syncNow: vi.fn(),
     getPermissions: vi.fn(async () => permissions),
     requestPermission: vi.fn(async kind => {
       permissions = { ...permissions, [kind]: true };

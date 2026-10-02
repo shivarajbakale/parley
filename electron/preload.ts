@@ -39,6 +39,9 @@ const parley: ParleyApi = {
   decideApproval: (callId: string, approved: boolean) =>
     ipcRenderer.invoke('agent:decideApproval', callId, approved),
   agentStatus: () => ipcRenderer.invoke('agent:status'),
+  signInSync: (email: string) => ipcRenderer.invoke('sync:signIn', email),
+  signOutSync: () => ipcRenderer.invoke('sync:signOut'),
+  syncNow: () => ipcRenderer.invoke('sync:now'),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   requestPermission: (kind: PermissionKind) => ipcRenderer.invoke('permissions:request', kind),
   onExplain(listener) {

@@ -1,0 +1,174 @@
+{
+  "feature": {
+    "id": "parley-015",
+    "title": "Sync: dictionary and settings follow you between devices",
+    "problem": "Every Parley install keeps its own dictionary and settings. A word taught on one Mac, or a gesture key changed there, never reaches the other Mac (or, later, the Android app), so the user teaches the same words twice and the devices drift. The parley-api server (parley-014) now stores both per user. This feature signs the desktop app in to that server with an email, then pushes local edits and pulls remote ones on a timer and soon after any change, last writer wins. A new Sync tab in Settings shows four states: signed out (an email form), signing in, synced (account, last sync time, Sync now), and error (the last failure stays visible). API keys never leave the Mac, and a failed sync never blocks dictation. Frame note: the settings window is not PageShell, so the archetype below is illustrative and not probe-enforced, as in parley-007 to parley-013.",
+    "nonGoals": [
+      "Real identity: sign-in is email to bearer token with no password, good enough for one person on their own server.",
+      "Syncing API keys (Groq, Deepgram, MiniMax) or the sync URL, email and switch themselves; those stay on this device.",
+      "History and tasks resources: the API has room for them, the desktop does not sync them in v1.",
+      "A retry queue or offline journal: a failed run is retried on the next timer tick.",
+      "The Android client: it gets its own feature once the API is live."
+    ]
+  },
+  "app": "Parley",
+  "nav": ["Overview", "Gesture", "General", "Agent", "Sync"],
+  "surfaces": [
+    {
+      "id": "sync-tab",
+      "name": "Sync tab · signed in",
+      "route": "settings.html · settings · Sync",
+      "archetype": "list-detail",
+      "purpose": "Show that this Mac is signed in, when it last synced, and let the user sync now or sign out.",
+      "primaryAction": "Sync now",
+      "panels": [
+        {
+          "id": "rail",
+          "kind": "rail",
+          "ratio": 0.3,
+          "title": "Parley",
+          "rows": [["□ Overview"], ["□ Gesture"], ["□ General"], ["□ Agent"], ["▣ Sync"]]
+        },
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Sync",
+          "subtitle": "Dictionary and settings follow you. API keys stay here.",
+          "rows": [
+            ["SERVER"],
+            ["Sync URL [http://localhost:3100]"],
+            ["ACCOUNT"],
+            ["Account ...... me@example.com  Sign out"],
+            ["Sync ......... (on)"],
+            ["Last sync .... 2 min ago   Sync now"],
+            ["  Synced 3 up, 1 down"]
+          ],
+          "actions": ["Sync now", "Sign out"]
+        }
+      ],
+      "states": {
+        "loading": "Signing in: the Sign in button spins and the email field is disabled until the server answers and the first sync finishes. Sync now spins its own button; nothing skeletons.",
+        "empty": "Signed out (no token): the Account group is an email field and a Sign in button. No Sync now, no Last sync row.",
+        "error": "The last run failed: a red Alert titled Last sync failed carries the message ('fetch failed', 'Signed out: the server rejected the token') and the line 'Dictation keeps working; sync retries every five minutes.' A failed sign-in shows its message under the form.",
+        "success": "Synced: the account badge, Last sync as relative time, and after Sync now the outcome line ('Synced 3 up, 1 down'). A gesture key pulled from another device takes effect without a restart."
+      }
+    },
+    {
+      "id": "sync-signed-out",
+      "name": "Sync tab · signed out",
+      "route": "settings.html · settings · Sync",
+      "archetype": "list-detail",
+      "purpose": "Sign this Mac in to the sync server with an email address.",
+      "primaryAction": "Sign in",
+      "panels": [
+        {
+          "id": "rail",
+          "kind": "rail",
+          "ratio": 0.3,
+          "title": "Parley",
+          "rows": [["□ Overview"], ["□ Gesture"], ["□ General"], ["□ Agent"], ["▣ Sync"]]
+        },
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Sync",
+          "subtitle": "Dictionary and settings follow you. API keys stay here.",
+          "rows": [
+            ["SERVER"],
+            ["Sync URL [http://localhost:3100]"],
+            ["ACCOUNT"],
+            ["Email [you@example.com]   Sign in"]
+          ],
+          "actions": ["Sign in"]
+        }
+      ],
+      "states": {
+        "loading": "Sign in pressed: the button shows loading while main asks the server for a token and runs the first sync.",
+        "empty": "The default: sync is off and no token is stored, so only the URL and the email form show.",
+        "error": "An invalid email is refused in the form ('Enter an email address'); a server that cannot be reached or refuses shows its message in a red Alert under the form, and nothing is stored.",
+        "success": "The token is stored encrypted, the switch turns on, and the tab flips to the signed-in layout with 'Signed in and synced'."
+      }
+    }
+  ],
+  "components": [
+    {
+      "surface": "sync-signed-out",
+      "control": "Email TextInput with react-hook-form + zod email, and a Sign in Button with loading",
+      "why": "The same validated-input-plus-action shape AgentUrlSection already uses; the button's loading state is the signing-in state.",
+      "rejected": "A Modal sign-in flow (one field does not earn an overlay), a magic-link step (the API returns the token directly)"
+    },
+    {
+      "surface": "sync-tab",
+      "control": "SettingRow + Badge for the account, Switch for Sync, Button for Sync now",
+      "why": "Matches the Agent tab's row language: label left, state and its one action right. The Switch pauses sync without signing out.",
+      "rejected": "A Card per state (heavier than the other tabs), a SegmentedControl for on/off (a binary is a Switch)"
+    },
+    {
+      "surface": "sync-tab",
+      "control": "Alert color=red role=alert titled 'Last sync failed'",
+      "why": "The failure persists across reopenings (syncLastError lives in the store), so it is a standing record, not a toast.",
+      "rejected": "Notification toast (gone before the user looks), inline dimmed text (too quiet for a broken sync)"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Settings",
+      "fields": [
+        { "name": "syncEnabled", "type": "boolean", "note": "default false; device-local, never synced" },
+        { "name": "syncUrl", "type": "string", "note": "default http://localhost:3100; device-local" },
+        { "name": "syncEmail", "type": "string", "note": "device-local" },
+        { "name": "syncTokenEncrypted", "type": "string", "note": "safeStorage-encrypted bearer token; set only through sync:signIn / sync:signOut" }
+      ],
+      "relations": [
+        "SettingsView gains hasSyncToken, syncLastAt (last successful run) and syncLastError",
+        "DictionaryEntry gains updatedAt and the store keeps tombstones for removals"
+      ]
+    }
+  ],
+  "endpoints": [
+    { "method": "IPC invoke", "path": "sync:signIn", "note": "validates the email, asks the server for a token, stores it encrypted, turns sync on, runs one sync, returns { ok, message }" },
+    { "method": "IPC invoke", "path": "sync:signOut", "note": "clears the token, turns sync off, returns the SettingsView" },
+    { "method": "IPC invoke", "path": "sync:now", "note": "runs one sync and returns the SyncOutcome" },
+    { "method": "POST", "path": "<syncUrl>/api/auth/token", "note": "email in, long-lived bearer token out" },
+    { "method": "GET", "path": "<syncUrl>/api/dictionary?since= · /api/settings?since=", "note": "paged pull from the cursor" },
+    { "method": "PUT", "path": "<syncUrl>/api/dictionary · /api/settings", "note": "batch push of rows changed since the last successful sync" }
+  ],
+  "integration": [
+    { "from": "electron/main.ts", "to": "electron/sync/engine.ts", "note": "the engine is rebuilt when the URL, the switch or the token changes; runs 10 s after rebuild, every 5 min, and 30 s after a settings or dictionary change; applySettings after a successful run" },
+    { "from": "electron/sync/engine.ts", "to": "electron/dictionary-store.ts + electron/settings-store.ts", "note": "changedSince / applyRemote, last writer wins by updatedAt" },
+    { "from": "src/settings/SyncTab.tsx", "to": "window.parley.signInSync / signOutSync / syncNow", "note": "hooks in use-parley.ts invalidate the settings query" }
+  ],
+  "blastRadius": {
+    "new": [
+      "electron/sync/client.ts",
+      "electron/sync/engine.ts",
+      "electron/sync/__tests__/client.test.ts",
+      "electron/sync/__tests__/engine.test.ts",
+      "src/settings/SyncTab.tsx",
+      "src/settings/__tests__/SyncTab.test.tsx"
+    ],
+    "changed": [
+      "electron/main.ts",
+      "electron/preload.ts",
+      "electron/types.ts",
+      "electron/settings-store.ts",
+      "electron/dictionary-store.ts",
+      "electron/__tests__/settings-store.test.ts",
+      "electron/__tests__/dictionary-store.test.ts",
+      "src/settings/tabs.ts",
+      "src/settings/TabRail.tsx",
+      "src/settings/SettingsShell.tsx",
+      "src/settings/use-parley.ts",
+      "src/settings/SettingsShell.stories.tsx",
+      "src/settings/Wizard.stories.tsx",
+      "feature_list.json"
+    ]
+  },
+  "verification": [
+    "make check",
+    "npm run test -- electron/sync electron/__tests__/settings-store.test.ts electron/__tests__/dictionary-store.test.ts",
+    "make -C parley-api check",
+    "Storybook: SettingsShell SyncSignedOut, SyncSigningIn, SyncSynced, SyncError in dark and light",
+    "make dev with parley-api running on :3100: sign in, add a dictionary word, see it in sqlite via prisma studio; stop the API, press Sync now, see the error line and dictate normally"
+  ]
+}

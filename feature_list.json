@@ -293,6 +293,24 @@
       ],
       "evidence": [],
       "notes": "Spec docs/superpowers/specs/2026-10-02-monorepo-and-api-design.md, layout A."
+    },
+    {
+      "id": "parley-015",
+      "priority": 17,
+      "area": "settings",
+      "title": "Sync: dictionary and settings follow you between devices",
+      "user_visible_behavior": "A Sync tab signs this Mac in to parley-api by email; dictionary and settings (never API keys) then sync on a timer and after changes, last writer wins. Failures show in the tab and never block dictation.",
+      "status": "in_progress",
+      "plan": "parley-015.feature-plan.json",
+      "verification": [
+        "make check",
+        "npm run test -- electron/sync electron/__tests__/settings-store.test.ts electron/__tests__/dictionary-store.test.ts",
+        "make -C parley-api check",
+        "Storybook: SettingsShell SyncSignedOut, SyncSigningIn, SyncSynced, SyncError in dark and light",
+        "make dev with parley-api running on :3100: sign in, add a dictionary word, see it in sqlite via prisma studio; stop the API, press Sync now, see the error line and dictate normally"
+      ],
+      "evidence": [],
+      "notes": "Plan docs/superpowers/plans/2026-10-02-monorepo-and-sync-api.md, tasks 7-11."
     }
   ]
 }

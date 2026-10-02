@@ -1,3 +1,5 @@
+import type { SyncOutcome } from './sync/engine';
+
 /** Names match the property names of `UiohookKey` in `uiohook-napi`. */
 export const GESTURE_KEYS = [
   'AltRight',
@@ -246,6 +248,13 @@ export type ExplainState = ExplainContent & {
   closing?: boolean;
 };
 
+/** What `sync:signIn` tells the Sync tab: the token request and the first run. */
+export interface SyncSignInResult {
+  ok: boolean;
+  message: string;
+}
+export type { SyncOutcome };
+
 /** `window.parley`, exposed by `electron/preload.ts`. */
 export interface ParleyApi {
   onOrbPhase(listener: (payload: OrbPhasePayload) => void): () => void;
@@ -267,6 +276,11 @@ export interface ParleyApi {
   decideApproval(callId: string, approved: boolean): Promise<boolean>;
   /** Live agent state, polled by the Agent tab while it is open. */
   agentStatus(): Promise<AgentSummary>;
+  /** Asks the sync server for a token, stores it, turns sync on and runs once. */
+  signInSync(email: string): Promise<SyncSignInResult>;
+  /** Forgets the token and turns sync off. */
+  signOutSync(): Promise<SettingsView>;
+  syncNow(): Promise<SyncOutcome>;
   getPermissions(): Promise<PermissionStatus>;
   requestPermission(kind: PermissionKind): Promise<PermissionStatus>;
   onExplain(listener: (state: ExplainState) => void): () => void;
