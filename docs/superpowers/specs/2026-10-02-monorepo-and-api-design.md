@@ -74,7 +74,7 @@ Resources, each scoped to one user:
 
 | Resource | Fields | Notes |
 |---|---|---|
-| `dictionary` entries | `id`, `spoken`, `written`, `updatedAt`, `deletedAt` | mirrors parley-006 |
+| `dictionary` entries | `id`, `word`, `soundsLike[]`, `updatedAt`, `deletedAt` | mirrors the desktop entry shape from parley-006 |
 | `settings` | one JSON blob per user, `updatedAt` | provider choice, gesture keys, not API keys |
 | `history` | `id`, `mode`, `text`, `app`, `createdAt` | last N transcripts, optional opt-in |
 | `tasks` | `id`, `title`, `notes`, `dueAt`, `rrule`, `priority`, `status`, `sourceText`, `updatedAt`, `deletedAt` | from the tasks brainstorm on 2026-09-25 |
