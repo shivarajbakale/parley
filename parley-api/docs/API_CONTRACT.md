@@ -131,9 +131,13 @@ PUT /api/{resource}   {"items":[<row>,…]}
 {"data":[<winning row>,…],"meta":{"timestamp":"…","statusCode":200,"now":1790000000000}}
 ```
 
-- `since` defaults to 0 and must be a non-negative number. A pull returns rows
-  with `updatedAt > since`, oldest first, at most 1000, **including tombstones**
-  (rows with `deletedAt` set). Use `meta.now` as the next `since`.
+- `since` defaults to 0 and must be a non-negative integer. A pull returns rows
+  the server stored after `since` (a server-assigned `syncedAt`, not the client
+  `updatedAt`, so an old offline edit is still delivered), oldest first, at most
+  1000, **including tombstones** (rows with `deletedAt` set). `meta.now` is the
+  next `since`. `meta.hasMore` is true when more rows remain: **while `hasMore`
+  is true, call again with the returned `meta.now`, until it is false.**
+- Rows are keyed by `(userId, id)`, so two users can use the same row id.
 - A push takes at most **500** items. The response holds the winning row for
   every submitted id, so the client overwrites its copy with it.
 - **Merge rule: last writer wins** on `updatedAt`. An incoming row with an older
@@ -154,11 +158,7 @@ tasks:      { id, title, notes, dueAt?, rrule?, priority, status, sourceText, up
 ```
 
 Sync responses carry the standard `meta.timestamp` and `meta.statusCode` plus
-`meta.now`, merged in by the transform from `res.locals.meta`.
-
-(NestJS's interceptor merges instead of passing through, so the same request
-there returns all six fields. If you are writing one client for both, read the
-list's own `meta.total` / `meta.page` and ignore the rest.)
+`meta.now` and `meta.hasMore`, merged in by the transform from `res.locals.meta`.
 
 ## Errors
 

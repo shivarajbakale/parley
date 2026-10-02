@@ -7,10 +7,10 @@ export const pullFor = (resource: SyncResource) =>
   asyncHandler(async (req: Request, res: Response) => {
     const raw = req.query.since;
     const since = raw === undefined ? 0 : Number(raw);
-    if (!Number.isFinite(since) || since < 0) throw new AppError('since must be a non-negative number', 400);
-    const data = await syncService.pull(resource, req.userId!, since);
-    res.locals.meta = { now: Date.now() };
-    res.status(200).json(data);
+    if (!Number.isInteger(since) || since < 0) throw new AppError('since must be a non-negative integer', 400);
+    const { rows, hasMore, cursor } = await syncService.pull(resource, req.userId!, since);
+    res.locals.meta = { now: cursor, hasMore };
+    res.status(200).json(rows);
   });
 
 export const pushFor = (resource: SyncResource) =>

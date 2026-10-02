@@ -39,32 +39,36 @@ model ApiToken {
 // clients wrote, and SQLite DateTime would round them.
 
 model DictionaryEntry {
-  id         String  @id
+  id         String
   userId     String
   word       String
   soundsLike String  @default("[]") // JSON string[]
   updatedAt  BigInt
   deletedAt  BigInt?
+  syncedAt  BigInt // server ms, set on every write: the pull cursor
   user       User    @relation(fields: [userId], references: [id])
 
-  @@index([userId, updatedAt])
+  @@id([userId, id])
+  @@index([userId, syncedAt])
   @@map("dictionary_entries")
 }
 
 model SettingsBlob {
-  id        String  @id // one row per user: id == userId
+  id        String // one row per user: id == userId
   userId    String
   data      String  @default("{}") // JSON, never API keys
   updatedAt BigInt
   deletedAt BigInt?
+  syncedAt BigInt // server ms, set on every write: the pull cursor
   user      User    @relation(fields: [userId], references: [id])
 
-  @@index([userId, updatedAt])
+  @@id([userId, id])
+  @@index([userId, syncedAt])
   @@map("settings_blobs")
 }
 
 model HistoryItem {
-  id        String  @id
+  id        String
   userId    String
   mode      String
   text      String
@@ -72,14 +76,16 @@ model HistoryItem {
   createdAt BigInt
   updatedAt BigInt
   deletedAt BigInt?
+  syncedAt BigInt // server ms, set on every write: the pull cursor
   user      User    @relation(fields: [userId], references: [id])
 
-  @@index([userId, updatedAt])
+  @@id([userId, id])
+  @@index([userId, syncedAt])
   @@map("history_items")
 }
 
 model Task {
-  id         String  @id
+  id         String
   userId     String
   title      String
   notes      String  @default("")
@@ -90,8 +96,10 @@ model Task {
   sourceText String  @default("")
   updatedAt  BigInt
   deletedAt  BigInt?
+  syncedAt  BigInt // server ms, set on every write: the pull cursor
   user       User    @relation(fields: [userId], references: [id])
 
-  @@index([userId, updatedAt])
+  @@id([userId, id])
+  @@index([userId, syncedAt])
   @@map("tasks")
 }

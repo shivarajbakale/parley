@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { mergeRow, type SyncRow } from './merge';
 import type { SyncResource, AnyRow, DictionaryRow, SettingsRow, HistoryRow, TaskRow } from '../types/sync.types';
@@ -55,51 +56,67 @@ function toWire(resource: SyncResource, row: DbRow): AnyRow {
   }
 }
 
-function table(resource: SyncResource) {
+type Delegate = {
+  findMany(args: unknown): Promise<DbRow[]>;
+  findUnique(args: unknown): Promise<DbRow | null>;
+  upsert(args: unknown): Promise<DbRow>;
+};
+
+function table(resource: SyncResource, client: Prisma.TransactionClient | typeof prisma = prisma): Delegate {
   // Prisma delegates share the findUnique/findMany/upsert shape used below.
   const map = {
-    dictionary: prisma.dictionaryEntry,
-    settings: prisma.settingsBlob,
-    history: prisma.historyItem,
-    tasks: prisma.task,
+    dictionary: client.dictionaryEntry,
+    settings: client.settingsBlob,
+    history: client.historyItem,
+    tasks: client.task,
   } as const;
-  return map[resource] as unknown as {
-    findMany(args: unknown): Promise<DbRow[]>;
-    findUnique(args: unknown): Promise<DbRow | null>;
-    upsert(args: unknown): Promise<DbRow>;
-  };
+  return map[resource] as unknown as Delegate;
 }
 
+const PAGE = 1000;
+
+/**
+ * Delivery cursor is `syncedAt`, a server clock stamped on every write, so an
+ * offline edit with an old client `updatedAt` is still delivered. `now` is
+ * captured before the query: a write landing mid-query is re-sent, not lost.
+ */
 export const pull = async (resource: SyncResource, userId: string, since: number) => {
+  const now = Date.now();
   const rows = await table(resource).findMany({
-    where: { userId, updatedAt: { gt: BigInt(since) } },
-    orderBy: { updatedAt: 'asc' },
-    take: 1000,
+    where: { userId, syncedAt: { gt: BigInt(since) } },
+    orderBy: { syncedAt: 'asc' },
+    take: PAGE + 1,
   });
-  return rows.map(r => toWire(resource, r));
+  const hasMore = rows.length > PAGE;
+  const page = rows.slice(0, PAGE);
+  const cursor = hasMore ? Number(page[PAGE - 1].syncedAt) : now;
+  return { rows: page.map(r => toWire(resource, r)), hasMore, cursor };
 };
 
 export const push = async (resource: SyncResource, userId: string, items: AnyRow[], now = Date.now()) => {
   const winners: AnyRow[] = [];
   for (const item of items) {
     const data = toDb(resource, userId, item);
-    const existing = await table(resource).findUnique({ where: { id: data.id } });
-    if (existing && existing.userId !== userId) {
-      // An id collision across users: ignore the foreign row, treat as insert under a scoped id.
-      continue;
-    }
-    const current: SyncRow | null = existing
-      ? { id: existing.id, updatedAt: Number(existing.updatedAt), deletedAt: num(existing.deletedAt) }
-      : null;
-    const incoming: SyncRow = { id: data.id, updatedAt: item.updatedAt, deletedAt: item.deletedAt ?? null };
-    const { winner, changed } = mergeRow(current, incoming, now);
-    if (changed) {
-      const clamped = { ...data, updatedAt: BigInt(winner.updatedAt), deletedAt: big(winner.deletedAt) };
-      const saved = await table(resource).upsert({ where: { id: data.id }, create: clamped, update: clamped });
-      winners.push(toWire(resource, saved));
-    } else if (existing) {
-      winners.push(toWire(resource, existing));
-    }
+    const key = { userId_id: { userId, id: data.id } };
+    const winner = await prisma.$transaction(async tx => {
+      const t = table(resource, tx);
+      const existing = await t.findUnique({ where: key });
+      const current: SyncRow | null = existing
+        ? { id: existing.id, updatedAt: Number(existing.updatedAt), deletedAt: num(existing.deletedAt) }
+        : null;
+      const incoming: SyncRow = { id: data.id, updatedAt: item.updatedAt, deletedAt: item.deletedAt ?? null };
+      const merged = mergeRow(current, incoming, now);
+      if (!merged.changed) return existing ? toWire(resource, existing) : null;
+      const clamped = {
+        ...data,
+        updatedAt: BigInt(merged.winner.updatedAt),
+        deletedAt: big(merged.winner.deletedAt),
+        syncedAt: BigInt(Date.now()),
+      };
+      const saved = await t.upsert({ where: key, create: clamped, update: clamped });
+      return toWire(resource, saved);
+    });
+    if (winner) winners.push(winner);
   }
   return winners;
 };

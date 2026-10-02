@@ -12,6 +12,8 @@ describe('sync schema', () => {
       expect(fields.userId.type).toBe('String');
       expect(fields.updatedAt.type).toBe('BigInt');
       expect(fields.deletedAt.isRequired).toBe(false);
+      expect(fields.syncedAt.type).toBe('BigInt');
+      expect(model!.primaryKey?.fields).toEqual(['userId', 'id']);
     });
   }
   it('ApiToken stores a hash, never a token', () => {
