@@ -6,7 +6,7 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:react-hooks/recommended',
   ],
-  ignorePatterns: ['dist', 'dist-electron', 'release', '.eslintrc.cjs', 'parley-agent'],
+  ignorePatterns: ['dist', 'dist-electron', 'release', '.eslintrc.cjs', 'parley-agent', 'parley-api', 'parley-android'],
   parser: '@typescript-eslint/parser',
   plugins: ['react-refresh'],
   rules: {

@@ -26,3 +26,6 @@ storybook-static
 # Environment files
 .env*
 !.env.example 
+parley-api
+parley-android
+parley-agent

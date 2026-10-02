@@ -81,7 +81,7 @@ export default defineConfig(({ command }) => {
     css: true,
     // A git worktree under `.claude/worktrees` is a second copy of this repo
     // with its own branch: its tests are that branch's business, not this run's.
-    exclude: [...configDefaults.exclude, '.claude/**'],
+    exclude: [...configDefaults.exclude, '.claude/**', 'parley-api/**', 'parley-android/**'],
   },
   };
 });

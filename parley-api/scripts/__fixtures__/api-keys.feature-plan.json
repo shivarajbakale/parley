@@ -1,0 +1,110 @@
+{
+  "feature": {
+    "id": "api-keys",
+    "title": "Let a customer rotate their own API key",
+    "problem": "Rotating a key means emailing support, who run a query by hand. It is slow for the customer and it is a production write nobody reviews.",
+    "nonGoals": [
+      "Multiple simultaneous keys per account. One active key, one grace window.",
+      "A UI. This is the API the client will call."
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "rotate",
+      "name": "Rotate key",
+      "kind": "endpoint",
+      "purpose": "Issue a new key and start a grace window on the old one.",
+      "trigger": "POST /v1/api-keys/rotate",
+      "entrypoint": "src/routes/api-keys.ts",
+      "calls": [
+        "ApiKeyService.rotate()",
+        "audit.record('api-key.rotated')"
+      ]
+    },
+    {
+      "id": "api-keys",
+      "name": "API keys",
+      "kind": "resource",
+      "purpose": "The module that owns key issuance, hashing and expiry.",
+      "trigger": "the router",
+      "entrypoint": "src/services/api-keys.ts",
+      "calls": [
+        "prisma.apiKey"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/v1/api-keys/rotate",
+      "purpose": "Issue a new key; the old one keeps working for the grace window.",
+      "auth": "the current API key"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/api-keys",
+      "purpose": "List the account's keys, prefix and status only \u2014 never the secret.",
+      "auth": "the current API key"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/api-keys/{id}",
+      "purpose": "Revoke a key immediately, ending its grace window.",
+      "auth": "the current API key"
+    }
+  ],
+  "jobs": [
+    {
+      "name": "expire-grace-windows",
+      "trigger": "hourly schedule",
+      "onFailure": "Logged and retried next hour; a missed run leaves an old key valid slightly longer, which is why the window is stored as an absolute time rather than a countdown."
+    }
+  ],
+  "entities": [
+    {
+      "name": "ApiKey",
+      "fields": [
+        {
+          "name": "id",
+          "type": "String"
+        },
+        {
+          "name": "accountId",
+          "type": "String"
+        },
+        {
+          "name": "prefix",
+          "type": "String"
+        },
+        {
+          "name": "hash",
+          "type": "String"
+        },
+        {
+          "name": "expiresAt",
+          "type": "DateTime?"
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "surface": "api-keys",
+      "control": "argon2id",
+      "why": "Keys are stored hashed like passwords; argon2id is the default the rest of the service already uses.",
+      "rejected": "sha256"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "src/routes/api-keys.ts",
+      "src/services/api-keys.ts",
+      "src/schemas/api-keys.ts",
+      "test/api-keys.test.ts"
+    ],
+    "changed": [
+      "src/routes/index.ts",
+      "prisma/schema.prisma"
+    ]
+  }
+}

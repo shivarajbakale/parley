@@ -276,6 +276,23 @@
         "Not run: make dev against a real model and real MCP servers (needs API keys, mic + Accessibility grants, and a human at the Mac). See the Act mode block in docs/MANUAL_CHECKLIST.md."
       ],
       "notes": "Plan written 2026-09-26; revised four times the same day: inline MCP tools to Mastra handoff, user-run to Parley-managed server, a 20-item edge-case pass, then the full impeccable critique fold (approvals wait until answered, summary-first copy with transcript echo, tab mirror with Approve/Decline, capability-first tab with Advanced collapse, standing failure record, no voice approval v1). Interview: new gesture key, confirm-writes/auto-read, new parley-agent project, Parley spawns and supervises. Implementation complete on feat/parley-013-act; stays in_progress until a human walks the Act mode block of docs/MANUAL_CHECKLIST.md with a real model key and MCP servers. Placement changed after review: parley-agent/ is an in-repo project, not a ../Mastra sibling. Two deviations from the plan worth knowing: agent routes live at /parley/* instead of /api/parley/* (Mastra reserves /api, confirmed in its own docs and the jev-poc house convention), and the packaged bundle ships ~200M of node_modules because bundler.externals:false fails on mastra 1.30 (NOTE in parley-agent/src/mastra/index.ts)."
+    },
+    {
+      "id": "parley-014",
+      "priority": 16,
+      "area": "repo",
+      "title": "Monorepo: Android and the sync API live beside the desktop app",
+      "user_visible_behavior": "One clone holds the desktop app, the agent, the Android app and the API. ./init.sh installs all of them and make check verifies all of them, skipping Android when flutter is absent.",
+      "status": "in_progress",
+      "plan": "none: repository plumbing, no UI surface",
+      "verification": [
+        "make check",
+        "git log --oneline 66493cd^2 | wc -l is at least 16 (the Android subtree merge parent)",
+        "make -C parley-api check",
+        "make android-check prints the skip line without flutter and runs the Flutter check with it"
+      ],
+      "evidence": [],
+      "notes": "Spec docs/superpowers/specs/2026-10-02-monorepo-and-api-design.md, layout A."
     }
   ]
 }

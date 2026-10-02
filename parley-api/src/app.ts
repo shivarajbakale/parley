@@ -1,0 +1,76 @@
+import express, { Application } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import { config } from './config/env';
+import routes from './routes';
+import { errorHandler } from './middleware/error.middleware';
+import { notFoundHandler } from './middleware/notFound.middleware';
+import { transformResponse } from './middleware/transform.middleware';
+import { correlationId } from './middleware/correlation.middleware';
+import { stream } from './utils/logger';
+
+const app: Application = express();
+
+// Correlation ID middleware (must be first to ensure all logs have correlation ID)
+app.use(correlationId);
+
+// Security middleware
+app.use(helmet());
+
+// CORS with dynamic origin validation
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  config.frontendUrl,
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Allow explicitly listed origins
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+}));
+
+// Body parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Logging middleware - integrated with Winston
+if (config.nodeEnv === 'development') {
+  app.use(morgan('dev', { stream }));
+} else {
+  app.use(morgan('combined', { stream }));
+}
+
+// Response transform middleware (wraps responses in consistent format)
+app.use(transformResponse);
+
+// API routes
+app.use('/api', routes);
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Parley sync API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      users: '/api/users',
+    }
+  });
+});
+
+// 404 handler
+app.use(notFoundHandler);
+
+// Error handler (must be last)
+app.use(errorHandler);
+
+export default app;

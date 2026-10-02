@@ -1,0 +1,20 @@
+// Prisma schema — SQLite by default. Swap `provider` to "postgresql" / "mysql"
+// and update DATABASE_URL in .env to move to another database.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}

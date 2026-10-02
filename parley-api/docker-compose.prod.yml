@@ -1,0 +1,19 @@
+# Production compose for a self-hosted deploy (Mac mini / VPS).
+#   docker compose -f docker-compose.prod.yml up -d --build
+# The SQLite database is persisted in the `app-data` volume so it survives
+# rebuilds and redeploys. Override PORT / secrets via a shell env or an .env file.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: "file:/data/prod.db"
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - app-data:/data
+
+volumes:
+  app-data:
