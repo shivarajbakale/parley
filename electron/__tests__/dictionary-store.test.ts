@@ -50,9 +50,9 @@ describe('dictionary store', () => {
   });
 
   it('drops a sounds-like that is only the word again', () => {
-    expect(open().upsert({ word: 'Parley', soundsLike: ['parley', 'parlay'] })?.soundsLike).toEqual([
-      'parlay',
-    ]);
+    expect(open().upsert({ word: 'Parley', soundsLike: ['parley', 'parlay'] })?.soundsLike).toEqual(
+      ['parlay']
+    );
   });
 
   it('refuses an empty or oversized word', () => {
@@ -100,7 +100,7 @@ describe('dictionary store', () => {
       })
     );
     expect(open().list()).toEqual([
-      { id: 'a', word: 'Groq', soundsLike: ['grok'], uses: 3, lastUsedAt: 9 },
+      { id: 'a', word: 'Groq', soundsLike: ['grok'], uses: 3, lastUsedAt: 9, updatedAt: 9 },
     ]);
   });
 
@@ -120,5 +120,87 @@ describe('dictionary store', () => {
     open().upsert({ word: 'Groq', soundsLike: [] });
     const body = JSON.parse(readFileSync(path.join(dir, 'dictionary.json'), 'utf8'));
     expect(body.entries[0].word).toBe('Groq');
+  });
+
+  it('stamps updatedAt and reports changes since a time', () => {
+    let clock = 100;
+    const store = createDictionaryStore({ dir, now: () => clock });
+    const a = store.upsert({ word: 'MiniMax', soundsLike: ['mini max'] })!;
+    clock = 200;
+    const b = store.upsert({ word: 'Groq', soundsLike: [] })!;
+    expect(a.updatedAt).toBe(100);
+    expect(store.changedSince(150).entries.map(e => e.id)).toEqual([b.id]);
+    clock = 300;
+    store.remove(a.id);
+    expect(store.changedSince(250).removed).toEqual([{ id: a.id, deletedAt: 300 }]);
+    expect(store.list().map(e => e.id)).toEqual([b.id]);
+  });
+
+  it('applies newer remote rows and ignores older ones', () => {
+    const clock = 100;
+    const store = createDictionaryStore({ dir, now: () => clock });
+    const a = store.upsert({ word: 'MiniMax', soundsLike: [] })!;
+    store.applyRemote([
+      { id: a.id, word: 'MiniMax', soundsLike: ['mini max'], updatedAt: 150, deletedAt: null },
+      { id: 'remote-1', word: 'Deepgram', soundsLike: [], updatedAt: 120, deletedAt: null },
+      { id: a.id, word: 'Stale', soundsLike: [], updatedAt: 90, deletedAt: null },
+    ]);
+    const byId = Object.fromEntries(store.list().map(e => [e.id, e]));
+    expect(byId[a.id].soundsLike).toEqual(['mini max']);
+    expect(byId['remote-1'].word).toBe('Deepgram');
+    store.applyRemote([
+      { id: 'remote-1', word: 'Deepgram', soundsLike: [], updatedAt: 130, deletedAt: 130 },
+    ]);
+    expect(store.list().some(e => e.id === 'remote-1')).toBe(false);
+    expect(
+      createDictionaryStore({ dir })
+        .changedSince(0)
+        .removed.some(r => r.id === 'remote-1')
+    ).toBe(true);
+  });
+
+  it('migrates an entry without updatedAt from lastUsedAt', () => {
+    writeFileSync(
+      path.join(dir, 'dictionary.json'),
+      JSON.stringify({
+        entries: [{ id: 'old', word: 'Old', soundsLike: [], uses: 1, lastUsedAt: 42 }],
+      })
+    );
+    expect(createDictionaryStore({ dir }).list()[0].updatedAt).toBe(42);
+  });
+
+  it('re-applying the same remote rows changes nothing', () => {
+    const store = createDictionaryStore({ dir, now: () => 100 });
+    const rows = [
+      { id: 'r1', word: 'Deepgram', soundsLike: [], updatedAt: 120, deletedAt: null },
+      { id: 'r2', word: 'Gone', soundsLike: [], updatedAt: 130, deletedAt: 130 },
+    ];
+    store.applyRemote(rows);
+    const before = JSON.stringify([store.list(), store.changedSince(0)]);
+    store.applyRemote(rows);
+    expect(JSON.stringify([store.list(), store.changedSince(0)])).toBe(before);
+  });
+
+  it('keeps local uses on a remote update and caps tombstones at 500', () => {
+    const store = createDictionaryStore({ dir, now: () => 100 });
+    const a = store.upsert({ word: 'Groq', soundsLike: [] })!;
+    store.recordUses([a.id]);
+    store.applyRemote([
+      { id: a.id, word: 'Groq', soundsLike: ['grok'], updatedAt: 500, deletedAt: null },
+    ]);
+    expect(store.list()[0]).toMatchObject({ uses: 1, lastUsedAt: 100, updatedAt: 500 });
+    store.applyRemote(
+      Array.from({ length: 510 }, (_, i) => ({
+        id: `t${i}`,
+        word: 'x',
+        soundsLike: [],
+        updatedAt: 1000 + i,
+        deletedAt: 1000 + i,
+      }))
+    );
+    const removed = store.changedSince(0).removed;
+    expect(removed).toHaveLength(500);
+    expect(removed.some(r => r.id === 't509')).toBe(true);
+    expect(removed.some(r => r.id === 't0')).toBe(false);
   });
 });

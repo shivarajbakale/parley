@@ -10,7 +10,7 @@ import {
 } from '../dictionary';
 
 function entry(word: string, soundsLike: string[] = [], rest: Partial<DictionaryEntry> = {}) {
-  return { id: word, word, soundsLike, uses: 0, lastUsedAt: 0, ...rest };
+  return { id: word, word, soundsLike, uses: 0, lastUsedAt: 0, updatedAt: 0, ...rest };
 }
 
 describe('whisperPrompt', () => {

@@ -13,6 +13,8 @@ export interface DictionaryEntry {
   uses: number;
   /** Milliseconds since the epoch; a new entry starts at its creation time. */
   lastUsedAt: number;
+  /** Milliseconds since the epoch of the last edit; what sync compares. */
+  updatedAt: number;
 }
 
 /**
