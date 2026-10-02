@@ -11,6 +11,15 @@ describe('sync schemas', () => {
     });
     expect(r.success).toBe(false);
   });
+  it('rejects credential-shaped names but accepts gesture keys', () => {
+    const s = rowSchemaFor('settings');
+    for (const name of ['groqApiKey', 'token', 'secret', 'password', 'key', 'api_key']) {
+      expect(s.safeParse({ id: 'x', updatedAt: 1, data: { [name]: 'v' } }).success, name).toBe(false);
+    }
+    expect(
+      s.safeParse({ id: 'x', updatedAt: 1, data: { gestureKey: 'AltRight', editGestureKey: 'MetaRight' } }).success,
+    ).toBe(true);
+  });
   it('caps a push at 500 items', () => {
     const items = Array.from({ length: 501 }, (_, i) => ({ id: `d${i}`, word: 'w', soundsLike: [], updatedAt: 1 }));
     expect(pushSchemaFor('dictionary').safeParse({ items }).success).toBe(false);

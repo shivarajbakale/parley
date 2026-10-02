@@ -26,6 +26,23 @@ describe('sync client', () => {
     expect(await client.pull('settings', 0)).toEqual({ rows: [], now: 9, hasMore: true });
   });
 
+  it('treats a 2xx without the envelope as a failure, not a success', async () => {
+    const html = vi.fn(() =>
+      Promise.resolve(new Response('<html>Sign in to Wi-Fi</html>', { status: 200, headers: { 'content-type': 'text/html' } })));
+    const portal = createSyncClient({ baseUrl: 'http://x', token: 'tok', fetch: html as never });
+    await expect(portal.pull('dictionary', 0)).rejects.toBeInstanceOf(SyncHttpError);
+    await expect(portal.push('dictionary', [])).rejects.toMatchObject({ message: 'Malformed response from the sync server' });
+
+    const noNow = vi.fn(() => json(200, { data: [], meta: {} }));
+    const client = createSyncClient({ baseUrl: 'http://x', token: 'tok', fetch: noNow as never });
+    await expect(client.pull('dictionary', 0)).rejects.toBeInstanceOf(SyncHttpError);
+    await expect(client.push('dictionary', [])).rejects.toBeInstanceOf(SyncHttpError);
+
+    const noData = vi.fn(() => json(201, { meta: {} }));
+    const signIn = createSyncClient({ baseUrl: 'http://x', token: null, fetch: noData as never });
+    await expect(signIn.signIn('me@example.com')).rejects.toBeInstanceOf(SyncHttpError);
+  });
+
   it('throws SyncHttpError with the status on a non-2xx', async () => {
     const fetchMock = vi.fn(() => json(401, { status: 'error', message: 'Invalid token' }));
     const client = createSyncClient({ baseUrl: 'http://x', token: 'bad', fetch: fetchMock as never });

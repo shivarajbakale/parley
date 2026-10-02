@@ -40,14 +40,19 @@ function fakeDictionary() {
 function fakeSettings() {
   let current = { ...DEFAULT_SETTINGS, syncEnabled: true, syncUrl: 'http://x', syncEmail: 'a@b.c', tickSound: false };
   const recorded: unknown[] = [];
+  let stamp = 60;
   return {
     recorded,
     get: () => current,
     update: vi.fn((patch: object) => (current = { ...current, ...patch })),
+    applyRemote: vi.fn((patch: object, updatedAt: number) => {
+      stamp = updatedAt;
+      return (current = { ...current, ...patch });
+    }),
     recordSync: vi.fn((r: { at: number; error?: string }) => {
       recorded.push(r);
     }),
-    settingsUpdatedAt: () => 60,
+    settingsUpdatedAt: vi.fn(() => stamp),
   };
 }
 
@@ -131,15 +136,81 @@ describe('sync engine', () => {
       client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(0), lastSyncAt: () => 0,
     });
     await engine.syncNow();
-    expect(settings.update).toHaveBeenCalledWith({ tickSound: true });
+    expect(settings.applyRemote).toHaveBeenCalledWith({ tickSound: true }, 90);
+    expect(settings.update).not.toHaveBeenCalled();
 
-    settings.update.mockClear();
+    settings.applyRemote.mockClear();
     client.pull.mockImplementation(async (resource: string) =>
       resource === 'settings'
         ? { rows: [{ id: 'u', data: { tickSound: true }, updatedAt: 40, deletedAt: null }], now: 1, hasMore: false }
         : { rows: [], now: 1, hasMore: false });
     await engine.syncNow();
-    expect(settings.update).not.toHaveBeenCalled();
+    expect(settings.applyRemote).not.toHaveBeenCalled();
+  });
+
+  it('keeps the remote stamp, so the applied blob is not echoed back next run', async () => {
+    const client = fakeClient();
+    client.pull.mockImplementation(async (resource: string) =>
+      resource === 'settings'
+        ? { rows: [{ id: 'u', data: { tickSound: true }, updatedAt: 90, deletedAt: null }], now: 1, hasMore: false }
+        : { rows: [], now: 1, hasMore: false });
+    const settings = fakeSettings();
+    let last = 70;
+    settings.recordSync.mockImplementation((r: { at: number }) => {
+      last = r.at;
+    });
+    const dictionary = fakeDictionary();
+    dictionary.changedSince.mockReturnValue({ entries: [], removed: [] });
+    // The window opens at 70 (local stamp 60 is older, so nothing is pushed) and the
+    // run records its start at 100, after the remote blob's 90.
+    const engine = createSyncEngine({
+      client: asClient(client), dictionary, settings, cursor: fixedCursor(0), lastSyncAt: () => last, now: () => 100,
+    });
+    await engine.syncNow();
+    expect(settings.settingsUpdatedAt()).toBe(90);
+    client.push.mockClear();
+    await engine.syncNow();
+    expect(client.push.mock.calls.filter(c => c[0] === 'settings')).toHaveLength(0);
+  });
+
+  it('does not overwrite a setting the user changed while the run was in flight', async () => {
+    const client = fakeClient();
+    client.pull.mockImplementation(async (resource: string) =>
+      resource === 'settings'
+        ? { rows: [{ id: 'u', data: { tickSound: true }, updatedAt: 90, deletedAt: null }], now: 1, hasMore: false }
+        : { rows: [], now: 1, hasMore: false });
+    const settings = fakeSettings();
+    settings.settingsUpdatedAt.mockReturnValueOnce(60).mockReturnValue(95);
+    const engine = createSyncEngine({
+      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(0), lastSyncAt: () => 0,
+    });
+    const outcome = await engine.syncNow();
+    expect(outcome.ok).toBe(true);
+    expect(settings.applyRemote).not.toHaveBeenCalled();
+  });
+
+  it('pushes a settings blob the server accepts, gesture keys included', async () => {
+    const SERVER_FORBIDDEN = /^(api_?key|key)$|apikey|token|secret|password/i;
+    const client = fakeClient();
+    const settings = fakeSettings();
+    const engine = createSyncEngine({
+      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(0), lastSyncAt: () => 0,
+    });
+    await engine.syncNow();
+    const data = (client.push.mock.calls.find(c => c[0] === 'settings')![1][0] as { data: Record<string, unknown> }).data;
+    expect(Object.keys(data).filter(k => SERVER_FORBIDDEN.test(k))).toEqual([]);
+    expect(data).toHaveProperty('gestureKey', DEFAULT_SETTINGS.gestureKey);
+  });
+
+  it('fails instead of looping when the server does not advance the cursor', async () => {
+    const client = fakeClient();
+    client.pull.mockResolvedValue({ rows: [], now: 0, hasMore: true });
+    const engine = createSyncEngine({
+      client: asClient(client), dictionary: fakeDictionary(), settings: fakeSettings(), cursor: fixedCursor(0), lastSyncAt: () => 0,
+    });
+    const outcome = await engine.syncNow();
+    expect(outcome).toMatchObject({ ok: false, message: 'Sync server did not advance the cursor' });
+    expect(client.pull).toHaveBeenCalledTimes(1);
   });
 
   it('never throws: a down server becomes a recorded error and the cursor stays', async () => {

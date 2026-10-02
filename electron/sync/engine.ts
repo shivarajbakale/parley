@@ -7,8 +7,9 @@ import { type SyncClient, SyncHttpError } from './client';
 
 /** Device-local: which server, who, and whether to sync are never synced. */
 const LOCAL_ONLY: (keyof Settings)[] = ['syncEnabled', 'syncUrl', 'syncEmail'];
-/** A remote blob is as untrusted as the renderer; the store's patch cleaner drops the rest. */
-const FORBIDDEN = /key|token|secret/i;
+/** Mirrors the server's FORBIDDEN_SETTINGS_KEYS. A remote blob is as untrusted as
+ * the renderer; the store's patch cleaner drops the rest. */
+const FORBIDDEN = /^(api_?key|key)$|apikey|token|secret|password/i;
 /** The API's per-request ceiling for a push. */
 const PUSH_BATCH = 500;
 const SIGNED_OUT = 'Signed out: the server rejected the token';
@@ -30,7 +31,7 @@ interface SettingsWire {
 export interface SyncDeps {
   client: SyncClient;
   dictionary: Pick<DictionaryStore, 'changedSince' | 'applyRemote' | 'list'>;
-  settings: Pick<SettingsStore, 'get' | 'update' | 'recordSync' | 'settingsUpdatedAt'>;
+  settings: Pick<SettingsStore, 'get' | 'applyRemote' | 'recordSync' | 'settingsUpdatedAt'>;
   /** The server's pull cursor: the last `now` of a successful drain. */
   cursor: { get(): number; set(value: number): void };
   /**
@@ -89,6 +90,7 @@ export function createSyncEngine({ client, dictionary, settings, cursor, lastSyn
     let page;
     do {
       page = await client.pull<T>(resource, since);
+      if (page.hasMore && page.now <= since) throw new Error('Sync server did not advance the cursor');
       onPage(page.rows);
       since = page.now;
     } while (page.hasMore);
@@ -131,8 +133,11 @@ export function createSyncEngine({ client, dictionary, settings, cursor, lastSyn
       const settingsNow = await drain<SettingsWire>('settings', since, rows => {
         for (const row of rows) if (!newest || row.updatedAt > newest.updatedAt) newest = row;
       });
-      if (newest && newest.deletedAt == null && newest.updatedAt > settingsStamp) {
-        settings.update(remotePatch(newest.data));
+      // Re-read: the user may have changed a setting while the network was busy.
+      if (newest && newest.deletedAt == null && newest.updatedAt > settings.settingsUpdatedAt()) {
+        // Keeps the remote stamp, so the blob is neither echoed back nor allowed to
+        // outrank a newer edit from a third device.
+        settings.applyRemote(remotePatch(newest.data), newest.updatedAt);
         pulled += 1;
       }
 

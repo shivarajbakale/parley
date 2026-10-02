@@ -56,6 +56,9 @@ export interface SettingsStore {
   setSyncToken(token: string | null): void;
   /** Envelope-only: the outcome of the last sync attempt. */
   recordSync(result: { at: number; error?: string }): void;
+  /** Last-writer-wins apply of a synced blob: sanitized like `update()`, and stamped
+   * with the remote `updatedAt`, never the local clock. */
+  applyRemote(patch: Partial<Settings>, updatedAt: number): Settings;
   /** Epoch ms of the last `update()` that changed a value; 0 on a fresh store. */
   settingsUpdatedAt(): number;
   getSyncCursor(): number;
@@ -230,6 +233,12 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       );
       settings = { ...settings, ...clean };
       if (changed) settingsUpdatedAt = Date.now();
+      save();
+      return settings;
+    },
+    applyRemote(patch, updatedAt) {
+      settings = { ...settings, ...sanitize(patch) };
+      settingsUpdatedAt = num(updatedAt);
       save();
       return settings;
     },

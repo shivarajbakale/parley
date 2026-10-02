@@ -6,7 +6,9 @@ export type SyncResource = (typeof SYNC_RESOURCES)[number];
 const ms = z.number().int().nonnegative();
 const base = { id: z.string().min(1).max(64), updatedAt: ms, deletedAt: ms.nullable().optional() };
 
-const FORBIDDEN_SETTINGS_KEYS = /key|token|secret/i;
+/** Credential-shaped names only: a bare `key`/`api_key`, anything `apikey`, tokens, secrets, passwords.
+ * `gestureKey` and friends are hotkeys, not credentials, and must pass. */
+const FORBIDDEN_SETTINGS_KEYS = /^(api_?key|key)$|apikey|token|secret|password/i;
 
 export const dictionaryRow = z
   .object({

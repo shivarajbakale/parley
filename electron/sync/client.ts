@@ -4,6 +4,8 @@ export interface SyncClientOptions {
   fetch?: typeof fetch;
 }
 
+const MALFORMED = 'Malformed response from the sync server';
+
 export class SyncHttpError extends Error {
   constructor(
     public status: number,
@@ -37,7 +39,8 @@ interface Meta {
 export function createSyncClient({ baseUrl, token, fetch: doFetch = fetch }: SyncClientOptions): SyncClient {
   const root = baseUrl.replace(/\/+$/, '');
 
-  async function call<T>(method: string, path: string, body?: unknown): Promise<{ data: T; meta: Meta }> {
+  /** A 2xx that is not our envelope (a captive portal, a proxy page) is a failure, never a success. */
+  async function call<T>(method: string, path: string, body?: unknown): Promise<{ data: T; meta: Meta; status: number }> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers.Authorization = `Bearer ${token}`;
     const res = await doFetch(`${root}${path}`, {
@@ -45,9 +48,17 @@ export function createSyncClient({ baseUrl, token, fetch: doFetch = fetch }: Syn
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    const parsed = (await res.json().catch(() => ({}))) as { data?: T; meta?: Meta; message?: string };
-    if (!res.ok) throw new SyncHttpError(res.status, parsed.message ?? `HTTP ${res.status}`);
-    return { data: parsed.data as T, meta: parsed.meta ?? {} };
+    const parsed = (await res.json().catch(() => null)) as { data?: T; meta?: Meta; message?: string } | null;
+    if (!res.ok) throw new SyncHttpError(res.status, parsed?.message ?? `HTTP ${res.status}`);
+    if (!parsed || typeof parsed !== 'object' || parsed.data === undefined) throw new SyncHttpError(res.status, MALFORMED);
+    return { data: parsed.data, meta: parsed.meta ?? {}, status: res.status };
+  }
+
+  /** The cursor is the server's clock; a page without it cannot be trusted. */
+  async function stamped<T>(method: string, path: string, body?: unknown): Promise<{ data: T; now: number; hasMore: boolean }> {
+    const { data, meta, status } = await call<T>(method, path, body);
+    if (typeof meta.now !== 'number' || !Number.isFinite(meta.now)) throw new SyncHttpError(status, MALFORMED);
+    return { data, now: meta.now, hasMore: meta.hasMore === true };
   }
 
   return {
@@ -56,12 +67,12 @@ export function createSyncClient({ baseUrl, token, fetch: doFetch = fetch }: Syn
       return { token: data.token };
     },
     async pull<T>(resource: string, since: number) {
-      const { data, meta } = await call<T[]>('GET', `/api/${resource}?since=${since}`);
-      return { rows: data ?? [], now: meta.now ?? Date.now(), hasMore: meta.hasMore === true };
+      const { data, now, hasMore } = await stamped<T[]>('GET', `/api/${resource}?since=${since}`);
+      return { rows: data, now, hasMore };
     },
     async push<T>(resource: string, items: T[]) {
-      const { data, meta } = await call<T[]>('PUT', `/api/${resource}`, { items });
-      return { rows: data ?? [], now: meta.now ?? Date.now() };
+      const { data, now } = await stamped<T[]>('PUT', `/api/${resource}`, { items });
+      return { rows: data, now };
     },
   };
 }

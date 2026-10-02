@@ -371,4 +371,12 @@ describe('settings store', () => {
     store.setSyncCursor(5);
     expect(createSettingsStore({ dir, crypto }).getSyncCursor()).toBe(5);
   });
+
+  it('applies a remote patch under the remote stamp, sanitized like update', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.applyRemote({ tickSound: false, tapCount: 9 as never }, 100);
+    expect(store.settingsUpdatedAt()).toBe(100);
+    expect(store.get()).toEqual({ ...DEFAULT_SETTINGS, tickSound: false });
+    expect(createSettingsStore({ dir, crypto }).settingsUpdatedAt()).toBe(100);
+  });
 });
