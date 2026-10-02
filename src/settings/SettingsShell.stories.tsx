@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { eventArgTypes, handlers } from 'storybook/story-helpers';
+import { expect, userEvent, within } from 'storybook/test';
 
 import {
   DEFAULT_SETTINGS,
@@ -56,6 +57,8 @@ const meta = {
       const agent =
         (context as { parameters?: { agent?: AgentSummary } }).parameters?.agent ??
         OFFLINE_AGENT_SUMMARY;
+      const signInSync = (context as { parameters?: { signInSync?: ParleyApi['signInSync'] } })
+        .parameters?.signInSync;
       window.parley = {
         ...window.parley,
         setApiKey: async () => ({ ok: true, message: 'Key works' }),
@@ -72,6 +75,15 @@ const meta = {
         agentStatus: async () => agent,
         requestPermission: async () => ({ microphone: true, accessibility: true }),
         updateSettings: async patch => ({ ...settled, ...patch }),
+        signInSync: signInSync ?? (async () => ({ ok: true, message: 'Signed in and synced' })),
+        signOutSync: async () => settled,
+        syncNow: async () => ({
+          ok: true,
+          pushed: 3,
+          pulled: 1,
+          message: 'Synced 3 up, 1 down',
+          at: Date.now(),
+        }),
       } as ParleyApi;
       return <Story />;
     },
@@ -148,4 +160,48 @@ export const AgentAwaitingApproval: Story = {
     settings: { ...settled, agent: WAITING_AGENT },
   },
   parameters: { agent: WAITING_AGENT },
+};
+
+const SIGNED_IN: SettingsView = {
+  ...settled,
+  hasSyncToken: true,
+  syncEnabled: true,
+  syncEmail: 'me@example.com',
+};
+
+/** Sync, signed out: the server address and an email form. */
+export const SyncSignedOut: Story = { args: { ...base, initialTab: 'sync' } };
+
+/** Sync while the server answers: Sign in spins and the email field waits. */
+export const SyncSigningIn: Story = {
+  args: { ...base, initialTab: 'sync' },
+  parameters: { signInSync: () => new Promise(() => {}) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByLabelText('Email'), 'me@example.com');
+    await userEvent.click(canvas.getByRole('button', { name: 'Sign in' }));
+    await expect(canvas.getByLabelText('Email')).toBeDisabled();
+  },
+};
+
+/** Sync, signed in and healthy: the account, the switch, Last sync and Sync now. */
+export const SyncSynced: Story = {
+  args: {
+    ...base,
+    initialTab: 'sync',
+    settings: { ...SIGNED_IN, syncLastAt: Date.now() - 2 * 60_000 },
+  },
+};
+
+/** The last run failed: the message stays up with the reassurance that dictation is fine. */
+export const SyncError: Story = {
+  args: {
+    ...base,
+    initialTab: 'sync',
+    settings: {
+      ...SIGNED_IN,
+      syncLastAt: Date.now() - 3 * 60 * 60_000,
+      syncLastError: 'fetch failed',
+    },
+  },
 };

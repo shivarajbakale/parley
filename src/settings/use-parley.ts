@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import type { PermissionKind, Settings, TranscriptionProvider } from '../../electron/types';
 
@@ -113,4 +114,44 @@ export function useDecideApproval() {
       window.parley.decideApproval(callId, approved),
     onSuccess: () => client.invalidateQueries({ queryKey: AGENT_STATUS }),
   });
+}
+
+export function useSignInSync() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (email: string) => window.parley.signInSync(email),
+    onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
+  });
+}
+
+export function useSignOutSync() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => window.parley.signOutSync(),
+    onSuccess: view => client.setQueryData(SETTINGS, view),
+  });
+}
+
+/** Settled either way: a failed run still stamps syncLastError in main. */
+export function useSyncNow() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => window.parley.syncNow(),
+    onSettled: () => client.invalidateQueries({ queryKey: SETTINGS }),
+  });
+}
+
+/**
+ * Main never pushes a scheduled sync's result to this window, so the view is
+ * re-read whenever the window comes back to the front. TanStack's own focus
+ * refetch listens to visibilitychange, which a window raised from behind
+ * another app does not fire.
+ */
+export function useRefetchSettingsOnFocus() {
+  const client = useQueryClient();
+  useEffect(() => {
+    const onFocus = () => void client.invalidateQueries({ queryKey: SETTINGS });
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [client]);
 }

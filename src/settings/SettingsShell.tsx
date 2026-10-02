@@ -9,6 +9,7 @@ import { GestureTab } from './GestureTab';
 import { OverviewTab } from './OverviewTab';
 import { PANEL_SHIFT_PX, tabDirection } from './motion-variants';
 import classes from './settings.module.css';
+import { SyncTab } from './SyncTab';
 import { type TabId } from './tabs';
 import { TabRail } from './TabRail';
 
@@ -85,6 +86,11 @@ export function SettingsShell({
         <Tabs.Panel value="agent">
           <Box className={classes.panel} style={panelStyle}>
             <AgentTab settings={settings} onChange={onChange} />
+          </Box>
+        </Tabs.Panel>
+        <Tabs.Panel value="sync">
+          <Box className={classes.panel} style={panelStyle}>
+            <SyncTab settings={settings} onChange={onChange} />
           </Box>
         </Tabs.Panel>
       </Box>

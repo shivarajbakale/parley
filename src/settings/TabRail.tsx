@@ -1,5 +1,5 @@
 import { Box, Group, Tabs, Text, Title } from '@mantine/core';
-import { Bot, Gauge, Keyboard, SlidersHorizontal } from 'lucide-react';
+import { Bot, Gauge, Keyboard, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 import { DURATION, EASE, SPRING } from '@/lib/motion';
@@ -110,6 +110,18 @@ export function TabRail({ needsSetup, active }: { needsSetup: boolean; active: T
           <motion.span layoutId="tab-pill" className={classes.pill} transition={SPRING} />
         )}
         Agent
+      </Tabs.Tab>
+      <Tabs.Tab
+        value="sync"
+        leftSection={<RefreshCw size={16} />}
+        className={classes.tab}
+        px="sm"
+        py={8}
+      >
+        {active === 'sync' && (
+          <motion.span layoutId="tab-pill" className={classes.pill} transition={SPRING} />
+        )}
+        Sync
       </Tabs.Tab>
     </Tabs.List>
   );
