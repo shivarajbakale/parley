@@ -43,7 +43,7 @@ that needs a second production origin needs a decision about who that is, and
 Verified against the running server:
 
 ```
-OPTIONS /api/todos   Origin: http://localhost:5173
+OPTIONS /api/me   Origin: http://localhost:5173
   204 No Content
   Access-Control-Allow-Origin: http://localhost:5173
   Access-Control-Allow-Credentials: true
@@ -58,7 +58,7 @@ calls back with an `Error`, and an error out of middleware lands in
 log reports a fault:
 
 ```
-OPTIONS /api/todos   Origin: http://evil.example
+OPTIONS /api/me   Origin: http://evil.example
   500 Internal Server Error, no Access-Control-* headers
   log: Origin http://evil.example not allowed by CORS
 ```
@@ -75,7 +75,7 @@ it. That is why the origin is echoed and `Vary: Origin` is set.
 The client must opt in on every request:
 
 ```ts
-fetch(`${API_URL}/api/todos`, { credentials: 'include' })
+fetch(`${API_URL}/api/me`, { credentials: 'include' })
 ```
 
 `credentials: 'include'` is not the default. Without it the browser sends no
@@ -84,13 +84,12 @@ unauthenticated with nothing in either log to say why.
 
 ## Cookies
 
-**This server sets no cookies.** It ships no authentication layer at all — that
-is a decision, written down in [CONSTRAINTS.md](CONSTRAINTS.md), and
-`api-lint` reads the declaration. `Cookie` is in the allowed headers and
-`credentials: true` is set so the wiring is already right for the day auth
-arrives.
+**This server sets no cookies.** Auth is a bearer token: `POST /api/auth/token
+{ email }` issues one, and every other route except health and that one needs
+`Authorization: Bearer <token>`. `Cookie` is in the allowed headers and
+`credentials: true` is set so the wiring is already right if cookies arrive.
 
-When it does, the attributes are not a style choice:
+If they do, the attributes are not a style choice:
 
 - **Same site** (`localhost:5173` → `localhost:3000`, or `app.example.com` →
   `api.example.com`): `SameSite=Lax` is enough. A port is not part of a *site*,
@@ -109,8 +108,8 @@ When it does, the attributes are not a style choice:
 a controller returns data and never builds this shape itself (`api-lint` A5).
 
 ```
-POST /api/todos   {"title":"probe"}
-{"data":{"id":"d0dc3a11-…","title":"probe","completed":false,…},
+POST /api/auth/token   {"email":"a@example.com"}
+{"data":{"token":"…"},
  "meta":{"timestamp":"2026-08-27T20:21:04.721Z","statusCode":201}}
 ```
 
@@ -118,19 +117,44 @@ POST /api/todos   {"title":"probe"}
 status, so a client that has already lost the response object can still tell
 success from failure.
 
-## Pagination
+## Sync
+
+Four resources sync: `dictionary`, `settings`, `history`, `tasks`. Every route
+is under `requireAuth` (`Authorization: Bearer <token>`) and every read and
+write is scoped to the token's user.
 
 ```
-GET /api/todos?page=1&limit=20
-{"data":[],"meta":{"total":0,"page":1,"limit":20,"totalPages":0}}
+GET /api/{resource}?since=<ms>
+{"data":[<row>,…],"meta":{"timestamp":"…","statusCode":200,"now":1790000000000}}
+
+PUT /api/{resource}   {"items":[<row>,…]}
+{"data":[<winning row>,…],"meta":{"timestamp":"…","statusCode":200,"now":1790000000000}}
 ```
 
-`page` defaults to 1, `limit` to 20 and is capped at 100.
+- `since` defaults to 0 and must be a non-negative number. A pull returns rows
+  with `updatedAt > since`, oldest first, at most 1000, **including tombstones**
+  (rows with `deletedAt` set). Use `meta.now` as the next `since`.
+- A push takes at most **500** items. The response holds the winning row for
+  every submitted id, so the client overwrites its copy with it.
+- **Merge rule: last writer wins** on `updatedAt`. An incoming row with an older
+  `updatedAt` loses and the stored row comes back. A client clock further in
+  the future than `MAX_FUTURE_MS` is clamped to server time (`src/services/merge.ts`).
+- `settings` is one row per user: the server ignores the client `id` and uses
+  the user id. `settings.data` may not contain keys matching `key`, `token` or
+  `secret` (case-insensitive); the push is rejected with a 400.
+- A tombstone for `dictionary` may carry an empty `word`; a live row may not.
 
-**A paginated response has no `meta.timestamp` and no `meta.statusCode`.** The
-transform passes a body that already has `data` and `meta` straight through
-rather than merging into it, so those two fields are present on every other
-response and absent here. A client must treat them as optional.
+Row shapes (timestamps are JSON numbers, milliseconds):
+
+```ts
+dictionary: { id, word, soundsLike: string[], updatedAt, deletedAt? }
+settings:   { id, data: Record<string, unknown>, updatedAt, deletedAt? }
+history:    { id, mode, text, app, createdAt, updatedAt, deletedAt? }
+tasks:      { id, title, notes, dueAt?, rrule?, priority, status, sourceText, updatedAt, deletedAt? }
+```
+
+Sync responses carry the standard `meta.timestamp` and `meta.statusCode` plus
+`meta.now`, merged in by the transform from `res.locals.meta`.
 
 (NestJS's interceptor merges instead of passing through, so the same request
 there returns all six fields. If you are writing one client for both, read the
@@ -142,12 +166,12 @@ Errors go through the same transform, so an error body is a **success-shaped
 envelope with an error payload inside `data`**:
 
 ```
-POST /api/todos   {"description":"no title"}
-{"data":{"status":"error","message":"title: Required"},
+PUT /api/tasks   {"items":[{"id":"t1","updatedAt":1}]}
+{"data":{"status":"error","message":"items.0.title: Required"},
  "meta":{"timestamp":"…","statusCode":400}}
 
-GET /api/todos/00000000-0000-0000-0000-000000000000
-{"data":{"status":"error","message":"Todo not found"},"meta":{…,"statusCode":404}}
+GET /api/me   (no Authorization header)
+{"data":{"status":"error","message":"Missing bearer token"},"meta":{…,"statusCode":401}}
 
 GET /api/nope
 {"data":{"status":"error","message":"Route /api/nope not found"},"meta":{…,"statusCode":404}}
@@ -159,7 +183,7 @@ instead, so a client that talks to both has to handle two shapes — see the tab
 below.
 
 A validation failure is one string, not a field list: Zod's path and message
-joined by `src/middleware/validate.middleware.ts` (`"title: Required"`). A form
+joined by `src/middleware/validate.middleware.ts` (`"items.0.title: Required"`). A form
 that wants per-field errors has to parse it, or the middleware has to change.
 
 **No stack trace ever leaves this server.** `errorHandler` sends `message` only,
@@ -176,8 +200,7 @@ wrapper.
 | --- | --- | --- |
 | Error body | `{data:{status,message},meta}` | `{error:{message,statusCode,timestamp,path}}` |
 | Validation detail | one joined string in `data.message` | `error.errors[]` of `{field,message,value}` |
-| Paginated `meta` | `total,page,limit,totalPages` | the same plus `timestamp,statusCode` |
-| Auth | none | session cookie, every route guarded |
+| Auth | bearer token (`/api/auth/token`) | session cookie, every route guarded |
 | Health | `/api/health` | plus `/api/health/ready`, `/api/health/live` |
 | `chrome-extension://` origins | rejected | allowed |
 | Stack in an error body | never | in development only |

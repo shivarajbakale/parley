@@ -5,6 +5,7 @@ export interface TransformedResponse<T> {
   meta: {
     timestamp: string;
     statusCode: number;
+    [extra: string]: unknown;
   };
 }
 
@@ -25,7 +26,9 @@ export const transformResponse = (req: Request, res: Response, next: NextFunctio
       data: body,
       meta: {
         timestamp: new Date().toISOString(),
-        statusCode: res.statusCode
+        statusCode: res.statusCode,
+        // A handler may add fields (e.g. sync's `now`) via res.locals.meta.
+        ...(res.locals.meta as Record<string, unknown> | undefined),
       }
     };
 

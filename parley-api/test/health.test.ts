@@ -23,6 +23,10 @@ describe('health + app shell', () => {
       health: '/api/health',
       auth: '/api/auth/token',
       me: '/api/me',
+      dictionary: '/api/dictionary',
+      settings: '/api/settings',
+      history: '/api/history',
+      tasks: '/api/tasks',
     });
   });
 
