@@ -1,6 +1,6 @@
 {
   "project": "parley",
-  "last_updated": "2026-09-26",
+  "last_updated": "2026-10-02",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -283,7 +283,7 @@
       "area": "repo",
       "title": "Monorepo: Android and the sync API live beside the desktop app",
       "user_visible_behavior": "One clone holds the desktop app, the agent, the Android app and the API. ./init.sh installs all of them and make check verifies all of them, skipping Android when flutter is absent.",
-      "status": "in_progress",
+      "status": "passing",
       "plan": "none: repository plumbing, no UI surface",
       "verification": [
         "make check",
@@ -291,7 +291,11 @@
         "make -C parley-api check",
         "make android-check prints the skip line without flutter and runs the Flutter check with it"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-02 make check exit 0: unit 85 files / 741 tests, ui-probe 140/140, all lints 0 violations; nested parley-api check 43/43 incl. e2e; Android flutter suites (1924+167+131+100+21) and 170 Kotlin pass.",
+        "2026-10-02 make -C parley-api check exit 0: type-check, lint, plan/db/api/capability lints, 43/43 tests, build, boot-check, doc-lint 9.9 KB.",
+        "2026-10-02 git log --oneline 66493cd^2 | wc -l = 16 (Android history kept)."
+      ],
       "notes": "Spec docs/superpowers/specs/2026-10-02-monorepo-and-api-design.md, layout A."
     },
     {
@@ -309,7 +313,11 @@
         "Storybook: SettingsShell SyncSignedOut, SyncSigningIn, SyncSynced, SyncError in dark and light",
         "make dev with parley-api running on :3100: sign in, add a dictionary word, see it in sqlite via prisma studio; stop the API, press Sync now, see the error line and dictate normally"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-10-02 make check exit 0 (741 unit incl. electron/sync, ui-probe 140/140); parley-api check 43/43. storybook-render: 332 renders, Sync stories pass; exit 1 on 36 pre-existing template failures (Dashboard/Projects/Topbar/Command Palette).",
+        "2026-10-02 headless run vs make -C parley-api dev on :3100 (real stores, client, engine via tsx): signIn, upsert Kubernetes, syncNow ok 1 up; row in dev.db dictionary_entries via sqlite3. API killed: syncNow ok:false 'fetch failed', syncLastError set, word kept.",
+        "Not run: GUI walk (Settings > Sync sign-in, Sync now, Prisma Studio, dictate during an outage). See Sync block in docs/MANUAL_CHECKLIST.md."
+      ],
       "notes": "Plan docs/superpowers/plans/2026-10-02-monorepo-and-sync-api.md, tasks 7-11."
     }
   ]

@@ -351,3 +351,13 @@ until a real `mcp-servers.json` replaces it.
       off and the row says so.
 - [ ] Act works in the packaged build: `parley-agent/index.mjs` is inside
       `Parley.app/Contents/Resources`.
+
+## Sync (parley-015)
+
+Run `make -C parley-api dev` (:3100) beside `make dev`.
+
+- [ ] Settings > Sync: sign in with any email, add a word in the dictionary
+      UI, press Sync now.
+- [ ] `make -C parley-api studio`: the word is a row in DictionaryEntry.
+- [ ] Kill the API and press Sync now: the tab shows the error alert.
+- [ ] With the API still down, dictate into a text field: the paste works.
