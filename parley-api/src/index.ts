@@ -1,6 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import { MastraServer } from '@mastra/express';
 import { createExplainRouter } from './explain/route.js';
+import { answerWithoutTools } from './mastra/agents/screen-explainer.js';
 import { mastra } from './mastra/index.js';
 
 const app = express();
@@ -13,8 +14,9 @@ app.use(express.json());
 app.use(
   '/api/explain',
   createExplainRouter({
-    stream: async (messages, signal) => {
-      const output = await mastra.getAgent('screenExplainer').stream(messages, { abortSignal: signal });
+    stream: async (messages, signal, retry) => {
+      const options = retry ? { abortSignal: signal, ...answerWithoutTools(retry.found) } : { abortSignal: signal };
+      const output = await mastra.getAgent('screenExplainer').stream(messages, options);
       return output.fullStream;
     },
   }),

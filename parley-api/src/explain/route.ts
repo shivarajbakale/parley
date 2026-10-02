@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import type { Finding } from '../mastra/agents/screen-explainer.js';
 import { explainEvents, type Chunk, type ExplainEvent } from './events.js';
 
 /**
@@ -7,9 +8,13 @@ import { explainEvents, type Chunk, type ExplainEvent } from './events.js';
  * A POST, not an EventSource GET, because the selection rides in the body.
  * Closing the connection aborts the model run, so a dismissed card stops
  * spending tokens.
+ *
+ * A run that ends with no answer is retried once without tools, handed what
+ * its searches found; only if that is empty too does the card see an error.
  */
 
 const HEARTBEAT_MS = 15_000;
+export const NO_ANSWER = 'No answer came back. Try again.';
 
 const bodySchema = z.object({
   text: z.string().min(1),
@@ -21,7 +26,12 @@ type Body = z.infer<typeof bodySchema>;
 /** A union, not one role field, so it narrows to the model message types the agent takes. */
 export type Message = { role: 'user'; content: string } | { role: 'assistant'; content: string };
 
-export type ExplainStream = (messages: Message[], signal: AbortSignal) => Promise<AsyncIterable<Chunk>>;
+/** `retry` is set on the second run: answer now, no tools, from these findings. */
+export type ExplainStream = (
+  messages: Message[],
+  signal: AbortSignal,
+  retry?: { found: Finding[] },
+) => Promise<AsyncIterable<Chunk>>;
 
 /** Only the first turn carries the selection; later turns are follow-ups on it. */
 export function buildMessages({ text, turns }: Body): Message[] {
@@ -68,10 +78,22 @@ export function createExplainRouter(deps: { stream: ExplainStream }): Router {
     const heartbeat = setInterval(() => res.write(': keep-alive\n\n'), HEARTBEAT_MS);
 
     try {
-      const chunks = await deps.stream(buildMessages(parsed.data), abort.signal);
-      for await (const event of explainEvents(chunks)) {
-        if (abort.signal.aborted) break;
-        send(res, event);
+      const messages = buildMessages(parsed.data);
+      let retry: { found: Finding[] } | undefined;
+      for (;;) {
+        const chunks = await deps.stream(messages, abort.signal, retry);
+        let empty: Finding[] | undefined;
+        for await (const event of explainEvents(chunks, retry?.found)) {
+          if (abort.signal.aborted) return;
+          if (event.event === 'empty') empty = event.data.found;
+          else send(res, event);
+        }
+        if (!empty || abort.signal.aborted) break;
+        if (retry) {
+          send(res, { event: 'error', data: { message: NO_ANSWER } });
+          break;
+        }
+        retry = { found: empty };
       }
     } catch (error) {
       if (!abort.signal.aborted) {

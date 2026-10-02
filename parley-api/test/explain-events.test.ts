@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_SOURCES, explainEvents, type Chunk } from '../src/explain/events.js';
+import type { Finding } from '../src/mastra/agents/screen-explainer.js';
 import { createSourceLineFilter } from '../src/explain/source-filter.js';
 
-async function collect(chunks: Chunk[]) {
+async function collect(chunks: Chunk[], found?: Finding[]) {
   async function* gen() {
     yield* chunks;
   }
   const out = [];
-  for await (const event of explainEvents(gen())) out.push(event);
+  for await (const event of explainEvents(gen(), found)) out.push(event);
   return out;
 }
 
@@ -66,10 +67,20 @@ describe('explainEvents', () => {
     expect(events.filter((e) => e.event === 'search')).toHaveLength(2);
   });
 
-  it('ends in an error, not an empty done, when no answer text ever arrives', async () => {
+  it('ends in empty, carrying what was found, not a done, when no answer text ever arrives', async () => {
     const events = await collect([text('Let me search.'), searchStart, searchCall('q'), searchResult([{ title: 'T', url: 'https://t.dev' }]), finish]);
-    expect(events.map((e) => e.event)).toEqual(['delta', 'reset', 'search', 'error']);
-    expect(events.at(-1)).toEqual({ event: 'error', data: { message: 'No answer came back. Try again.' } });
+    expect(events.map((e) => e.event)).toEqual(['delta', 'reset', 'search', 'empty']);
+    expect(events.at(-1)).toEqual({ event: 'empty', data: { found: [{ title: 'T', url: 'https://t.dev', snippet: '' }] } });
+  });
+
+  it('lists the earlier run\'s findings as sources when the retry answers', async () => {
+    const found = [{ title: 'T', url: 'https://t.dev', snippet: 'tea' }];
+    const events = await collect([text('A.'), finish], found);
+    expect(events).toEqual([
+      { event: 'delta', data: { text: 'A.' } },
+      { event: 'sources', data: [{ title: 'T', url: 'https://t.dev' }] },
+      { event: 'done', data: {} },
+    ]);
   });
 
   it('dedupes sources by url and caps them', async () => {
@@ -103,7 +114,7 @@ describe('explainEvents', () => {
     expect(events).toEqual([
       { event: 'delta', data: { text: 'Let me look further.' } },
       { event: 'reset', data: {} },
-      { event: 'error', data: { message: 'No answer came back. Try again.' } },
+      { event: 'empty', data: { found: [] } },
     ]);
   });
 

@@ -1,3 +1,4 @@
+import type { Finding } from '../mastra/agents/screen-explainer.js';
 import { createMarkupFilter } from './markup-filter.js';
 import { createSourceLineFilter } from './source-filter.js';
 
@@ -8,6 +9,9 @@ import { createSourceLineFilter } from './source-filter.js';
  * a tool, that text was the model talking about searching, not the answer,
  * so `reset` tells the card to drop everything since the last reset. Sources
  * come from what the search tool actually returned, never from the model.
+ *
+ * A run that ends with nothing shown ends in `empty`, carrying what the
+ * searches found, so the route can retry once without tools.
  */
 
 export const MAX_SOURCES = 3;
@@ -29,7 +33,9 @@ export type ExplainEvent =
   | { event: 'search'; data: { query: string } }
   | { event: 'sources'; data: Source[] }
   | { event: 'done'; data: Record<string, never> }
-  | { event: 'error'; data: { message: string } };
+  | { event: 'error'; data: { message: string } }
+  /** Never sent: the route retries on it, or turns it into `error`. */
+  | { event: 'empty'; data: { found: Finding[] } };
 
 const SEARCH_TOOL = 'webSearch';
 
@@ -37,7 +43,7 @@ interface ToolPayload {
   toolCallId?: string;
   toolName?: string;
   args?: { query?: unknown };
-  result?: { results?: { title?: unknown; url?: unknown }[] };
+  result?: { results?: { title?: unknown; url?: unknown; snippet?: unknown }[] };
 }
 
 function errorMessage(error: unknown): string {
@@ -46,7 +52,8 @@ function errorMessage(error: unknown): string {
   return 'Something went wrong';
 }
 
-export async function* explainEvents(chunks: AsyncIterable<Chunk>): AsyncGenerator<ExplainEvent> {
+/** `found` seeds the sources with what an earlier, empty run searched. */
+export async function* explainEvents(chunks: AsyncIterable<Chunk>, found: Finding[] = []): AsyncGenerator<ExplainEvent> {
   let markup = createMarkupFilter();
   let filter = createSourceLineFilter();
   let wroteText = false;
@@ -54,7 +61,7 @@ export async function* explainEvents(chunks: AsyncIterable<Chunk>): AsyncGenerat
   let answered = false;
   /** Mastra emits each tool-call chunk twice; announce each search once. */
   const announced = new Set<string>();
-  const sources = new Map<string, Source>();
+  const sources = new Map<string, Finding>(found.map((f) => [f.url, f]));
 
   for await (const chunk of chunks) {
     const payload = (chunk.payload ?? {}) as ToolPayload & { text?: string; error?: unknown };
@@ -99,7 +106,11 @@ export async function* explainEvents(chunks: AsyncIterable<Chunk>): AsyncGenerat
         if (payload.toolName !== SEARCH_TOOL) break;
         for (const r of payload.result?.results ?? []) {
           if (typeof r.url === 'string' && !sources.has(r.url)) {
-            sources.set(r.url, { title: typeof r.title === 'string' ? r.title : r.url, url: r.url });
+            sources.set(r.url, {
+              title: typeof r.title === 'string' ? r.title : r.url,
+              url: r.url,
+              snippet: typeof r.snippet === 'string' ? r.snippet : '',
+            });
           }
         }
         break;
@@ -117,9 +128,11 @@ export async function* explainEvents(chunks: AsyncIterable<Chunk>): AsyncGenerat
     yield { event: 'delta', data: { text: rest } };
   }
   if (!answered) {
-    yield { event: 'error', data: { message: 'No answer came back. Try again.' } };
+    yield { event: 'empty', data: { found: [...sources.values()] } };
     return;
   }
-  if (sources.size > 0) yield { event: 'sources', data: [...sources.values()].slice(0, MAX_SOURCES) };
+  if (sources.size > 0) {
+    yield { event: 'sources', data: [...sources.values()].slice(0, MAX_SOURCES).map(({ title, url }) => ({ title, url })) };
+  }
   yield { event: 'done', data: {} };
 }
