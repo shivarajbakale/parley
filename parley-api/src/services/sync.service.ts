@@ -74,6 +74,8 @@ function table(resource: SyncResource, client: Prisma.TransactionClient | typeof
 }
 
 export const PAGE = 1000;
+// Residual: a row stamped before a page cursor that commits more than CURSOR_LAG_MS after its
+// stamp during a multi-page drain can be missed until its next edit; accepted for SQLite's serialized writes.
 /** Pulls overlap the tail by this much: a row stamped before its commit lands late. */
 export const CURSOR_LAG_MS = 2000;
 
@@ -90,11 +92,12 @@ export function cutPage<T extends { syncedAt: bigint }>(rows: T[], now: number) 
   }
   const first = rows.slice(0, PAGE);
   const lastMs = first[PAGE - 1].syncedAt;
-  if (rows[PAGE].syncedAt !== lastMs) {
+  const wholePageOneMs = first[0].syncedAt === lastMs;
+  if (!wholePageOneMs && rows[PAGE].syncedAt !== lastMs) {
     // No tie across the boundary: keep the full page; gte re-sends only the last row.
     return { rows: first, hasMore: true, cursor: Number(lastMs), fetchAll: undefined as number | undefined };
   }
-  let end = PAGE;
+  let end = wholePageOneMs ? 0 : PAGE;
   while (end > 0 && first[end - 1].syncedAt === lastMs) end--;
   if (end > 0) {
     return { rows: first.slice(0, end), hasMore: true, cursor: Number(lastMs), fetchAll: undefined as number | undefined };

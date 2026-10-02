@@ -33,4 +33,11 @@ describe('cutPage', () => {
     expect(r.fetchAll).toBe(7000);
     expect(r.cursor).toBe(7001);
   });
+  it('exactly one page in one ms with a later row still advances', () => {
+    const r = cutPage(rows(PAGE + 1, i => (i < PAGE ? 7000 : 7001)), 99_999);
+    expect(r.rows).toEqual([]);
+    expect(r.hasMore).toBe(true);
+    expect(r.fetchAll).toBe(7000);
+    expect(r.cursor).toBe(7001);
+  });
 });
