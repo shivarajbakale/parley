@@ -15,9 +15,9 @@ shape. Study the reference first.
 | --- | --- | --- |
 | Prisma model | `prisma/schema.prisma` | the `Todo` model (the persisted shape) |
 | Types + validation | `src/types/todo.types.ts` | Zod schemas (`createTodoSchema`, …) **and** the `z.infer` DTO types, co-located |
-| Service | `src/services/user.service.ts` | data access via Prisma; throws `AppError` |
+| Service | `src/services/auth.service.ts` | data access via Prisma; throws `AppError` |
 | Controller | `src/controllers/todo.controller.ts` | thin handlers wrapped in `asyncHandler` |
-| Routes | `src/routes/user.routes.ts` | `validate(schema)` per route → controller |
+| Routes | `src/routes/auth.routes.ts` | `validate(schema)` per route → controller |
 | Registration | `src/routes/index.ts` | `router.use('/todos', todoRoutes)` |
 
 Shared seams you will reuse, not copy: the Prisma client is `src/config/database.ts`
@@ -43,13 +43,13 @@ Work bottom-up (data → HTTP). Substitute your resource for `Todo`/`todo`/`todo
    **and** the `z.infer<>` DTO types. The entity type itself comes from
    `@prisma/client` — `import { <Resource> } from '@prisma/client'`.
 4. **Service** — create `src/services/<resource>.service.ts` by copying
-   `src/services/user.service.ts`. Access `prisma.<resource>`, throw `AppError`
+   `src/services/auth.service.ts`. Access `prisma.<resource>`, throw `AppError`
    (not raw `Error`) for not-found / bad input, and log via `../utils/logger`.
 5. **Controller** — create `src/controllers/<resource>.controller.ts` by copying
    `src/controllers/todo.controller.ts`. Every handler stays thin and is wrapped
    in `asyncHandler` so errors reach the central `errorHandler`.
 6. **Routes** — create `src/routes/<resource>.routes.ts` by copying
-   `src/routes/user.routes.ts`. Attach `validate(<schema>)` before the handler on
+   `src/routes/auth.routes.ts`. Attach `validate(<schema>)` before the handler on
    each mutating route.
 7. **Register** — add one line to `src/routes/index.ts`:
    `router.use('/<resources>', <resource>Routes)`. The app mounts this router at

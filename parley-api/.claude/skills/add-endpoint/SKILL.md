@@ -21,11 +21,11 @@ every route shape you'll need.
    service, return the result.
 3. **Route** — register it in `src/routes/<resource>.routes.ts`. Match the verb
    and path to intent (e.g. `router.patch('/:id/archive', archive)`). Look at
-   `src/routes/user.routes.ts` for the toggle / bulk / search patterns.
+   `src/routes/auth.routes.ts` for the toggle / bulk / search patterns.
 4. **Validation (only if it takes a body)** — add a Zod schema to
    `src/types/<resource>.types.ts` and guard the route with
    `validate(<schema>)` from `src/middleware/validate.middleware.ts`. See how
-   `src/routes/user.routes.ts` applies `validate(...)` on POST/PUT.
+   `src/routes/auth.routes.ts` applies `validate(...)` on POST/PUT.
 
 ## Rules
 

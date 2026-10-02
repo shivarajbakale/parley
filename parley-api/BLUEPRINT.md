@@ -51,7 +51,7 @@
 - Status codes: 200 read/update, 201 create, 204 delete, 400 validation,
   404 not found.
 - Pagination: list endpoints accept `?page=&limit=` and return
-  `{ data, meta: { total, page, limit, totalPages } }` (see `user.service.ts`).
+  `{ data, meta: { total, page, limit, totalPages } }` (no list endpoint exists yet).
 - Auth: this boilerplate ships **no auth**. If the brief needs it, decide the
   posture here and record it in `DECISIONS.md` before adding any.
 

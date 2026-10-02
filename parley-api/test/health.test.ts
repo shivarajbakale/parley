@@ -21,7 +21,8 @@ describe('health + app shell', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.endpoints).toMatchObject({
       health: '/api/health',
-      users: '/api/users',
+      auth: '/api/auth/token',
+      me: '/api/me',
     });
   });
 

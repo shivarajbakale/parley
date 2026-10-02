@@ -19,7 +19,7 @@ is still wrong — that's your job to catch.
 - Confirm the response rides the standard envelope `{ data, meta }` (the
   transform middleware adds it) — controllers return **raw data**, not a
   hand-rolled wrapper.
-- For list endpoints, follow the pagination convention in `user.service.ts`:
+- For list endpoints, shape pagination like this:
   `?page=&limit=` → `{ data, meta: { total, page, limit, totalPages } }`.
 
 ## Review (before it goes `passing`)

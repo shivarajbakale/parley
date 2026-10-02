@@ -62,7 +62,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/api/health',
-      users: '/api/users',
+      auth: '/api/auth/token',
+      me: '/api/me',
     }
   });
 });

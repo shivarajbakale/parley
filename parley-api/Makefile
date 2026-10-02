@@ -10,7 +10,7 @@ help:
 	@echo "  setup       npm install (runs prisma generate via postinstall)"
 	@echo "  generate    prisma generate"
 	@echo "  db          prisma db push (create/sync the SQLite schema)"
-	@echo "  seed        prisma db seed (demo user + todos)"
+	@echo "  seed        prisma db seed (nothing to seed)"
 	@echo "  type-check  tsc --noEmit"
 	@echo "  lint        eslint"
 	@echo "  test        Level 1+2 tests (no database needed)"

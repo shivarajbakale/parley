@@ -18,7 +18,7 @@ src/
   app.ts           the Express app: middleware order, then routes
   config/          env.ts (process.env -> typed config), database.ts (the one PrismaClient)
   middleware/      correlation, validate, transform, error, notFound — cross-cutting only
-  routes/          index.ts mounts /health, /users, /todos under /api
+  routes/          index.ts mounts /auth, /health, /me under /api
   controllers/     thin: read req, call a service, set the status
   services/        all business logic, and the only layer that touches Prisma
   types/           one file per resource: the Zod schema and its inferred DTO
