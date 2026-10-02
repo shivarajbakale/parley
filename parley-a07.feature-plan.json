@@ -1,0 +1,482 @@
+{
+  "feature": {
+    "id": "parley-a07",
+    "title": "Ask Parley — a screen-aware agent that can act",
+    "problem": "Parley speaks for you and cannot answer for you or act for you. Everything it knows is what you just said, and the one thing it can change is a text field. The accessibility service already holds the whole node tree of the foreground window and a model client that can be asked questions; nothing connects the two, and nothing can act on what comes back. So a screen that needs reading, or a task that needs three taps, is a screen Parley can only help you type into.",
+    "nonGoals": [
+      "Screenshot or vision-model context. This feature reads the node tree — exact text, exact bounds, no OCR. A screenshot is a separate, opt-in addition, because it is a new privacy surface and a new latency budget, not a tweak to this one.",
+      "Unattended or scheduled actions. The agent runs while a person is watching the sheet. There is no background trigger, no 'every morning do X', because an action nobody confirmed is the one that has to be explained afterwards.",
+      "Undo for a step that cannot be taken back. A sent message, a placed order and a deleted row are labelled irreversible at confirm time and are not offered an undo that would not work.",
+      "Cross-app automation. One run stays inside the app it started in. Handing a task to another app is a different feature with a different permission model.",
+      "Authored skills. No 'write me a script for this app'. The actions are the fixed tool set below, so what an agent can do is something a person can read on one screen.",
+      "Changing the existing gestures. Hold still dictates, double-tap-hold still edits, volume tap-tap-hold still dictates. Ask mode is added beside them, never on top of them.",
+      "iOS. The whole of this is the Android accessibility service, which has no iOS equivalent."
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "agent-settings",
+      "name": "Agent",
+      "route": "/agent",
+      "archetype": "settings",
+      "purpose": "decide what the agent is allowed to read, how far it may go, and what is kept",
+      "primaryAction": null,
+      "panels": [
+        {
+          "kind": "section",
+          "eyebrow": "What Parley may read",
+          "rows": [
+            [
+              "Ask mode",
+              "Triple-tap the orb to turn it on, hold to ask. Off by default."
+            ],
+            [
+              "Send screen contents",
+              "Off. The agent cannot read a screen until this is on, and it says so rather than asking each time."
+            ],
+            [
+              "Allowed apps",
+              "Parley reads only the apps listed here. System UI, the launcher and Parley itself are never in it."
+            ]
+          ]
+        },
+        {
+          "kind": "section",
+          "eyebrow": "How far it may go",
+          "rows": [
+            [
+              "Steps per run",
+              "5. A run that needs more is split into two runs, each confirmed on its own."
+            ],
+            [
+              "Irreversible steps",
+              "1 per run, never batched with anything else."
+            ],
+            [
+              "Context budget",
+              "4,000 characters of screen text per turn. What the screen is shrunk to fit goes on the sheet."
+            ]
+          ]
+        },
+        {
+          "kind": "section",
+          "eyebrow": "What is kept",
+          "rows": [
+            [
+              "Keep agent runs",
+              "The question, the plan, each step and its outcome. Never the raw screen, after the run ends."
+            ],
+            [
+              "Undo window",
+              "10 s, the same window voice edit uses. One step back, not the whole run."
+            ],
+            [
+              "History",
+              "Agent runs are their own filter, beside Dictations and Edits."
+            ]
+          ]
+        }
+      ],
+      "moments": {
+        "peak": "The moment the user opens this page is the moment they realise Ask mode was already tapping things they did not approve — so the page leads with Send screen contents, off, and the allowed-app list underneath it, not with a friendly explanation of what the agent is.",
+        "end": "Turning Send screen contents on and choosing two apps leaves the page with the orb visibly changed: the Ask ring is now on the sphere, and a line in Overview says what Ask mode is allowed to do."
+      },
+      "states": {
+        "loading": "Rows arrive from the native side in place; until they do, the values read as a dash rather than as Off, so a not-yet-loaded row is never mistaken for a permission that is off.",
+        "empty": "No apps are allowed, and the page says so in the group's own words — Nothing is on the list, so Ask mode will read nothing and can do nothing — with the one action that fixes it.",
+        "error": "A permission that could not be read says the read failed and names the retry. A failure never renders as Off, because Off is an answer and a failure is not one.",
+        "success": "A change is written through the bridge and applied to the running service immediately, with a snack bar naming what changed — Nothing new may send screen contents, or Added Chrome to the allowed apps."
+      }
+    },
+    {
+      "id": "agent-transcript",
+      "name": "Agent run",
+      "route": "/history/:id",
+      "archetype": "detail",
+      "purpose": "one agent run, in full: what was asked, what was planned, what ran, what it cost",
+      "primaryAction": "Ask again with this context",
+      "panels": [
+        {
+          "kind": "section",
+          "title": "The question",
+          "body": "The words, as spoken, exactly as transcribed — with the provider that heard them, because a misheard question is the first thing to check when a plan is wrong."
+        },
+        {
+          "kind": "section",
+          "title": "The plan",
+          "body": "The steps the agent proposed, each with its class — read, write, irreversible — written in the user's terms, not the model's: Open the July invoice, not click node 14@812,300. Steps that were dropped for naming an element that was not on screen are shown struck through, because a silently dropped step is a plan that lied."
+        },
+        {
+          "kind": "section",
+          "title": "What ran",
+          "body": "One row per step, in order, with its outcome and the time it took. A step refused — the element moved, the app is not allowed, the run hit its budget — is here with its reason, not missing."
+        },
+        {
+          "kind": "section",
+          "title": "What was sent",
+          "body": "The exact serialised screen context, character count and provider, expandable and copyable. A run whose sending cannot be inspected is a run nobody can trust with a banking app."
+        }
+      ],
+      "moments": {
+        "peak": "The plan with its class labels is the moment: the user sees the agent's whole idea of the task, each step graded, before anything in this transcript has run.",
+        "end": "The last thing on screen is What was sent, so the user can read exactly what left the phone and take it to a provider's dashboard if they need to."
+      },
+      "states": {
+        "loading": "The transcript streams in from the run log; steps fill in as they finish rather than the whole run appearing at once, so a live run is readable while it is still going.",
+        "empty": "A run that was stopped before the plan landed says exactly that — No plan was made — rather than showing an empty list that reads as a bug.",
+        "error": "A run that failed says which step failed and why, and the remaining steps are shown as not run. An error state that hides the plan throws away the only thing the user can act on.",
+        "success": "A finished run ends on its last step's outcome and the undo window, and Ask again carries this question and this app forward without re-listening."
+      }
+    }
+  ],
+  "overlays": [
+    {
+      "id": "agent-sheet",
+      "kind": "snap-sheet",
+      "title": "The ask sheet",
+      "body": "Native, drawn in Kotlin on the accessibility overlay, not a Flutter route — the engine is not running when the app is closed. The orb's listening capsule becomes the sheet: the question sits where the waveform was, and the plan settles under it as one row per step with its class label and a single Run control. It shows how many characters of the screen are about to be sent, names the app it is reading, and keeps the previous screen visible above the sheet so the user can see what the agent is talking about. Dismissed by tapping the same orb, by Back, or by the sheet being pushed off the edge; all three abandon the run with nothing sent and nothing done. Full frame and per-state drawing: docs/plans/agent.md.",
+      "buttons": [
+        "Run this step",
+        "Run all read-only steps",
+        "Stop",
+        "Insert the answer"
+      ]
+    },
+    {
+      "id": "agent-blocked",
+      "kind": "alert-dialog",
+      "title": "Parley cannot do that",
+      "body": "Shown instead of the sheet when the run cannot start: no MiniMax key, Send screen contents off, the app is not on the allowed list, or the run would exceed the budget. One sentence naming the reason, one action that fixes it, and no other way out — the run has not started, so there is nothing to cancel. The same refusal-before-the-mic rule voice edit uses: Parley says why before it records, not after.",
+      "buttons": [
+        "Open Agent settings"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "surface": "agent-sheet",
+      "control": "Native: OrbView's morphing capsule, plus a Kotlin StepList drawn with the same type scale and colour tokens as the orb",
+      "why": "The sheet is drawn while the Flutter engine is not running, so the orb's existing Capsule shape and OrbMotion springs are what is available — and reusing them is what makes the sheet read as the same object as the orb rather than as a system dialog that arrived from somewhere else.",
+      "rejected": "A Flutter bottom sheet in a transparent overlay activity — it boots a second engine over another app, costs hundreds of milliseconds before the user sees anything, and fights the IME for the bottom edge"
+    },
+    {
+      "surface": "agent-sheet",
+      "control": "Native: one row per step with a class label (read / write / irreversible) and a per-row confirm",
+      "why": "Confirming the plan is not the same as confirming each step, and the difference is the whole safety story: a run of four reads is one tap, a step that sends is its own tap with its own sentence saying it cannot be undone.",
+      "rejected": "one Run everything button — it collapses 'I want this' and 'I understood that this sends an email' into a single tap, which is the tap people trust and regret"
+    },
+    {
+      "surface": "agent-sheet",
+      "control": "Native: a live character count and the app name in the sheet's header",
+      "why": "The sheet sends the screen to a provider, so the one thing it must never do is hide that. A count and a name cost a line of type and turn an unconsented upload into an informed one.",
+      "rejected": "a one-time permission dialog in Settings — the user consented once and then cannot see what any given run sent"
+    },
+    {
+      "surface": "agent-transcript",
+      "control": "DSListTile per step, with a leading DSStatusState for done / refused / not run",
+      "why": "History is a collection of entries and Transcript is a detail of one; a refused step is a different state from a missing one, and DSStatusState already draws all four in the Aurora palette.",
+      "rejected": "DSCard per step — a card implies the step can be opened, expanded or tapped, and a step on a finished run is read-only"
+    },
+    {
+      "surface": "agent-transcript",
+      "control": "DSPinnedActionBar + DSButton for Ask again with this context",
+      "why": "One primary, pinned, full width above the safe area, and it carries the two things a re-ask needs — this question and this app — so re-asking does not cost a re-listen.",
+      "rejected": "a Text action in the app bar — Ask again is the reason most people open a transcript, and a header text action is the control the thumb never reaches"
+    }
+  ],
+  "entities": [
+    {
+      "name": "ScreenContext",
+      "fields": [
+        {
+          "name": "packageName",
+          "type": "String"
+        },
+        {
+          "name": "windowTitle",
+          "type": "String?"
+        },
+        {
+          "name": "nodes",
+          "type": "List<ScreenNode>",
+          "note": "pruned, deduped, ordered by screen position, with ids stable for one turn only"
+        },
+        {
+          "name": "charCount",
+          "type": "Int",
+          "note": "what was actually serialised, after the budget was applied"
+        },
+        {
+          "name": "truncated",
+          "type": "Bool",
+          "note": "true when anything was dropped; the sheet says so rather than quietly answering from half a screen"
+        }
+      ]
+    },
+    {
+      "name": "ScreenNode",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Int",
+          "note": "assigned by the serialiser, re-derivable from the path, and the only handle a step may use"
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "note": "from className — button, text, field, checkbox, list, image, container"
+        },
+        {
+          "name": "label",
+          "type": "String",
+          "note": "text or contentDescription, whichever the user would have read"
+        },
+        {
+          "name": "bounds",
+          "type": "Rect",
+          "note": "in screen pixels, so a step can say where it is about to act"
+        },
+        {
+          "name": "visibleFraction",
+          "type": "Float",
+          "note": "share of the node on screen; under the threshold the node is pruned"
+        },
+        {
+          "name": "className",
+          "type": "String",
+          "note": "a node is only actionable if the class carries a class name a step may act on"
+        }
+      ]
+    },
+    {
+      "name": "AgentStep",
+      "fields": [
+        {
+          "name": "index",
+          "type": "Int"
+        },
+        {
+          "name": "action",
+          "type": "String",
+          "note": "click, setText, scroll, back, wait, or answer — the closed set below, and nothing else"
+        },
+        {
+          "name": "nodeId",
+          "type": "Int?",
+          "note": "the node it acts on; null only for back, answer and wait"
+        },
+        {
+          "name": "text",
+          "type": "String?",
+          "note": "what setText writes, or what answer returns to the sheet"
+        },
+        {
+          "name": "clazz",
+          "type": "String",
+          "note": "read, write or irreversible — classified locally from the action and the target, never by the model"
+        },
+        {
+          "name": "phrase",
+          "type": "String",
+          "note": "the step in the user's words, for the confirm row"
+        }
+      ]
+    },
+    {
+      "name": "AgentRun",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Int"
+        },
+        {
+          "name": "question",
+          "type": "String"
+        },
+        {
+          "name": "packageName",
+          "type": "String"
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "note": "planning, planned, running, done, stopped, failed"
+        },
+        {
+          "name": "steps",
+          "type": "List<StepOutcome>",
+          "note": "per step: pending, running, done, refused, skipped — and the reason on anything that is not done"
+        },
+        {
+          "name": "answer",
+          "type": "String?",
+          "note": "the answer half, when the question was one"
+        },
+        {
+          "name": "charsSent",
+          "type": "Int",
+          "note": "sent so far, across every turn of this run"
+        },
+        {
+          "name": "historyMode",
+          "type": "String",
+          "note": "agent — the third ParleyMode beside dictation and edit, and its own History filter"
+        }
+      ]
+    },
+    {
+      "name": "AgentConfig",
+      "fields": [
+        {
+          "name": "askModeEnabled",
+          "type": "Bool"
+        },
+        {
+          "name": "sendScreenContents",
+          "type": "Bool",
+          "note": "the master switch; off means the agent reads nothing and can do nothing"
+        },
+        {
+          "name": "allowedPackages",
+          "type": "List<String>",
+          "note": "system UI, the launcher and Parley are filtered out at read time, not just at write time"
+        },
+        {
+          "name": "maxSteps",
+          "type": "Int",
+          "note": "5"
+        },
+        {
+          "name": "maxIrreversible",
+          "type": "Int",
+          "note": "1"
+        },
+        {
+          "name": "contextBudgetChars",
+          "type": "Int",
+          "note": "4000"
+        },
+        {
+          "name": "keepRuns",
+          "type": "Bool"
+        },
+        {
+          "name": "undoWindowMs",
+          "type": "Int",
+          "note": "10000 — the same window voice edit uses"
+        }
+      ]
+    },
+    {
+      "name": "ParleyStatus",
+      "fields": [
+        {
+          "name": "agentReady",
+          "type": "Bool",
+          "note": "a MiniMax key is set — the agent's own blocker, distinct from transcriptionKeySet"
+        },
+        {
+          "name": "askMode",
+          "type": "Bool",
+          "note": "true while the Ask ring is lit, so Overview and the orb agree"
+        }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "https://api.minimax.io/v1/text/chatcompletion_v2",
+      "auth": true,
+      "purpose": "plan and re-plan: question plus serialised ScreenContext in, a JSON array of AgentStep out, with response_format json_object",
+      "note": "the same key voice edit uses; the agent's own blocker is that key being absent"
+    },
+    {
+      "method": "POST",
+      "path": "https://api.minimax.io/v1/text/chatcompletion_v2",
+      "auth": true,
+      "purpose": "answer: the same request with no tool affordance, for a question that needs no acting"
+    }
+  ],
+  "integration": [
+    {
+      "from": "ParleyAccessibilityService",
+      "to": "ScreenContextSerializer(rootInActiveWindow)",
+      "note": "the node tree, read once at the start of every turn — before planning and again after every step, because the screen the second step acts on is not the screen the plan was written against"
+    },
+    {
+      "from": "Session",
+      "to": "AgentSession",
+      "note": "a third mode beside Dictate and Edit, so holding the orb in Ask mode never touches the recorder's dictate path and the two cannot half-share a state"
+    },
+    {
+      "from": "AgentSession",
+      "to": "AgentPolicy",
+      "note": "classify, budget, allowlist and refuse — every decision that keeps an action from happening is local and unit-tested, and the model's opinion is never one of them"
+    },
+    {
+      "from": "AgentSession",
+      "to": "Injector / FocusTracker",
+      "note": "setText reuses the existing splicer; click goes through AccessibilityNodeInfo.ACTION_CLICK after the node id is revalidated against the current tree"
+    },
+    {
+      "from": "ParleyBridge",
+      "to": "getAgentConfig / setAgentConfig / getAgentRun / undoAgentStep / openAgentSettings",
+      "note": "and an event {type: 'agent', run: AgentRun} after every step, so Transcript streams a live run"
+    },
+    {
+      "from": "HistoryStore",
+      "to": "agent entries",
+      "note": "a third mode, filterable on its own, holding the question, the plan, the outcomes and the sent context"
+    },
+    {
+      "from": "parley_blocker / overview / settings",
+      "to": "ParleyStatus.agentReady",
+      "note": "a missing MiniMax key already says so for voice edit; the agent reuses that row rather than adding a second one"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ScreenContextSerializer.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/AgentPolicy.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/AgentPlanner.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/AgentSession.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/AgentSheetView.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/AgentJournal.kt",
+      "android/app/src/test/kotlin/com/shivarajbakale/parley/ScreenContextSerializerTest.kt",
+      "android/app/src/test/kotlin/com/shivarajbakale/parley/AgentPolicyTest.kt",
+      "android/app/src/test/kotlin/com/shivarajbakale/parley/AgentPlannerTest.kt",
+      "android/app/src/test/kotlin/com/shivarajbakale/parley/AgentJournalTest.kt",
+      "android/app/src/test/kotlin/com/shivarajbakale/parley/fixtures/*.json",
+      "lib/screens/parley/agent_settings_page.dart",
+      "lib/screens/parley/agent_run_page.dart",
+      "test/screens/agent_settings_page_test.dart",
+      "test/screens/agent_run_page_test.dart",
+      "docs/plans/agent.md"
+    ],
+    "changed": [
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/OrbView.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/OrbController.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ParleyAccessibilityService.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/Session.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ParleyRuntime.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ParleyBridge.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/HistoryStore.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/Models.kt",
+      "android/app/src/main/kotlin/com/shivarajbakale/parley/ConfigStore.kt",
+      "android/app/src/main/res/values/strings.xml",
+      "lib/models/parley.dart",
+      "lib/services/parley/parley_bridge.dart",
+      "lib/services/parley/method_channel_parley_bridge.dart",
+      "lib/services/parley/fake_parley_bridge.dart",
+      "lib/screens/parley/parley_settings_page.dart",
+      "lib/screens/parley/overview_page.dart",
+      "lib/screens/parley/parley_blocker.dart",
+      "lib/screens/parley/history_page.dart",
+      "lib/screens/parley/transcript_page.dart",
+      "docs/plans/bridge-contract.md",
+      "docs/references/design-system-reference-llms.txt",
+      "test/screens/history_page_test.dart"
+    ]
+  }
+}

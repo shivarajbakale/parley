@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>parley-a07 — Ask Parley · review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#0B0B12; --surface:#13131E; --surface-2:#191926; --line:#272738;
+  --ink:#E7E7F2; --muted:#9A9AB4; --faint:#6B6B85;
+  --indigo:#7C6BF5; --indigo-dim:#5A4BD1;
+  --green:#3DD68C; --amber:#E8A33D; --red:#F2707C; --cyan:#4FC3E8;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"Nunito",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:var(--indigo);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.wrap{display:grid;grid-template-columns:288px minmax(0,1fr);gap:0;max-width:1440px;margin:0 auto}
+aside{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;border-right:1px solid var(--line);padding:28px 20px 60px}
+main{padding:48px 56px 140px;min-width:0}
+
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.orb{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#B9AEFF,var(--indigo) 42%,#2A2068 78%);box-shadow:0 0 22px rgba(124,107,245,.55)}
+.brand b{font-size:15px;letter-spacing:.2px}
+.kicker{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--faint);font-weight:700;margin:2px 0 26px}
+
+nav a{display:block;padding:6px 10px;border-radius:7px;color:var(--muted);font-size:13.5px;font-weight:600;border-left:2px solid transparent}
+nav a:hover{background:var(--surface-2);color:var(--ink);text-decoration:none}
+nav a.on{color:var(--ink);background:var(--surface-2);border-left-color:var(--indigo)}
+nav .grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.15em;color:var(--faint);font-weight:800;margin:20px 10px 6px}
+
+.cr{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:24px}
+.cr h4{margin:0 0 4px;font-size:13px}
+.cr p{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.5}
+.cr .row{display:flex;gap:6px;flex-wrap:wrap}
+.cr button{font:inherit;font-size:12px;font-weight:700;padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer}
+.cr button:hover{border-color:var(--indigo-dim);background:#22223a}
+.cr button.pri{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.badge{display:inline-block;background:var(--indigo);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;font-weight:800;margin-left:6px}
+
+/* ---------- type ---------- */
+h1{font-size:34px;line-height:1.2;margin:0 0 8px;font-weight:800;letter-spacing:-.4px}
+h2{font-size:23px;margin:64px 0 4px;font-weight:800;letter-spacing:-.2px;scroll-margin-top:20px}
+h2 .num{color:var(--faint);font-family:var(--mono);font-size:14px;margin-right:10px;font-weight:500}
+h3{font-size:16px;margin:28px 0 8px;font-weight:800;color:var(--ink)}
+h2 .lede{font-size:14.5px;color:var(--muted);font-weight:600;margin:0 0 18px;max-width:70ch}
+p{max-width:74ch}
+.lede-lead{font-size:18.5px;color:var(--muted);font-weight:600;max-width:66ch;margin:14px 0 0}
+code{font-family:var(--mono);font-size:.87em;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:#C9C9F5}
+ul{padding-left:20px;max-width:74ch} li{margin:5px 0}
+strong{font-weight:800}
+hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+
+/* ---------- frames ---------- */
+pre.frame{background:linear-gradient(180deg,#101019,#0E0E16);border:1px solid var(--line);border-left:3px solid var(--indigo);
+  border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.5;
+  color:#CFCFE8;margin:16px 0 10px}
+pre.frame.tight{font-size:11.5px;line-height:1.42}
+.cap{font-size:12.5px;color:var(--faint);margin:0 0 22px;font-style:italic}
+figure{margin:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:1080px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.card h4{margin:0 0 8px;font-size:14px;font-weight:800}
+.card p{margin:0;font-size:13.5px;color:var(--muted)}
+
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:collapse;margin:16px 0 10px;font-size:14px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.11em;color:var(--faint);font-weight:800;padding:0 12px 9px 0;border-bottom:1px solid var(--line)}
+td{padding:11px 12px 11px 0;border-bottom:1px solid #1D1D2B;vertical-align:top}
+td:first-child{font-weight:700;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.mono{font-family:var(--mono);font-size:12.5px}
+
+/* ---------- pills / callouts ---------- */
+.pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:20px;border:1px solid}
+.p-read{color:var(--green);border-color:rgba(61,214,140,.4);background:rgba(61,214,140,.1)}
+.p-write{color:var(--amber);border-color:rgba(232,163,61,.4);background:rgba(232,163,61,.1)}
+.p-send{color:var(--red);border-color:rgba(242,112,124,.45);background:rgba(242,112,124,.1)}
+
+.callout{border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:20px 0;background:var(--surface)}
+.callout.warn{border-color:rgba(232,163,61,.35);background:rgba(232,163,61,.06)}
+.callout .t{font-size:12px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--faint);margin-bottom:6px}
+.callout.warn .t{color:var(--amber)}
+.callout p{margin:0 0 8px}
+.callout p:last-child{margin:0}
+
+.rev{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:14px 0;border-bottom:1px solid #1D1D2B}
+.rev:last-child{border-bottom:0}
+.rev .tag{font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:3px;white-space:nowrap}
+.tag-chg{color:var(--amber)} .tag-keep{color:var(--green)} .tag-open{color:var(--cyan)}
+.rev .t{font-weight:800;font-size:15px;margin-bottom:3px}
+.rev p{margin:0;font-size:14px;color:var(--muted)}
+
+/* ---------- review notes ---------- */
+.note{margin:20px 0 0;border:1px dashed var(--line);border-radius:10px;background:rgba(124,107,245,.04)}
+.note summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:700;color:var(--faint);list-style:none;user-select:none}
+.note summary::-webkit-details-marker{display:none}
+.note summary::before{content:"＋ ";color:var(--indigo)}
+.note[open] summary::before{content:"− "}
+.note[open] summary{color:var(--muted);border-bottom:1px dashed var(--line)}
+.note textarea{width:100%;background:transparent;border:0;outline:0;color:var(--ink);font:inherit;font-size:14px;
+  padding:12px 14px;resize:vertical;min-height:76px;line-height:1.6}
+.note textarea::placeholder{color:var(--faint)}
+.note .meta{font-size:11px;color:var(--faint);padding:0 14px 10px}
+
+.q{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:12px 0}
+.q h4{margin:0 0 6px;font-size:15px}
+.q p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+.q .opts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.q .opts span{font-size:12px;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);
+  border-radius:7px;padding:4px 9px;color:#B9B9D6}
+.q .why{font-size:12.5px;color:var(--faint);margin-top:10px}
+.q .why b{color:var(--muted)}
+
+@media print{aside{display:none}.wrap{grid-template-columns:1fr}main{padding:0}.note{display:none}}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:28px 20px 90px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<aside>
+  <div class="brand"><div class="orb"></div><b>Parley</b></div>
+  <div class="kicker">parley-a07 · review draft</div>
+
+  <nav id="nav">
+    <div class="grp">The argument</div>
+    <a href="#verdict">Verdict</a>
+    <a href="#problem">Problem</a>
+    <a href="#diffs">What changed &amp; why</a>
+    <div class="grp">The design</div>
+    <a href="#orb">The orb, and its new mode</a>
+    <a href="#ask">Hold to ask</a>
+    <a href="#commit">Hold to commit</a>
+    <a href="#run">Running · the orb is the brake</a>
+    <a href="#irreversible">The third hold</a>
+    <a href="#readout">Readout, not control surface</a>
+    <div class="grp">The machinery</div>
+    <a href="#context">ScreenContextSerializer</a>
+    <a href="#policy">AgentPolicy · every refusal</a>
+    <a href="#revalidate">Revalidation</a>
+    <a href="#actions">The closed action set</a>
+    <div class="grp">The app</div>
+    <a href="#settings">Agent settings</a>
+    <a href="#transcript">Agent run transcript</a>
+    <a href="#bridge">Bridge additions</a>
+    <div class="grp">Confidence</div>
+    <a href="#verify">Verification</a>
+    <a href="#risks">Risks</a>
+    <a href="#questions">Open questions</a>
+  </nav>
+
+  <div class="cr">
+    <h4>Change requests<span class="badge" id="cnt">0</span></h4>
+    <p>Type under any section. Notes save in this browser and export as markdown — paste them back to me.</p>
+    <div class="row">
+      <button class="pri" id="copy">Copy markdown</button>
+      <button id="dl">Download</button>
+      <button id="clear">Clear</button>
+    </div>
+  </div>
+</aside>
+
+<main>
+
+<h1>Ask Parley</h1>
+<p class="lede-lead">A screen-aware agent that lives on the orb, speaks three verbs, and taps nothing.</p>
+<p style="color:var(--faint);font-size:13px;font-family:var(--mono);margin-top:18px">
+  parley-a07 · priority 15 · area native · status <span style="color:var(--amber)">not_started</span> ·
+  sources: <a href="../parley-a07.feature-plan.json">parley-a07.feature-plan.json</a>, <a href="agent.md">docs/plans/agent.md</a>
+</p>
+
+<h2 id="verdict"><span class="num">01</span>Verdict</h2>
+<p class="lede">The idea is good and the infrastructure is already paid for. The first draft of the confirmation design was wrong, and this is the corrected one.</p>
+
+<div class="grid2">
+  <div class="card"><h4>Why it fits Parley</h4><p>The accessibility service already holds the exact node tree of the foreground window — real text, real bounds, real class names, no OCR. It also already has a model client and an injector. Nothing here is a new subsystem; it is a new orb mode wired to things that exist.</p></div>
+  <div class="card"><h4>What is genuinely new</h4><p>Turning a node tree into something a model can read well, and building the refusal layer. Everything else is plumbing. The first of those is where the tests go.</p></div>
+</div>
+
+<div class="callout">
+  <div class="t">The positioning, in one line</div>
+  <p>Gemini and Assistant can see your screen. Parley can <strong>read</strong> it and <strong>act</strong> in it. That is the difference worth building: exact structure instead of pixels, and a loop that ends in the app instead of in a chat window.</p>
+</div>
+
+<h2 id="problem"><span class="num">02</span>Problem</h2>
+<p class="lede">Parley speaks for you and cannot answer for you or act for you.</p>
+<p>Everything it knows is what you just said, and the one thing it can change is a text field. So a screen that needs reading, or a task that needs three taps, is a screen Parley can only help you type into. The service is already holding the answer and the model is already holding the question — nothing connects the two.</p>
+
+<h2 id="diffs"><span class="num">03</span>What changed, and why</h2>
+<p class="lede">The first draft put a per-step confirm loop on a phone. That was a desktop pattern on a mobile device and it contradicted the product's own premise.</p>
+
+<div class="rev"><div class="tag tag-chg">was</div><div><div class="t">A snap-sheet with four buttons</div><p>Run this step · Run all read-only · Stop · Insert the answer, tapped in sequence while the app underneath competed for the same pixels. One-handed, in a hurry, in a chat app.</p></div></div>
+<div class="rev"><div class="tag tag-chg">now</div><div><div class="t">The orb is the only control</div><p>Hold to ask. Hold to commit. Hold longer to send. Zero buttons on the main path. The plan is read <em>while the finger is still down</em>, which is the one moment a mobile confirmation belongs in.</p></div></div>
+
+<div class="rev"><div class="tag tag-chg">was</div><div><div class="t">The orb goes inert while a run is live</div><p>Because the agent can click any node it can name, and the orb is a node — so it was switched off to the person as well as to the model.</p></div></div>
+<div class="rev"><div class="tag tag-chg">now</div><div><div class="t">Inert to the agent, live to the person</div><p>The orb is the brake. You are already holding the phone to watch a run; your thumb is on it. Touching it stops the run after the current step.</p></div></div>
+
+<div class="rev"><div class="tag tag-keep">kept</div><div><div class="t">Refusals stay local, pure, and tested</div><p>Unchanged. Step class, allowlist, budgets, orb overlap — none of these are the model's decision and none of them need a device.</p></div></div>
+<div class="rev"><div class="tag tag-keep">kept</div><div><div class="t">Irreversible is the safe default</div><p>Still graded up, still on its own, still saying it cannot be undone. It just asks for a longer hold instead of a dialog.</p></div></div>
+<div class="rev"><div class="tag tag-keep">kept</div><div><div class="t">Taps exist, as the second language</div><p>Real tap equivalents for every hold, plus the settings page. TalkBack and switch control both make a sustained hold genuinely hard, and a product built on an accessibility service that excludes its own users has failed at the premise.</p></div></div>
+
+<h2 id="orb"><span class="num">04</span>The orb, and its new mode</h2>
+<p class="lede">The orb already speaks three gestures. Ask mode is added beside them, never on top of them.</p>
+
+<figure><pre class="frame">        idle                    ask mode                 listening a question
+
+              ⬤                        ◎                        ▭▭▭▭▭▭▭▭
+         ╭───────╮                ╭───────╮                ┌──────────┐
+         │       │                │  ⬤   │                │▁▂▃▅▃▂▁  │
+         │  ⬤    │   triple-tap  │       │  hold          │        │
+         │       │  ──────────►  ╰───────╯  ──────────►  │  0:07   │
+         ╰───────╯                                       │  Ask    │
+                                                        └──────────┘
+      docked right edge,                   "Ask"                 release
+      draggable, 36/44/52dp             pill under it</pre>
+<figcaption class="cap">Triple-tap lights a ring; hold then means ask. The ring is the entire state — a mode indicator that never needs reading. 60 s after the last use it goes out, so a forgotten ring cannot turn a later tap into a question.</figcaption></figure>
+
+<div class="callout warn">
+  <div class="t">Why a mode and not a fourth gesture</div>
+  <p>Hold dictates. Double-tap-hold edits. Volume tap-tap-hold dictates. A fourth <em>hold-like</em> gesture would be unlearnable and would collide with two that already work. A toggle is a state the sphere can show, not a timing window the user has to remember.</p>
+</div>
+
+<h2 id="ask"><span class="num">05</span>Hold to ask</h2>
+<p class="lede">Nothing new. The existing listening capsule, in the existing mode.</p>
+
+<figure><pre class="frame">   ①  hold the orb · speak
+
+   ┌──────────┐
+   │▁▂▃▅▃▂▁  │     "read me the July invoice total"
+   │   0:04   │
+   │   Ask    │
+   └──────────┘
+
+   release ─►  the orb dims, two soft lights circle inside
+                (the same "working" state it uses after a
+                 dictation — there is nothing new to learn)</pre></figure>
+
+<p>The agent reuses the MiniMax key that voice edit already uses. No key means it refuses <em>before</em> the mic opens, with the same wording voice edit already has — not after it records.</p>
+
+<h2 id="commit"><span class="num">06</span>Hold to commit</h2>
+<p class="lede">The plan arrives in the capsule and the user is still holding. Release runs it.</p>
+
+<figure><pre class="frame">   ②  hold the orb again · the whole plan is on the orb while you hold
+
+   ┌──────────────────────┐
+   │ 3 steps · ends by    │   one line, near the thumb.
+   │ emailing you         │   Not a table. Not a list.
+   │                      │
+   │▁▂▃▅▃▂▁  run · 2s left│   the timer keeps running,
+   └──────────────────────┘   so the hold still costs
+                               what a hold costs today
+
+   release ─►  it runs.
+   slide to the middle ─►  cancelled, exactly as a
+                            recording is cancelled today.</pre>
+<figcaption class="cap">The second hold is the app's verb, not a new one: you already re-press to dictate a second sentence. And the plan row's only job now is to be read during the hold — the details belong in the transcript, afterwards.</figcaption></figure>
+
+<p>A run that needs more than five steps ends as <strong>over budget</strong> rather than wandering. A task that long is two confirmed runs.</p>
+
+<h2 id="run"><span class="num">07</span>Running · the orb is the brake</h2>
+<p class="lede">The stop control is where the hand already is.</p>
+
+<figure><pre class="frame">   running                          touch the orb
+   ┌──────────┐
+   │◐ 2 of 3  │  ──────────────────────────►   everything stops after
+   └──────────┘                                 the current step
+
+   stopping
+   ┌──────────┐
+   │◌ stopped │   ◌ the work state, held.
+   │  undo 10s│   The answer is in the capsule, and
+   └──────────┘   voice edit's 10 s undo window is
+                  already there.</pre></figure>
+
+<div class="callout">
+  <div class="t">The rule that changed</div>
+  <p>The orb must be <strong>inert to the agent and live to the person</strong>. Any step whose target bounds overlap the orb's own window is refused by <code>AgentPolicy</code> — before the model is even asked. So the agent cannot aim at the orb, and the user can.</p>
+</div>
+
+<h2 id="irreversible"><span class="num">08</span>The third hold</h2>
+<p class="lede">This is the one place a hold genuinely isn't enough friction. So it asks for a longer one, and says why out loud.</p>
+
+<figure><pre class="frame">   ┌──────────────────────┐
+   │ ⚠ hold to send       │   announced, and the capsule is
+   │ Sends an email to    │   the only thing on screen
+   │ me@… · cannot be     │
+   │ undone               │
+   │▁▂▃▅▃▂▁  hold · 0:08 │   ← 8 seconds to think
+   └──────────────────────┘   lift early and it does not send</pre></figure>
+
+<div class="grid2">
+  <div class="card"><h4>Read</h4><p><span class="pill p-read">read</span> &nbsp;Reading, scrolling, looking. Runs on the commit hold. Nothing to undo.</p></div>
+  <div class="card"><h4>Write &nbsp;/&nbsp; irreversible</h4><p><span class="pill p-write">write</span> <span class="pill p-send">send</span> &nbsp;Write runs on the commit hold. Send stops the run and asks for a third.</p></div>
+</div>
+
+<p>Classification is <strong>local</strong> and the model has no vote. A <code>click</code> whose target matches a send or commit pattern grades <em>up</em> to irreversible, because being wrong about that costs one extra tap rather than one sent message. One irreversible step per run, never batched with anything else.</p>
+
+<h2 id="readout"><span class="num">09</span>Readout, not control surface</h2>
+<p class="lede">A phone can carry a line and a log. It cannot carry a control surface over a live app.</p>
+
+<div class="grid2">
+  <div class="card"><h4>What stays on the orb</h4><p>One line, near the thumb, hold-aware. The plan in words. The current step. The answer. Nothing scrollable, nothing tappable on the main path.</p></div>
+  <div class="card"><h4>What moves to History</h4><p>The full plan, every step and its outcome, and the exact context that was sent. Scrollable, copyable, and the place a question actually gets reviewed.</p></div>
+</div>
+
+<p>The sheet survives as a readout only. It is not a sheet any more — it is the listening capsule, widened.</p>
+
+<h2 id="context"><span class="num">10</span>ScreenContextSerializer</h2>
+<p class="lede">The feature, not a formatting helper. A node tree is a bad prompt: deep, duplicated, full of invisible containers.</p>
+
+<figure><pre class="frame">   rootInActiveWindow
+          │
+          ▼
+   ┌──────────────┐  drop isVisibleToUser == false   (usually the
+   │   prune      │  drop visibleFraction &lt; 0.5      biggest single
+   │              │  drop unlabelled containers        win)
+   ├──────────────┤  dedupe  keep the deepest node carrying a label,
+   │   dedupe     │          drop the ancestors that inherit nothing
+   ├──────────────┤  order   top-to-bottom, then left-to-right,
+   │   order      │          so it reads the way a person reads
+   ├──────────────┤  budget  4,000 chars — containers first, then
+   │   budget     │          sub-24-char labels, then truncate at 200
+   ├──────────────┤  flag    truncated = true, and the sheet says so
+   │   flag       │
+   └──────┬───────┘
+          ▼
+   List&lt;ScreenNode&gt;  —  ids are indices + path, stable for one
+                           turn and meaningless after it</pre></figure>
+
+<div class="callout warn">
+  <div class="t">Never sent</div>
+  <p>Password fields, anything marked a secret, and the focused text of a browser's address bar. <code>sendScreenContents</code> covers the rest, and the character count of what is actually going is on the orb before it goes.</p>
+</div>
+
+<p>An agent that silently answered from half a screen is worse than one that declines — so truncation is a visible state, not a silent one.</p>
+
+<h2 id="policy"><span class="num">11</span>AgentPolicy · every refusal</h2>
+<p class="lede">Pure functions over a step and a config. No device, no network, all of it unit-testable.</p>
+
+<table>
+<thead><tr><th>Rule</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td class="mono">sendScreenContents</td><td>Off means no run starts. Checked before the mic opens — voice edit's refusal-before-recording rule, reused.</td></tr>
+<tr><td class="mono">allowedPackages</td><td>An allowlist, not a denylist: a new app is unreadable until chosen, not readable until noticed.</td></tr>
+<tr><td class="mono">system UI · launcher · Parley</td><td>Filtered at read time. Filtering only on write is a filter that leaks.</td></tr>
+<tr><td class="mono">bounds overlap the orb</td><td>The agent cannot aim at the app's own UI. Refused before the model is asked.</td></tr>
+<tr><td class="mono">&gt; 5 steps</td><td>The run ends as over budget. A task this long is two confirmed runs.</td></tr>
+<tr><td class="mono">&gt; 1 irreversible</td><td>The extras are dropped. One irreversible thing per run, never batched with a read.</td></tr>
+<tr><td class="mono">unknown action</td><td>Dropped, not coerced. The set is closed — see below.</td></tr>
+<tr><td class="mono">node not on screen</td><td>The step is refused with "that element moved" and the run re-plans.</td></tr>
+</tbody>
+</table>
+
+<h2 id="revalidate"><span class="num">12</span>Revalidation</h2>
+<p class="lede">The reason ids are re-derivable from the path rather than random.</p>
+
+<figure><pre class="frame">   before every single step:
+
+     1. re-serialise the tree          the screen the second step
+                                      acts on is not the screen the
+                                      plan was written against
+
+     2. find the node by path
+        gone ──────────────────────►  refuse, re-plan
+                                      ("that element moved")
+
+     3. present ───────────────────►  performAction on the FRESH
+                                      node object, never a cached one</pre></figure>
+
+<div class="callout">
+  <div class="t">The single most important test in the feature</div>
+  <p>A hallucinated step that gets dropped is a non-event. One that gets clicked ends the product. Steps naming a node that is not on screen are dropped and shown struck through in the transcript — because a silently dropped step is a plan that lied.</p>
+</div>
+
+<h2 id="actions"><span class="num">13</span>The closed action set</h2>
+<p class="lede">Six verbs, and the whole reason a user can read what an agent can do on one screen.</p>
+
+<table>
+<thead><tr><th>Action</th><th>Class</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td class="mono">answer</td><td><span class="pill p-read">read</span></td><td>No acting. A question returns to the capsule and, if asked, into the focused field.</td></tr>
+<tr><td class="mono">click</td><td><span class="pill p-write">write</span> <span class="pill p-send">send</span></td><td>Grades up to irreversible on a send/commit pattern. Reuses <code>Injector</code> for fields.</td></tr>
+<tr><td class="mono">setText</td><td><span class="pill p-write">write</span></td><td>Reuses the existing <code>TextSplicer</code> — hint text, selection, leading space, surrogate pairs, all already tested.</td></tr>
+<tr><td class="mono">scroll</td><td><span class="pill p-read">read</span></td><td>The one navigation that is not a step backwards.</td></tr>
+<tr><td class="mono">wait</td><td><span class="pill p-read">read</span></td><td>Capped. An agent that has to wait three times is an agent that guessed wrong.</td></tr>
+<tr><td class="mono">back</td><td><span class="pill p-write">write</span></td><td><span style="color:var(--amber)">Genuinely unsure this earns its place — see question Q6.</span></td></tr>
+</tbody>
+</table>
+
+<h2 id="settings"><span class="num">14</span>Agent settings</h2>
+<p class="lede">The one place with rows and switches. It isn't a moment, it's a place.</p>
+
+<figure><pre class="frame tight">  Agent                                          ‹
+  ─────────────────────────────────────────────────
+  WHAT PARLEY MAY READ
+  Ask mode              Triple-tap the orb to turn it
+                        on, hold to ask.        ◯  off
+  Send screen contents  Off. The agent cannot read a
+                        screen until this is on, and
+                        it says so rather than asking
+                        each time.               ◯  off
+  Allowed apps          Parley reads only the apps
+                        listed here. System UI, the
+                        launcher and Parley itself
+                        are never in it.
+                                             2 apps ›
+  ─────────────────────────────────────────────────
+  HOW FAR IT MAY GO
+  Steps per run         5. A run that needs more is
+                        split into two runs, each
+                        confirmed on its own.
+  Irreversible steps    1 per run, never batched with
+                        anything else.
+  Context budget        4,000 characters of screen text
+                        per turn.
+  ─────────────────────────────────────────────────
+  WHAT IS KEPT
+  Keep agent runs       The question, the plan, each
+                        step and its outcome. Never the
+                        raw screen, after the run ends.
+  Undo window           10 s, the same window voice edit
+                        uses. One step back, not the run.
+  History               Agent runs are their own
+                        filter.                  ›</pre></figure>
+
+<p>The page leads with <code>Send screen contents</code> rather than with an explanation of what the agent is, because the person opening it is usually reacting to something it already did. A value that failed to load renders as a dash, never as <em>Off</em> — off is an answer, a failure is not one.</p>
+
+<h2 id="transcript"><span class="num">15</span>Agent run transcript</h2>
+<p class="lede">Where the plan actually gets reviewed — because here there are no mis-taps.</p>
+
+<figure><pre class="frame tight">  Agent run · Chrome                          ‹
+  ─────────────────────────────────────────────────
+  THE QUESTION
+  What's the July invoice total?
+  Heard by MiniMax · 2 s ago
+
+  THE PLAN
+  1  ▸ Read   Open the July invoice         ✓ done
+  2  ▸ Write  Set the date to the 12th      ✓ done
+  3  ▸ Send   Email it to me                ✕ refused
+  4  ~~▸ Back~~                      dropped, struck
+     ~~element was not on screen~~
+  ─────────────────────────────────────────────────
+  WHAT RAN
+  ✓ Opened the July invoice                   0.4 s
+  ✓ Set the date to the 12th                  0.3 s
+  ✕ Email it to me         that element moved
+  — Back                       not run
+  ─────────────────────────────────────────────────
+  WHAT WAS SENT
+  v  1,240 characters · MiniMax · chatcompletion_v2
+     Copy
+  ─────────────────────────────────────────────────
+  [ Ask again with this context ]               pinned</pre></figure>
+
+<p>It ends on <em>What was sent</em>, so the user can read exactly what left the phone and take it to a provider's dashboard if they need to. A run whose sending cannot be inspected is a run nobody should trust with a banking app.</p>
+
+<h2 id="bridge"><span class="num">16</span>Bridge additions</h2>
+<p class="lede">Per <code>docs/plans/bridge-contract.md</code> — both sides land in the same commit.</p>
+
+<table>
+<thead><tr><th>Method</th><th>Args</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td class="mono">getAgentConfig</td><td>—</td><td>AgentConfig</td></tr>
+<tr><td class="mono">setAgentConfig</td><td>AgentConfig</td><td>AgentConfig</td></tr>
+<tr><td class="mono">getAgentRun</td><td>{id}</td><td>AgentRun or null</td></tr>
+<tr><td class="mono">listAgentRuns</td><td>—</td><td>List&lt;AgentRun&gt;</td></tr>
+<tr><td class="mono">undoAgentStep</td><td>{runId, index}</td><td>bool</td></tr>
+<tr><td class="mono">openAgentSettings</td><td>—</td><td>null</td></tr>
+</tbody>
+</table>
+
+<p>Event <code>{type: 'agent', run: AgentRun}</code> after every step, so the transcript streams a live run instead of appearing at the end.</p>
+
+<h2 id="verify"><span class="num">17</span>Verification</h2>
+
+<div class="grid2">
+  <div class="card"><h4>Kotlin — no device</h4><p><code>ScreenContextSerializerTest</code> over captured tree fixtures (a list, a form, a Chrome page, a chat thread): pruning, dedupe, ordering, budget, and that <code>truncated</code> is set when it should be. <code>AgentPolicyTest</code> over every row of the refusal table. <code>AgentPlannerTest</code> against MockWebServer: malformed JSON, a step naming an absent node, an over-budget plan, an unknown action. <code>AgentJournalTest</code>: the 10 s window, one step back, irreversible writes nothing.</p></div>
+  <div class="card"><h4>Flutter</h4><p>The two pages across all four states, the not-loaded-versus-off distinction, <code>FakeParleyBridge</code> carrying the new methods and event, History's agent filter, goldens in both themes.</p></div>
+</div>
+
+<div class="card" style="margin-top:14px"><h4>Device — Oppo CPH2791, real MiniMax key</h4>
+<p>Three apps with three different node trees: <strong>Settings</strong>, <strong>Chrome</strong>, and a <strong>chat app</strong>. Then: a question answered that used no tool; a four-step run with one irreversible step on its own third hold; a step refused with its reason on screen; a run stopped by touching the orb. <code>adb screenrecord</code> and screenshots under <code>docs/evidence/parley-a07/</code>.</p></div>
+
+<h2 id="risks"><span class="num">18</span>Risks</h2>
+
+<table>
+<thead><tr><th>Risk</th><th>Answer</th></tr></thead>
+<tbody>
+<tr><td>The model clicks the wrong node on a screen that changed</td><td>Ids re-derived from the path and revalidated before every action; a moved node refuses the step and the run re-plans.</td></tr>
+<tr><td>A misclassification sends a message</td><td>Irreversible is the safe default, confirmed on its own, on a third hold, saying it cannot be undone.</td></tr>
+<tr><td>Latency and cost of a 4,000-character tree</td><td>The budget is a settings row, the count is on the orb before sending, and reads are one pass.</td></tr>
+<tr><td>Reading a banking app</td><td>Off by default, per-app allowlist, and the sent context is readable in the transcript afterwards.</td></tr>
+<tr><td>The agent shoots itself</td><td>It cannot: the orb's window bounds are refused before the model is asked, and it is inert to the agent throughout.</td></tr>
+<tr><td>A hold is a poor fit for TalkBack or switch control</td><td>Taps are the second language, not an afterthought — every hold has a tap equivalent, and the irreversible step still confirms either way.</td></tr>
+<tr><td>The answer is right but arrived too late to matter</td><td>Unmeasured. The honest first question is whether the question half is worth shipping before the acting half.</td></tr>
+</tbody>
+</table>
+
+<h2 id="questions"><span class="num">19</span>Open questions</h2>
+<p class="lede">These are the ones I actually do not know, and each of them changes the design rather than the wording.</p>
+
+<div class="q"><h4>Q1 · Is triple-tap the right activation at all?</h4>
+<p>Triple-tap is a timing window the user has to remember — which is exactly what I said Ask mode was avoiding. An alternative is a persistent ring the user turns on and off in settings, or a long-press on the docked side of the orb.</p>
+<div class="opts"><span>triple-tap (proposed)</span><span>persistent in settings</span><span>long-press</span><span>ask mode always on</span></div>
+<p class="why"><b>Why it matters:</b> this is the first thing anyone touches, and it decides whether the feature is discoverable at all.</p></div>
+
+<div class="q"><h4>Q2 · Does the plan need a detail view on the orb?</h4>
+<p>One line is honest and fast, but "3 steps · ends by emailing you" is a summary, and a user who disagrees with the summary has no way to check it before releasing.</p>
+<div class="opts"><span>one line only (proposed)</span><span>one line, slide up for the steps</span><span>all steps always</span></div>
+<p class="why"><b>Why it matters:</b> it is the difference between a fast approval and an informed one.</p></div>
+
+<div class="q"><h4>Q3 · Should a run stop at the send, or complete the reads and hold there?</h4>
+<p>Currently: the run finishes everything reversible, then stops and asks for the third hold. The alternative is to stop the moment a send is planned, before any of it happens.</p>
+<div class="opts"><span>finish reads, hold at the send</span><span>stop at the first send</span></div>
+<p class="why"><b>Why it matters:</b> the first is more useful and does more before the user can stop it.</p></div>
+
+<div class="q"><h4>Q4 · Is the allowlist right, or should it prompt?</h4>
+<p>An allowlist means a new app is unreadable until chosen. That is the safe default and it is also friction on the second use, which is where people usually decide whether they keep a tool.</p>
+<div class="opts"><span>allowlist (proposed)</span><span>denylist + a once-per-app prompt</span><span>allowlist with a one-tap add</span></div>
+<p class="why"><b>Why it matters:</b> it is the difference between one session of friction and a permanently quiet feature.</p></div>
+
+<div class="q"><h4>Q5 · Should the question half ship before the acting half?</h4>
+<p>"What does this error mean" needs no permissions, no refusals, no undo and no allowlist. It is most of the value at none of the risk. The acting half is what makes this plan heavy.</p>
+<div class="opts"><span>agent that acts (proposed)</span><span>answer-only first, acting later</span></div>
+<p class="why"><b>Why it matters:</b> the acting half is roughly five times the work and all of the danger. The question half is roughly the serializer.</p></div>
+
+<div class="q"><h4>Q6 · Does <code>back</code> earn a place in the action set?</h4>
+<p>A plan that navigates backwards is a plan that misread the screen, and the revalidation refusal already handles the case where it belongs.</p>
+<div class="opts"><span>drop it</span><span>keep it (proposed)</span></div>
+<p class="why"><b>Why it matters:</b> it is the one verb in the set whose purpose is to recover from the agent's own mistakes.</p></div>
+
+<div class="q"><h4>Q7 · Should History keep agent runs at all?</h4>
+<p>The transcript is where the plan gets reviewed and where "what did you send" gets answered. But it is also a record of every screen the agent read, which is a different kind of sensitive history than dictations.</p>
+<div class="opts"><span>keep, with a retention setting</span><span>keep, forever (proposed)</span><span>ephemeral — nothing retained</span></div>
+<p class="why"><b>Why it matters:</b> the app already stores a history; this is the first thing in it that was not something the user typed.</p></div>
+
+<div class="callout" style="margin-top:34px">
+  <div class="t">Where the gates are</div>
+  <p><code>make check</code> is currently <strong>red at baseline</strong>: 9 × D9, a missing <code>docs/evidence/&lt;id&gt;.md</code> for a01, a03, a05 and r01–r06. Unrelated to this feature and not something I have touched.</p>
+  <p><code>feature_list.json</code> also currently carries <strong>two</strong> <code>in_progress</code> features — a02 and a06 — against constraint 1. parley-a07 is registered <code>not_started</code> for exactly that reason, and should not go in flight until one of them is resolved.</p>
+</div>
+
+<p style="margin-top:40px;color:var(--faint);font-size:13px;font-family:var(--mono)">
+  Comments above export with <b>Copy markdown</b>. Paste them back and I will fold them into
+  <a href="../parley-a07.feature-plan.json">parley-a07.feature-plan.json</a> and <a href="agent.md">agent.md</a>.
+</p>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var notes = {};
+  var KEY = 'parley-a07-notes';
+
+  try { notes = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ notes = {}; }
+
+  function build(){
+    var main = document.querySelector('main');
+    main.querySelectorAll('section, .q, h2, .callout').forEach(function(){}); // no-op, structure is static
+    return notes;
+  }
+
+  // insert a note box under every h2 and every question card
+  function hostFor(el){
+    var id = null;
+    var node = el;
+    // h2 -> its own id ; .q -> the h4 text
+    if(el.tagName === 'H2' && el.id) id = el.id;
+    else if(el.classList && el.classList.contains('q')) id = 'q:' + (el.querySelector('h4')||{}).textContent.trim();
+    return id;
+  }
+
+  var created = [];
+  document.querySelectorAll('main h2, main .q').forEach(function(el){
+    var id = hostFor(el);
+    if(!id) return;
+    var d = document.createElement('details');
+    d.className = 'note';
+    var s = document.createElement('summary');
+    s.textContent = 'Propose a change here';
+    var ta = document.createElement('textarea');
+    ta.placeholder = 'What should change, and why…';
+    ta.value = notes[id] || '';
+    var m = document.createElement('div');
+    m.className = 'meta';
+    m.textContent = id;
+    d.appendChild(s); d.appendChild(ta); d.appendChild(m);
+    if((notes[id]||'').trim()) d.open = true;
+    el.insertAdjacentElement('afterend', d);
+    ta.addEventListener('input', function(){
+      notes[id] = ta.value;
+      try{ localStorage.setItem(KEY, JSON.stringify(notes)); }catch(e){}
+      render();
+    });
+    created.push({id:id, ta:ta});
+  });
+
+  function active(){
+    return Object.keys(notes).filter(function(k){ return (notes[k]||'').trim(); });
+  }
+
+  function render(){
+    document.getElementById('cnt').textContent = active().length;
+  }
+
+  function markdown(){
+    var keys = active();
+    if(!keys.length) return 'No change requests yet.\n';
+    var out = ['# parley-a07 — change requests', ''];
+    keys.forEach(function(k){
+      var title = k.indexOf('q:') === 0 ? k.slice(2) : k;
+      out.push('## ' + title);
+      out.push('');
+      out.push(notes[k].trim());
+      out.push('');
+    });
+    return out.join('\n');
+  }
+
+  document.getElementById('copy').addEventListener('click', function(){
+    var t = markdown();
+    navigator.clipboard.writeText(t).then(function(){
+      flash(this,'Copied');
+    }.bind(this), function(){
+      fallback(t);
+    });
+  });
+
+  document.getElementById('dl').addEventListener('click', function(){
+    var b = new Blob([markdown()], {type:'text/markdown'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = 'parley-a07-change-requests.md';
+    a.click();
+  });
+
+  document.getElementById('clear').addEventListener('click', function(){
+    if(!confirm('Discard every change request in this browser?')) return;
+    notes = {};
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    created.forEach(function(c){ c.ta.value = ''; c.ta.closest('details').open = false; });
+    render();
+  });
+
+  function flash(btn, msg){
+    var old = btn.textContent;
+    btn.textContent = msg;
+    setTimeout(function(){ btn.textContent = old; }, 1200);
+  }
+  function fallback(t){
+    var ta = document.createElement('textarea');
+    ta.value = t; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  // scroll spy
+  var links = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var targets = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function spy(){
+    var best = 0;
+    for(var i=0;i<targets.length;i++){
+      if(targets[i] && targets[i].getBoundingClientRect().top < 140) best = i;
+    }
+    links.forEach(function(a,i){ a.classList.toggle('on', i===best); });
+  }
+  document.addEventListener('scroll', spy, {passive:true});
+  spy();
+  render();
+})();
+</script>
+</body>
+</html>

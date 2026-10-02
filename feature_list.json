@@ -1,6 +1,6 @@
 {
   "project": "parley_android",
-  "last_updated": "2026-09-24",
+  "last_updated": "2026-09-28",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -276,7 +276,7 @@
       "area": "native",
       "title": "Deepgram Nova-3 as a transcription provider",
       "user_visible_behavior": "API keys offers a choice of transcription provider, Whisper (Groq) or Deepgram Nova-3, with a key field for the chosen one. Each key is checked with its own provider before it is saved, and switching to Deepgram needs a Deepgram key. Dictation then sends the recording to the chosen provider; Parley is ready when that provider has a key, and Setup, Overview and Settings name the provider in use. Existing installs stay on Groq.",
-      "status": "in_progress",
+      "status": "not_started",
       "verification": [
         "make check",
         "flutter test test/screens/api_keys_page_test.dart",
@@ -285,7 +285,27 @@
       "evidence": [
         "make check exit 0 on feat/deepgram-nova3: 144 Kotlin tests, flutter tests green, goldens re-baselined (api_keys, api_keys_text2x, setup_key); notes in docs/evidence/parley-a06.md"
       ],
-      "notes": "Plan: parley-a06.feature-plan.json (FEATURE-PLAN.md). Design approved by the owner in chat on 2026-09-24. Not yet walked on a device with a real Deepgram key; stays in_progress until that walk."
+      "notes": "Demoted to not_started 2026-09-28 to clear constraint 1 (a02 was also in_progress). Nothing lost: the plan and the approved design are untouched and it can be picked straight back up. The one step remaining is a device walk with a real Deepgram key, which is a key to obtain rather than work to do. Plan: parley-a06.feature-plan.json (FEATURE-PLAN.md). Design approved by the owner in chat on 2026-09-24. Not yet walked on a device with a real Deepgram key; stays in_progress until that walk."
+    },
+    {
+      "id": "parley-a07",
+      "priority": 15,
+      "area": "native",
+      "title": "Ask Parley — a screen-aware agent that can act",
+      "user_visible_behavior": "Triple-tap the orb to turn on Ask mode, hold to speak a question about whatever is on screen, and the orb opens a sheet: it reads the app's node tree, shows the steps it wants to take graded read/write/irreversible, runs the ones that are confirmed, and records the whole run in History.",
+      "status": "not_started",
+      "verification": [
+        "Kotlin unit tests: ScreenContextSerializer (pruning, dedupe, visible-fraction, char budget, truncation flagged), AgentPolicy (step class, allowlist, orb/self-window refusal, step budget, one irreversible per run), AgentPlanner against MockWebServer (malformed JSON, a step naming a node that is not on screen, step budget honoured), AgentJournal (10s window, one step back, irreversible has no undo).",
+        "Flutter tests: agent settings page across its four states and the not-loaded-versus-off distinction; agent run transcript streaming a live run; FakeParleyBridge carries the new methods and event; History gains the agent filter; goldens for both pages in both themes.",
+        "make check (analyze, ui-lint, palette-lint, plan-lint, superplan-lint, doc-lint, design-md, tests, ui-probe, golden) green.",
+        "On the Oppo CPH2791 with a real MiniMax key, in three apps with different node trees (Settings, Chrome, a chat app): a question answered with nothing sent to a tool; a four-step run with one irreversible step confirmed on its own; a refused step showing its reason; a run stopped mid-way. adb screenrecord and screenshots under docs/evidence/parley-a07/."
+      ],
+      "evidence": [
+        "cd android && ./gradlew :app:testDebugUnitTest --rerun-tasks -> BUILD SUCCESSFUL, 14 suites, 200 tests, 0 failures (2026-09-28)",
+        "dart run tool/plan_lint.dart -> 2 plan(s) valid, FEATURE-PLAN.md in sync (0 violations)",
+        "dart run tool/feature_plan.dart parley-a07.feature-plan.json --check -> valid (2 surfaces)"
+      ],
+      "notes": "Plan: parley-a07.feature-plan.json, rendered with `make plan PLAN=parley-a07.feature-plan.json`; the native half — the context serialiser, the action sandbox, the sheet, the undo journal — is docs/plans/agent.md. Not started: parley-a02 is the one in_progress feature (a06 was demoted to not_started on 2026-09-28 to clear constraint 1; a02 is one device walk from passing). a07 does not go in flight until a02 closes. PART BUILT ANYWAY 2026-09-28: ScreenContextSerializer.kt + ScreenContextSerializerTest.kt landed (26 tests, 200 native tests total, 0 failures) because the serialiser is the same work whether the feature ships answer-only or the full agent, and it is what every other a07 part depends on. Still not written: the AccessibilityNodeInfo -> SourceNode adapter, AgentPolicy, AgentPlanner, AgentSession, the sheet, and every Flutter surface. Not passing, and it cannot be: parley-a02 holds the slot and a07 has no device evidence."
     }
   ]
 }
