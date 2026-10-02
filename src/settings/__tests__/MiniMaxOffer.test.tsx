@@ -55,6 +55,7 @@ function mount(pending: SessionBlockedReason | null = null) {
     reportExplainHeight: vi.fn(),
     copyExplain: vi.fn(),
     dismissExplain: vi.fn(),
+    openExternal: vi.fn(),
     onSessionBlocked: vi.fn(listener => {
       push = listener;
       return () => {};
@@ -73,7 +74,7 @@ function mount(pending: SessionBlockedReason | null = null) {
   return { api, push: (reason: SessionBlockedReason) => act(() => push?.(reason)) };
 }
 
-const TITLE = 'Voice edit, Explain and Act need MiniMax';
+const TITLE = 'Voice edit and Act need MiniMax';
 
 describe('MiniMax first-use offer', () => {
   it('stays closed on a normal open', async () => {

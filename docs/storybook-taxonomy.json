@@ -46,13 +46,17 @@
       "sections": null
     },
     "Parley": {
-      "blurb": "The surfaces a Parley user actually sees: the orb and the settings window.",
+      "blurb": "The surfaces a Parley user actually sees: the orb, the Explain card and the settings window.",
       "depth": 3,
-      "sourceDirs": ["src/orb", "src/settings"],
+      "sourceDirs": ["src/orb", "src/explain", "src/settings"],
       "sections": {
         "Orb": {
           "blurb": "The voice-reactive orb and its phases.",
           "members": ["OrbCanvas"]
+        },
+        "Explain": {
+          "blurb": "The popover that explains a selection, streamed from parley-api: searching, streaming, sources and errors.",
+          "members": ["ExplainCard"]
         },
         "Onboarding": {
           "blurb": "First run: the six-screen flow, the replayable tour, and the MiniMax offer on first use.",

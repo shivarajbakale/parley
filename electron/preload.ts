@@ -54,6 +54,7 @@ const parley: ParleyApi = {
   reportExplainHeight: (height: number) => ipcRenderer.send('explain:height', height),
   copyExplain: (text: string) => ipcRenderer.send('explain:copy', text),
   dismissExplain: () => ipcRenderer.send('explain:dismiss'),
+  openExternal: (url: string) => ipcRenderer.send('explain:openExternal', url),
   onSessionBlocked(listener) {
     const handler = (_event: Electron.IpcRendererEvent, reason: SessionBlockedReason) =>
       listener(reason);

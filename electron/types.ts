@@ -225,13 +225,24 @@ export interface Rect {
   height: number;
 }
 
+/** A page the explainer's web search returned, shown as a link under the answer. */
+export interface ExplainSource {
+  title: string;
+  url: string;
+}
+
 /** One question-and-answer round in the card. The first turn's `question` is
  * optional: a plain explain with nothing said. A later turn is a follow-up
- * asked on the same selection, same thread, same context. */
+ * asked on the same selection, same thread, same context.
+ *
+ * `loading` and `streaming` both carry `searching` while the agent searches
+ * the web; `streaming` is the answer so far, still arriving. An `error` keeps
+ * whatever `markdown` arrived before the failure. */
 export type ExplainTurn =
-  | { question?: string; status: 'loading' }
-  | { question?: string; status: 'ready'; markdown: string }
-  | { question?: string; status: 'error'; message: string };
+  | { question?: string; status: 'loading'; searching?: string }
+  | { question?: string; status: 'streaming'; markdown: string; searching?: string }
+  | { question?: string; status: 'ready'; markdown: string; sources?: ExplainSource[] }
+  | { question?: string; status: 'error'; message: string; markdown?: string };
 
 /** What main tells the explain popover to show. */
 export type ExplainContent = { status: 'empty' } | { status: 'thread'; turns: ExplainTurn[] };
@@ -288,6 +299,8 @@ export interface ParleyApi {
   reportExplainHeight(height: number): void;
   copyExplain(text: string): void;
   dismissExplain(): void;
+  /** Opens a source link in the default browser; main accepts only http(s), and only from the explain window. */
+  openExternal(url: string): void;
   /** Fired when a gesture is refused for a missing permission or key —
    * `openSettings()` is silent when this window is already the one in front. */
   onSessionBlocked(listener: (reason: SessionBlockedReason) => void): () => void;

@@ -67,6 +67,7 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
     reportExplainHeight: vi.fn(),
     copyExplain: vi.fn(),
     dismissExplain: vi.fn(),
+    openExternal: vi.fn(),
     onSessionBlocked: vi.fn(() => () => {}),
     takeBlockedReason: vi.fn(async () => null),
     ...overrides,

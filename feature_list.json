@@ -1,6 +1,6 @@
 {
   "project": "parley",
-  "last_updated": "2026-10-02",
+  "last_updated": "2026-10-03",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -13,63 +13,6 @@
     "passing": "Required verification has passed and evidence is recorded."
   },
   "features": [
-    {
-      "id": "boilerplate-001",
-      "priority": 1,
-      "area": "harness",
-      "title": "Repo boots from a clean clone",
-      "user_visible_behavior": "Running ./init.sh on a fresh clone installs dependencies and runs verification to completion.",
-      "status": "passing",
-      "verification": ["Run `./init.sh` from the repo root.", "Confirm the script exits 0."],
-      "evidence": ["Baseline. Every new feature starts from this passing state."],
-      "notes": "Baseline."
-    },
-    {
-      "id": "parley-001",
-      "priority": 2,
-      "area": "main-process",
-      "title": "Dictation pipeline units",
-      "user_visible_behavior": "Gesture detection, Groq transcription, paste injection, settings storage and the session orchestrator exist as tested main-process units.",
-      "status": "passing",
-      "plan": "none: main-process units with no UI, specified in docs/superpowers/specs/2026-09-21-parley-design.md",
-      "verification": ["Run `make check` and confirm the electron/__tests__ suites pass."],
-      "evidence": [
-        "make check exit 0 on 2026-09-21; electron/__tests__ suites for gesture-detector, key-hook, transcriber, injector, settings-store and session pass."
-      ],
-      "notes": "Plan tasks 1 to 7."
-    },
-    {
-      "id": "parley-002",
-      "priority": 3,
-      "area": "orb",
-      "title": "Orb window records and animates",
-      "user_visible_behavior": "A floating orb appears while the gesture key is held, reacts to the voice, and sends the recording to the main process.",
-      "status": "passing",
-      "plan": "none: canvas-only overlay window, approved as ASCII wireframes in the design spec",
-      "verification": [
-        "Run `make check`.",
-        "Run `make dev`, perform the gesture and watch the orb states."
-      ],
-      "evidence": [
-        "make check exit 0 on 2026-09-21; electron/__tests__ suites (gesture-detector 11, key-hook 2, injector 2, windows 4, tray 3, plus settings-store, session, transcriber, window carried from parley-001) pass. Manual `make dev` verification (tray item appears, no dock icon, Accessibility grant, gesture performed, quit from tray) has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."
-      ],
-      "notes": "Plan tasks 8 to 10."
-    },
-    {
-      "id": "parley-003",
-      "priority": 4,
-      "area": "settings",
-      "title": "Settings and onboarding window",
-      "user_visible_behavior": "The tray opens a settings window that shows permission status, stores the Groq key and edits gesture, vocabulary, tick sound and launch at login.",
-      "status": "passing",
-      "plan": "none: single form window, approved as ASCII wireframes in the design spec",
-      "verification": ["Run `make check`.", "Run `make dev` and change each setting."],
-      "evidence": [
-        "make check exit 0 on 2026-09-22; src/settings/__tests__/SettingsApp.test.tsx (6 tests) pass; full unit suite 272 tests pass, story-probe suite 106 tests pass.",
-        "Manual `make dev` verification (grant permissions and watch badges update, test and save a real Groq key including an invalid key, perform the gesture in Notes and confirm paste, cancel with Esc, change gesture key/tap count and confirm the new gesture, use tray 'Copy last transcript') has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."
-      ],
-      "notes": "Plan task 11."
-    },
     {
       "id": "parley-004",
       "priority": 5,
@@ -319,6 +262,28 @@
         "Not run: GUI walk (Settings > Sync sign-in, Sync now, Prisma Studio, dictate during an outage). See Sync block in docs/MANUAL_CHECKLIST.md."
       ],
       "notes": "Plan docs/superpowers/plans/2026-10-02-monorepo-and-sync-api.md, tasks 7-11."
+    },
+    {
+      "id": "parley-016",
+      "priority": 18,
+      "area": "explain",
+      "title": "Explain streams from parley-api",
+      "user_visible_behavior": "The Explain card streams a teaching-style answer from parley-api (POST /api/explain over SSE): text appears as it is written, a line says what it is searching, and real source links open in the browser. When the Parley server is unreachable the card says so.",
+      "status": "in_progress",
+      "plan": "parley-016.feature-plan.json",
+      "verification": [
+        "make check",
+        "npm run test -- electron/__tests__/explain-client.test.ts electron/__tests__/explain.test.ts src/explain",
+        "Storybook: ExplainCard Streaming, Searching, ReadyWithSources, Error in dark and light",
+        "make dev with parley-api running on :3100: select text, trigger Explain, watch the answer stream, a search line, sources open in the browser; stop the API, trigger again, see the cannot-reach line"
+      ],
+      "evidence": [
+        "2026-10-03 make check exit 0: desktop 762 unit + 146 ui-probe, parley-api 27, Android flutter + 170 Kotlin. storybook-render: 348 renders, all 12 ExplainCard renders pass; exit 1 on 40 failures in untouched template stories (Command Palette, Topbar, Dashboard, Projects).",
+        "2026-10-03 headless run of the real createExplain + createUpdateThrottle + createExplainClient against parley-api on :3100 (tsx): concept answered with first text at 1.4 s, 10 throttled pushes, ready; search case went streaming -> reset -> searching 'Mastra 1.67 release notes changes' -> streaming -> ready with 3 real source URLs; unreachable server gave \"Can't reach the Parley server at http://localhost:3999\" in 5 ms.",
+        "2026-10-03 Storybook screenshots (dark and light) of Loading, Searching, Streaming, ReadyWithSources, ErrorAfterText, ServerUnreachable checked by eye; source links measured at a 44 px hit area with a tight focus ring.",
+        "Not run: the GUI walk with the real gesture (Explain block of docs/MANUAL_CHECKLIST.md). make dev quit at once on the single-instance lock because /Applications/Parley.app was running; it was left running."
+      ],
+      "notes": "Server side: parley-api src/explain (commit d616613)."
     }
   ]
 }

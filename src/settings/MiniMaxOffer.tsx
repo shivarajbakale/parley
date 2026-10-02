@@ -9,13 +9,12 @@ const CLOSE_AFTER_MS = 1600;
 
 const MODES = [
   { name: 'Voice edit', color: 'var(--app-edit-core)', copy: 'rewrites the text in a field.' },
-  { name: 'Explain', color: 'var(--app-explain-core)', copy: 'answers a question about a selection.' },
   { name: 'Act', color: 'var(--app-act-core)', copy: 'runs voice commands through an agent.' },
 ];
 
 /**
  * MiniMax is asked for at the moment it is first needed, not during setup:
- * the first voice edit, Explain or act gesture with no key opens this over
+ * the first voice edit or act gesture with no key opens this over
  * whatever the settings window is showing.
  */
 export function MiniMaxOffer({
@@ -45,7 +44,7 @@ export function MiniMaxOffer({
     <Modal
       opened={opened}
       onClose={onClose}
-      title="Voice edit, Explain and Act need MiniMax"
+      title="Voice edit and Act need MiniMax"
       centered
       withinPortal={withinPortal}
     >
@@ -75,7 +74,7 @@ export function MiniMaxOffer({
             <ApiKeySection
               label="MiniMax API key"
               placeholder="Paste your key"
-              purpose="Used only for voice edit and Explain."
+              purpose="Used only for voice edit and Act."
               submitLabel="Test and save MiniMax key"
               hasApiKey={hasRewriteKey}
               setApiKey={setRewriteKey}

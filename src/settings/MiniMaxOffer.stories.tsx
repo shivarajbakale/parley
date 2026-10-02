@@ -6,7 +6,7 @@ import type { ParleyApi } from '../../electron/types';
 
 import { MiniMaxOffer } from './MiniMaxOffer';
 
-/** MiniMax asked for on first use: opens over settings when a voice edit or Explain gesture is refused for a missing key. */
+/** MiniMax asked for on first use: opens over settings when a voice edit or Act gesture is refused for a missing key. */
 const meta = {
   title: 'Parley/Onboarding/MiniMaxOffer',
   component: MiniMaxOffer,

@@ -302,7 +302,7 @@ export function OverviewTab({
               </Group>
             </SettingRow>
             <Box>
-              <SettingRow label="MiniMax key" description="Only for voice edit and Explain.">
+              <SettingRow label="MiniMax key" description="Only for voice edit and Act.">
                 <KeyFix
                   stored={settings.hasRewriteKey}
                   optional
@@ -316,7 +316,7 @@ export function OverviewTab({
                   <ApiKeySection
                     label="MiniMax API key"
                     placeholder="Paste your key"
-                    purpose="Used only for voice edit and Explain."
+                    purpose="Used only for voice edit and Act."
                     submitLabel="Test and save MiniMax key"
                     hasApiKey={settings.hasRewriteKey}
                     setApiKey={setRewriteKey}

@@ -4,7 +4,8 @@ import { createExplainRouter } from './explain/route.js';
 import { mastra } from './mastra/index.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// 3100: the desktop app's default Parley server address (settings syncUrl).
+const PORT = process.env.PORT || 3100;
 
 app.use(express.json());
 

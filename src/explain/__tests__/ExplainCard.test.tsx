@@ -6,12 +6,14 @@ import { ThemeProvider } from '@/components/theme-provider';
 
 import type { ExplainState, ParleyApi } from '../../../electron/types';
 import { ExplainApp, ExplainCard } from '../ExplainCard';
+import { tidyPartial } from '../tidy-partial';
 
 const api = {
   copyExplain: vi.fn(),
   reportExplainHeight: vi.fn(),
   onExplain: vi.fn(),
   dismissExplain: vi.fn(),
+  openExternal: vi.fn(),
 };
 
 const themed = (children: React.ReactNode) => (
@@ -101,6 +103,61 @@ describe('ExplainCard', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('No MiniMax key');
   });
 
+  it('shows a streaming answer as it grows, busy and with no copy button yet', () => {
+    show({ status: 'thread', turns: [{ status: 'streaming', markdown: 'It **means**' }], maxHeight: 500 });
+    expect(screen.getByText('means').tagName).toBe('STRONG');
+    expect(screen.queryByRole('status', { name: 'Explaining' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Explanation' })).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('says what it is searching, before any text and under text already shown', () => {
+    const { unmount } = show({ status: 'thread', turns: [{ status: 'loading', searching: 'Mastra 1.67' }], maxHeight: 500 });
+    expect(screen.getByRole('status', { name: 'Searching' })).toHaveTextContent('Searching “Mastra 1.67”');
+    unmount();
+
+    show({
+      status: 'thread',
+      turns: [{ status: 'streaming', markdown: 'So far.', searching: 'more detail' }],
+      maxHeight: 500,
+    });
+    expect(screen.getByText('So far.')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Searching' })).toHaveTextContent('Searching “more detail”');
+  });
+
+  it('lists the real sources by site and opens one in the browser', async () => {
+    show({
+      status: 'thread',
+      turns: [
+        {
+          status: 'ready',
+          markdown: 'Answer.',
+          sources: [
+            { title: 'Release notes', url: 'https://www.newreleases.io/mastra' },
+            { title: 'Docs', url: 'https://docs.exa.ai/reference/highlights' },
+          ],
+        },
+      ],
+      maxHeight: 500,
+    });
+    const source = screen.getByRole('button', { name: 'newreleases.io' });
+    expect(source).toHaveAttribute('title', 'Release notes');
+    expect(screen.getByRole('button', { name: 'docs.exa.ai' })).toBeInTheDocument();
+    await userEvent.click(source);
+    expect(api.openExternal).toHaveBeenCalledWith('https://www.newreleases.io/mastra');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('keeps the text that arrived before an error, above the error', () => {
+    show({
+      status: 'thread',
+      turns: [{ status: 'error', message: 'The answer stopped early', markdown: 'Half an answer' }],
+      maxHeight: 500,
+    });
+    expect(screen.getByText('Half an answer')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('The answer stopped early');
+  });
+
   it('caps the card at the height main allows, so only past it does it scroll', () => {
     show({ status: 'thread', turns: [{ status: 'loading' }], maxHeight: 432 });
     expect(screen.getByRole('region', { name: 'Explanation' })).toHaveStyle({ maxHeight: '432px' });
@@ -145,5 +202,18 @@ describe('ExplainApp', () => {
       })
     );
     expect(screen.getByRole('region', { name: 'Explanation' })).toBe(card);
+  });
+});
+
+describe('tidyPartial', () => {
+  it('drops an opening emphasis or code marker the stream stopped on', () => {
+    expect(tidyPartial('Leaves it as is.\n\n**')).toBe('Leaves it as is.');
+    expect(tidyPartial('Call it with *')).toBe('Call it with');
+    expect(tidyPartial('Use `')).toBe('Use');
+  });
+
+  it('leaves complete markdown alone', () => {
+    expect(tidyPartial('It **means** x.')).toBe('It **means** x.');
+    expect(tidyPartial('Code: `x`')).toBe('Code: `x`');
   });
 });

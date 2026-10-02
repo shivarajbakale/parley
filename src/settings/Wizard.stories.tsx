@@ -46,6 +46,7 @@ function withParley(settings: SettingsView, permissions: PermissionStatus) {
       reportExplainHeight: () => {},
       copyExplain: () => {},
       dismissExplain: () => {},
+      openExternal: () => {},
       onSessionBlocked: () => () => {},
       takeBlockedReason: async () => null,
     } satisfies ParleyApi;

@@ -74,6 +74,7 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
     reportExplainHeight: vi.fn(),
     copyExplain: vi.fn(),
     dismissExplain: vi.fn(),
+    openExternal: vi.fn(),
     onSessionBlocked: vi.fn(() => () => {}),
     takeBlockedReason: vi.fn(async () => null),
   };

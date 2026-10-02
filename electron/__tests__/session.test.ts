@@ -373,6 +373,13 @@ describe('session', () => {
       expect(session.state()).toBe('idle');
     });
 
+    it('explain works without a MiniMax key: parley-api does the thinking', () => {
+      const { deps, session } = setup({ hasRewriteKey: () => false });
+      session.start('explain');
+      expect(deps.openSettings).not.toHaveBeenCalled();
+      expect(session.state()).toBe('listening');
+    });
+
     it('dictation still works without a MiniMax key', () => {
       const { deps, session } = setup({ hasRewriteKey: () => false });
       session.start();

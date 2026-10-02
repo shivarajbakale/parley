@@ -160,6 +160,60 @@
   animation: reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
 }
 
+/* The live edge of a streaming answer: a soft caret after the last word. */
+.live > :last-child:not(ul, ol, pre)::after,
+.live > :is(ul, ol):last-child > li:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: var(--mantine-color-violet-4);
+  animation: caret 1s steps(2, jump-none) infinite;
+}
+
+@keyframes caret {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.15;
+  }
+}
+
+.searching {
+  margin-top: 8px;
+}
+
+.markdown + .searching {
+  margin-top: 10px;
+}
+
+.sources {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in oklab, white 10%, transparent);
+}
+
+/* A 44 px hit area around a small text link, on a layer of its own so the
+   text and its focus ring stay where they are. */
+.source {
+  position: relative;
+}
+
+.source::before {
+  content: '';
+  position: absolute;
+  inset: -14px -4px;
+}
+
+.markdown + .error {
+  margin-top: 10px;
+}
+
 @keyframes reveal {
   from {
     opacity: 0;
@@ -229,6 +283,11 @@
   .followUp,
   .markdown {
     animation: fade 200ms linear both;
+  }
+
+  .live > :last-child:not(ul, ol, pre)::after,
+  .live > :is(ul, ol):last-child > li:last-child::after {
+    animation: none;
   }
 
   .leaving {

@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActionIcon, Skeleton, Stack, Tooltip } from '@mantine/core';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ActionIcon, Anchor, Group, Loader, Skeleton, Stack, Text, Tooltip } from '@mantine/core';
 import { Check, Copy, Sparkles, X } from 'lucide-react';
 import Markdown from 'react-markdown';
 
-import type { ExplainState, ExplainTurn } from '../../electron/types';
+import type { ExplainSource, ExplainState, ExplainTurn } from '../../electron/types';
 
 import classes from './ExplainCard.module.css';
+import { tidyPartial } from './tidy-partial';
 
 /**
  * The card only reads what main pushes and reports how tall it rendered, so
@@ -15,33 +16,98 @@ import classes from './ExplainCard.module.css';
  * A thread is every question asked of one selection, oldest first. A
  * follow-up (the gesture again while the card is open) appends a turn; the
  * card grows and scrolls to it instead of resetting.
+ *
+ * An answer streams in: the same markdown block grows in place (so it never
+ * remounts or replays its entrance), a search line says what the agent is
+ * looking up, and once done the pages it really searched are listed as
+ * sources that open in the browser through main.
  */
 
+/** Within this many pixels of the bottom, the body follows new text down. */
+const FOLLOW_SLACK_PX = 24;
+
+function siteName(source: ExplainSource): string {
+  try {
+    return new URL(source.url).hostname.replace(/^www\./, '');
+  } catch {
+    return source.title;
+  }
+}
+
+function SearchLine({ query }: { query: string }) {
+  return (
+    <Group gap={8} wrap="nowrap" role="status" aria-label="Searching" className={classes.searching}>
+      <Loader size={12} color="violet" />
+      <Text size="xs" c="dimmed" truncate style={{ minWidth: 0 }}>
+        Searching “{query}”
+      </Text>
+    </Group>
+  );
+}
+
+function Sources({ sources }: { sources: ExplainSource[] }) {
+  return (
+    <Group gap={6} className={classes.sources}>
+      <Text size="xs" c="dimmed">
+        Sources
+      </Text>
+      {sources.map((source, i) => (
+        <Group key={source.url} gap={6} wrap="nowrap">
+          {i > 0 && (
+            <Text size="xs" c="dimmed" aria-hidden>
+              ·
+            </Text>
+          )}
+          <Anchor
+            component="button"
+            type="button"
+            size="xs"
+            c="violet.3"
+            title={source.title}
+            className={classes.source}
+            onClick={() => window.parley.openExternal(source.url)}
+          >
+            {siteName(source)}
+          </Anchor>
+        </Group>
+      ))}
+    </Group>
+  );
+}
+
+/**
+ * One layout for every status, so the answer block keeps its place in the
+ * tree as a turn goes loading, streaming, ready (or error) and is never
+ * remounted mid-read.
+ */
 function TurnBody({ turn }: { turn: ExplainTurn }) {
-  switch (turn.status) {
-    case 'loading':
-      return (
+  const markdown = turn.status === 'loading' ? undefined : turn.markdown;
+  const searching = turn.status === 'loading' || turn.status === 'streaming' ? turn.searching : undefined;
+  return (
+    <>
+      {turn.status === 'loading' && !searching && (
         <Stack gap={8} aria-label="Explaining" role="status" pt={2}>
           <Skeleton height={12} radius="sm" />
           <Skeleton height={12} radius="sm" width="88%" />
           <Skeleton height={12} radius="sm" width="64%" />
         </Stack>
-      );
-    case 'error':
-      return (
+      )}
+      {markdown ? (
+        <div className={`${classes.markdown} ${turn.status === 'streaming' && !searching ? classes.live : ''}`}>
+          <Markdown components={{ a: ({ children }) => <span>{children}</span> }}>
+            {turn.status === 'ready' ? markdown : tidyPartial(markdown)}
+          </Markdown>
+        </div>
+      ) : null}
+      {searching && <SearchLine query={searching} />}
+      {turn.status === 'ready' && turn.sources?.length ? <Sources sources={turn.sources} /> : null}
+      {turn.status === 'error' && (
         <p className={classes.error} role="alert">
           {turn.message}
         </p>
-      );
-    case 'ready':
-      return (
-        <div className={classes.markdown}>
-          <Markdown components={{ a: ({ children }) => <span>{children}</span> }}>
-            {turn.markdown}
-          </Markdown>
-        </div>
-      );
-  }
+      )}
+    </>
+  );
 }
 
 function Turn({ turn, isFollowUp, focusRef }: {
@@ -86,8 +152,13 @@ function CopyButton({ markdown }: { markdown: string }) {
 
 export function ExplainCard({ state }: { state: ExplainState }) {
   const card = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
   const latestTurn = useRef<HTMLDivElement>(null);
+  /** Whether the body is scrolled to its end, so new text should follow. */
+  const following = useRef(true);
   const turnCount = state.status === 'thread' ? state.turns.length : 0;
+  const busy =
+    state.status === 'thread' && state.turns.some((t) => t.status === 'loading' || t.status === 'streaming');
 
   useEffect(() => {
     const element = card.current;
@@ -105,6 +176,13 @@ export function ExplainCard({ state }: { state: ExplainState }) {
     if (turnCount > 1) latestTurn.current?.scrollIntoView({ block: 'nearest' });
   }, [turnCount]);
 
+  // Past the height cap the newest words land below the fold: keep them in
+  // view, unless the reader has scrolled up to reread.
+  useLayoutEffect(() => {
+    const element = body.current;
+    if (element && busy && following.current) element.scrollTop = element.scrollHeight;
+  });
+
   const lastReady =
     state.status === 'thread'
       ? [...state.turns].reverse().find((t): t is Extract<ExplainTurn, { status: 'ready' }> => t.status === 'ready')
@@ -116,6 +194,7 @@ export function ExplainCard({ state }: { state: ExplainState }) {
       className={`${classes.card} ${state.closing ? classes.leaving : ''}`}
       role="region"
       aria-label="Explanation"
+      aria-busy={busy}
       style={{ maxHeight: state.maxHeight }}
     >
       <div className={classes.header}>
@@ -136,7 +215,14 @@ export function ExplainCard({ state }: { state: ExplainState }) {
           </ActionIcon>
         </div>
       </div>
-      <div className={classes.body}>
+      <div
+        ref={body}
+        className={classes.body}
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          following.current = element.scrollHeight - element.scrollTop - element.clientHeight < FOLLOW_SLACK_PX;
+        }}
+      >
         {state.status === 'empty' && <p className={classes.message}>Select some text first</p>}
         {state.status === 'thread' &&
           state.turns.map((turn, i) => (

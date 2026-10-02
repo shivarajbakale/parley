@@ -1,0 +1,191 @@
+{
+  "feature": {
+    "id": "parley-016",
+    "title": "Explain streams from parley-api",
+    "problem": "Explain answers are capped at ~80 words with no context, so the user reads them and still does not understand. parley-api now has a screen-explainer agent that teaches (meaning, how it works, an example, jargon defined) and searches the web with Exa, streamed over SSE. The card should show that answer as it is written, say when it is searching, and link the pages it actually used.",
+    "nonGoals": [
+      "A fallback to the old direct-MiniMax explain when parley-api is down: the card says it cannot reach the server instead.",
+      "A separate Explain server setting: Explain calls the same Parley server address Sync uses.",
+      "Changing the gesture, selection reading, anchoring, or follow-up behaviour.",
+      "Voice edit and dictation, which still call MiniMax directly."
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "popover",
+      "name": "Explanation popover",
+      "route": "explain.html (own frameless window)",
+      "archetype": "centered-card",
+      "purpose": "Show the answer next to the selection as it streams, without stealing focus from the app.",
+      "primaryAction": "Copy",
+      "panels": [
+        {
+          "id": "answer",
+          "kind": "detail",
+          "title": "idempotent",
+          "badge": "Explain",
+          "subtitle": "text streams in; a cursor marks the live edge",
+          "fields": [
+            {
+              "label": "Status",
+              "value": "Searching 'Mastra 1.67 release'"
+            },
+            {
+              "label": "Answer",
+              "value": "markdown, growing as it arrives"
+            },
+            {
+              "label": "Sources",
+              "value": "newreleases.io · github.com"
+            }
+          ],
+          "actions": [
+            "Copy",
+            "Close"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "Card opens at once with three shimmer lines until the first words arrive (~1 s); while the agent searches, one muted line reads 'Searching “<query>”' with a small loader, under any text already shown.",
+        "empty": "No selection: card says 'Select some text first' and dismisses itself after 2 s, unchanged.",
+        "error": "One line in the turn: 'Can't reach the Parley server at <url>' when the request fails, otherwise the server's message ('No answer came back. Try again.'). Text already streamed stays above it.",
+        "success": "Markdown renders as it streams; the card grows with it up to 60% of the display, then scrolls inside and keeps the live edge in view unless the user has scrolled up. When done, a Sources row of site names opens each page in the browser; Copy appears."
+      }
+    }
+  ],
+  "overlays": [
+    {
+      "id": "explain-card",
+      "kind": "popover",
+      "title": "Explain",
+      "body": "Streaming markdown answer anchored to the selection, with a search status line while searching and a Sources row once done.",
+      "buttons": [
+        "Copy",
+        "Close"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "surface": "popover",
+      "control": "fetch + SSE parser in the main process",
+      "why": "the request carries the selection in a POST body, which EventSource cannot send; main already owns every network call, and the renderer only reads what main pushes",
+      "rejected": "EventSource in the renderer"
+    },
+    {
+      "surface": "popover",
+      "control": "Existing explain:state push, throttled to one update per animation frame (~32 ms)",
+      "why": "a new 'streaming' turn status rides the channel the card already listens on; throttling keeps window resizes and React renders off the per-token rate",
+      "rejected": "a new per-delta IPC event"
+    },
+    {
+      "surface": "popover",
+      "control": "react-markdown, re-rendered on each update",
+      "why": "already the card's renderer and never emits raw HTML; partial markdown (an unclosed ** or list) renders as text and corrects itself on the next update",
+      "rejected": "plain text while streaming, markdown at the end (layout jumps on completion)"
+    },
+    {
+      "surface": "popover",
+      "control": "Loader size xs + dimmed Text for the search line",
+      "why": "an inline, indeterminate wait for a known step; Skeleton is reserved for the empty first moment before any text",
+      "rejected": "Skeleton under existing text"
+    },
+    {
+      "surface": "popover",
+      "control": "Anchor (size xs, c=dimmed) per source, opening through window.parley.openExternal",
+      "why": "the card itself never navigates; main opens only http/https URLs in the default browser, so a link is one click without widening what the renderer can do",
+      "rejected": "plain-text domains"
+    },
+    {
+      "surface": "popover",
+      "control": "Follow the live edge with scrollTop, paused while the user is scrolled up",
+      "why": "past the 60% cap the newest words are below the fold; forcing the scroll would fight a user reading the top",
+      "rejected": "always scrollIntoView on each delta"
+    }
+  ],
+  "entities": [
+    {
+      "name": "ExplainTurn (electron/types.ts)",
+      "fields": [
+        {
+          "name": "status",
+          "type": "'loading' | 'streaming' | 'ready' | 'error'",
+          "note": "'streaming' is new: text so far, still arriving"
+        },
+        {
+          "name": "markdown",
+          "type": "string",
+          "note": "on streaming, ready, and on error when text arrived before it failed"
+        },
+        {
+          "name": "searching",
+          "type": "string | undefined",
+          "note": "the query being searched now; cleared by the next delta"
+        },
+        {
+          "name": "sources",
+          "type": "{ title: string; url: string }[]",
+          "note": "on ready only; at most 3, from the search tool's real results"
+        }
+      ],
+      "relations": [
+        "one thread of turns per selection, unchanged"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "<syncUrl>/api/explain",
+      "auth": false,
+      "purpose": "parley-api screen-explainer over SSE: delta, search, reset, sources, done, error. Closing the request aborts the model run."
+    }
+  ],
+  "integration": [
+    {
+      "from": "electron/explain-client.ts (new)",
+      "to": "parley-api /api/explain",
+      "note": "fetch with AbortSignal, parse SSE frames, call onEvent per event; a non-2xx or network failure becomes one error event"
+    },
+    {
+      "from": "electron/explain.ts",
+      "to": "explain-client",
+      "note": "replaces rewriter.explain: folds events into the open turn (delta appends, reset clears, search sets status, sources + done finish it); dismiss() aborts the stream"
+    },
+    {
+      "from": "electron/main.ts",
+      "to": "createExplain",
+      "note": "builds the client from store.get().syncUrl; throttles pushExplain; registers shell:openExternal"
+    },
+    {
+      "from": "add-ipc-channel",
+      "to": "explain:openExternal",
+      "note": "renderer -> main, http/https only, from the explain window only"
+    },
+    {
+      "from": "parley-api",
+      "to": "port 3100",
+      "note": "default PORT moves 3000 -> 3100 so the desktop default syncUrl reaches it"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "electron/explain-client.ts",
+      "electron/__tests__/explain-client.test.ts",
+      "src/explain/ExplainCard.stories.tsx"
+    ],
+    "changed": [
+      "electron/explain.ts",
+      "electron/__tests__/explain.test.ts",
+      "electron/types.ts",
+      "electron/main.ts",
+      "electron/preload.ts",
+      "electron/rewriter.ts",
+      "src/explain/ExplainCard.tsx",
+      "src/explain/ExplainCard.module.css",
+      "src/explain/__tests__/ExplainCard.test.tsx",
+      "parley-api/src/index.ts",
+      "parley-api/.env.example"
+    ]
+  }
+}

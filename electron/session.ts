@@ -173,7 +173,8 @@ export function createSession(deps: SessionDeps): Session {
           deps.openSettings();
           return;
         }
-        if (requested !== 'dictate' && !deps.hasRewriteKey()) {
+        // Only voice edit thinks with the stored MiniMax key; Explain asks parley-api.
+        if (requested === 'edit' && !deps.hasRewriteKey()) {
           deps.onBlocked?.('rewriteKey');
           deps.openSettings();
           return;

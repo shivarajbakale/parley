@@ -27,7 +27,8 @@ import { createCorrectionWatcher } from './correction-watcher';
 import { applyReplacements, splitVocabulary, vocabularyTerms, whisperPrompt } from './dictionary';
 import { createDictionaryStore } from './dictionary-store';
 import { createEditTargets } from './edit-target';
-import { createExplain, EXPLAIN_LEAVE_MS } from './explain';
+import { createExplain, createUpdateThrottle, EXPLAIN_LEAVE_MS, STREAM_UPDATE_MS } from './explain';
+import { createExplainClient } from './explain-client';
 import { CARD_MIN_HEIGHT, CARD_WIDTH, maxCardHeight, placeCard } from './explain-placement';
 import { createFieldReader, createWindowLocator } from './field-reader';
 import { createGestureDetector } from './gesture-detector';
@@ -43,7 +44,6 @@ import { createSyncClient } from './sync/client';
 import { createSyncEngine } from './sync/engine';
 import { createTranscriber } from './transcriber';
 import { trayMenuTemplate } from './tray';
-import { createWebSearch } from './web-search';
 import { createWordOffer } from './word-offer';
 import type {
   AgentSummary,
@@ -227,10 +227,9 @@ async function startApp() {
     sendSelectAll: () => uIOhook.keyTap(UiohookKey.A, [UiohookKey.Meta]),
   });
 
-  const rewriter = createRewriter({
-    getApiKey: () => store.getRewriteKey(),
-    webSearch: createWebSearch(),
-  });
+  const rewriter = createRewriter({ getApiKey: () => store.getRewriteKey() });
+  // Explain streams from parley-api at the same address Sync uses.
+  const explainClient = createExplainClient({ baseUrl: () => store.get().syncUrl });
   const editTargets = createEditTargets({
     reader: createFieldReader({
       helperPath: AX_HELPER,
@@ -283,9 +282,13 @@ async function startApp() {
     });
   }
 
+  // A streaming answer repaints (and resizes the window) at most every
+  // STREAM_UPDATE_MS, not once per token.
+  const updateExplain = createUpdateThrottle((content) => pushExplain(content), STREAM_UPDATE_MS);
+
   const explain = createExplain({
     selection: selectionReader,
-    rewriter,
+    client: explainClient,
     view: {
       show: (anchor, content) => {
         clearTimeout(explainHideTimer);
@@ -298,7 +301,7 @@ async function startApp() {
         // `showInactive`, never `show`: the selection must keep focus.
         explainWindow?.showInactive();
       },
-      update: (content) => pushExplain(content),
+      update: updateExplain,
       // Let the card melt away before the window goes.
       hide: () => {
         if (!explainWindow?.isVisible() || explainLeaving) return;
@@ -932,6 +935,10 @@ async function startApp() {
   });
   ipcMain.on('explain:dismiss', (event) => {
     if (fromExplainWindow(event)) explain.dismiss();
+  });
+  // A source link under an answer: only the explain window, only http(s).
+  ipcMain.on('explain:openExternal', (event, url: unknown) => {
+    if (fromExplainWindow(event) && typeof url === 'string' && isExternalHttpUrl(url)) void shell.openExternal(url);
   });
 
   ipcMain.on('orb:audio', (event, raw: unknown) => {

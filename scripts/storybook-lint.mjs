@@ -89,7 +89,7 @@ function rootFor(relPath) {
   if (dir === 'components/_overview') return 'Overview';
   if (dir.startsWith('pages')) return 'Pages';
   if (dir === 'components' || dir === 'components/auth') return 'Shell';
-  if (dir === 'orb' || dir === 'settings') return 'Parley';
+  if (dir === 'orb' || dir === 'explain' || dir === 'settings') return 'Parley';
   return null;
 }
 

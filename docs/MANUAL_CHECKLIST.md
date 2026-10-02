@@ -78,9 +78,9 @@ From a clean state (delete `~/Library/Application Support/parley/settings.json`,
 
 With no MiniMax key stored and onboarding complete:
 
-- [ ] Settings window closed: the voice edit gesture opens it with the "Voice edit and Explain need MiniMax" dialog already showing.
+- [ ] Settings window closed: the voice edit gesture opens it with the "Voice edit and Act need MiniMax" dialog already showing.
 - [ ] Settings window open and in front: the same gesture shows the dialog over the current tab.
-- [ ] The Explain gesture does the same.
+- [ ] The Explain gesture does not ask for MiniMax: it opens the card and asks parley-api.
 - [ ] A bad key shows MiniMax's reason in red and the dialog stays; a good key shows "Try the gesture again" and the dialog closes itself; the gesture then works.
 - [ ] Not now (the close button) dismisses it; dictation keeps working without a key.
 
@@ -232,13 +232,17 @@ inside the app.
 
 ## Explain
 
-Needs a MiniMax key (Settings, Overview). Default explain key is Right Control.
+Needs parley-api running at the Parley server address (Settings, Sync;
+default http://localhost:3100) with `MINIMAX_API_KEY` and `EXA_API_KEY` in
+`parley-api/.env`: `npm --prefix parley-api start`. No MiniMax key is needed
+on the desktop. Default explain key is Right Control.
 
 - [ ] Select a word in Notes, tap-tap-hold the explain key: the usual orb
       appears above the Dock (indigo) and listens. Say "why is this named that?"
       and release: the orb finishes, then a card fades in just below the
-      selection, headed by your question, with a loading skeleton and then a short
-      markdown answer to it. The selection stays highlighted and the text field
+      selection, headed by your question, with a loading skeleton, then the
+      answer streams in word by word with a caret at its end. It explains, not
+      just defines: plain meaning, why it matters, an example. The selection stays highlighted and the text field
       keeps focus.
 - [ ] A quick tap-tap-hold-release with no question gives a plain explanation.
 - [ ] The answers are in English.
@@ -257,17 +261,23 @@ Needs a MiniMax key (Settings, Overview). Default explain key is Right Control.
       dismiss the card first to explain the new selection instead.
 - [ ] Esc, the X button, or a click outside closes the whole thread, not just
       the latest turn; the next gesture starts a new one.
-- [ ] Select a recent product or obscure name and ask "what is this?": the answer
-      takes a couple of seconds longer, uses current facts and ends with a site
-      name in parentheses. Selecting a common word or code does not search.
-- [ ] With Wi-Fi off, a failed search still ends in an answer or the usual error,
-      never a stuck skeleton.
+- [ ] Select a recent product or obscure name and ask "what is this?": a line
+      reads Searching "…" with a spinner; any "let me search" text disappears;
+      the answer streams with current facts, and a Sources row lists site names.
+      Clicking one opens that page in the default browser. Selecting a common
+      word or code does not search and shows no Sources row.
+- [ ] Close the card mid-answer: the stream stops (parley-api's log shows no
+      further model output for that request).
+- [ ] Stop parley-api and trigger Explain: the card says "Can't reach the Parley
+      server at http://localhost:3100", never a stuck skeleton.
 - [ ] Repeat in Safari, Chrome, VS Code and Terminal. Where the app hides its
       selection, the card appears beside the pointer instead.
 - [ ] Select text at the bottom of the screen: the card flips above it. Select
       at the right edge: the card shifts left. Try a second display.
 - [ ] A typical answer shows without a scrollbar. Select a whole paragraph of
-      code: the card grows, and only scrolls past 60% of the screen height.
+      code: the card grows as the answer streams, and only scrolls past 60% of
+      the screen height; then it keeps the newest line in view, unless you
+      scroll up to reread, which it respects.
 - [ ] The Copy icon puts the answer's markdown on the clipboard and shows a tick. Esc, the X button, or a click
       outside the card dismisses it; the card melts away rather than vanishing.
 - [ ] The card reads as glass: the desktop blurs through it, over light and dark
@@ -278,8 +288,7 @@ Needs a MiniMax key (Settings, Overview). Default explain key is Right Control.
       after two seconds.
 - [ ] Selecting text in a password field shows nothing to explain, and the
       clipboard is untouched.
-- [ ] With no MiniMax key the gesture opens Settings on the MiniMax dialog
-      instead of a card.
+- [ ] With no MiniMax key the gesture still opens the card and answers.
 - [ ] The clipboard holds what it held before each of the checks above.
 - [ ] Setting the explain key to the dictation or voice edit key turns Explain
       off and the row says so.
