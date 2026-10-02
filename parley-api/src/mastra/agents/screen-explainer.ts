@@ -13,6 +13,13 @@ export const SEARCH_STEPS = 2;
  */
 export const MAX_STEPS = SEARCH_STEPS + 2;
 
+/**
+ * Retries per model call on a retryable failure, such as MiniMax's 529
+ * "under high load". Mastra backs off 1 s, 2 s, 4 s (or honours Retry-After,
+ * up to 30 s); the agent default is no retries at all.
+ */
+export const MODEL_RETRIES = 3;
+
 /** Told to the model once searching is over: withholding the tool alone is not enough. */
 export const ANSWER_NOW =
   'Searching is over: no tools are available any more. Answer the reader now from what you ' +
@@ -91,6 +98,7 @@ export const screenExplainer = new Agent({
   description: 'Explains text selected on screen, searching the web when facts may be current or obscure.',
   instructions: INSTRUCTIONS,
   model: MODEL,
+  maxRetries: MODEL_RETRIES,
   tools: { webSearch: exaSearchTool },
   defaultOptions: { maxSteps: MAX_STEPS, prepareStep: answerAfterSearching },
 });

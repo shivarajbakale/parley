@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ANSWER_NOW, MAX_STEPS, SEARCH_STEPS, answerAfterSearching, answerWithoutTools } from '../src/mastra/agents/screen-explainer.js';
+import {
+  ANSWER_NOW,
+  MAX_STEPS,
+  MODEL_RETRIES,
+  SEARCH_STEPS,
+  answerAfterSearching,
+  answerWithoutTools,
+  screenExplainer,
+} from '../src/mastra/agents/screen-explainer.js';
 
 const base = [{ role: 'system', content: 'instructions' }];
 
@@ -35,5 +43,12 @@ describe('answerWithoutTools', () => {
 
   it('just says answer now when nothing was found', () => {
     expect(answerWithoutTools([]).system).toBe(ANSWER_NOW);
+  });
+});
+
+describe('screenExplainer', () => {
+  it('retries a model call that fails with a retryable error, like an overloaded provider', () => {
+    expect(screenExplainer.maxRetries).toBe(MODEL_RETRIES);
+    expect(MODEL_RETRIES).toBeGreaterThan(0);
   });
 });
