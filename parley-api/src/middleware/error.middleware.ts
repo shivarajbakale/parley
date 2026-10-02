@@ -30,6 +30,17 @@ export const errorHandler = (
     return;
   }
 
+  // body-parser (and other http-errors) carry a 4xx status: too large, bad JSON.
+  const httpError = err as Error & { status?: unknown; type?: unknown };
+  const status = typeof httpError.status === 'number' ? httpError.status : httpError.type === 'entity.too.large' ? 413 : null;
+  if (status !== null && status >= 400 && status < 500) {
+    res.status(status).json({
+      status: 'error',
+      message: err.message
+    });
+    return;
+  }
+
   // Default error
   res.status(500).json({
     status: 'error',

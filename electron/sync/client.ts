@@ -49,7 +49,12 @@ export function createSyncClient({ baseUrl, token, fetch: doFetch = fetch }: Syn
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const parsed = (await res.json().catch(() => null)) as { data?: T; meta?: Meta; message?: string } | null;
-    if (!res.ok) throw new SyncHttpError(res.status, parsed?.message ?? `HTTP ${res.status}`);
+    if (!res.ok) {
+      // The API wraps its error body in the envelope too: `{ data: { message }, meta }`.
+      const wrapped = (parsed?.data as { message?: unknown } | undefined)?.message;
+      const message = typeof wrapped === 'string' ? wrapped : parsed?.message;
+      throw new SyncHttpError(res.status, typeof message === 'string' && message ? message : `HTTP ${res.status}`);
+    }
     if (!parsed || typeof parsed !== 'object' || parsed.data === undefined) throw new SyncHttpError(res.status, MALFORMED);
     return { data: parsed.data, meta: parsed.meta ?? {}, status: res.status };
   }

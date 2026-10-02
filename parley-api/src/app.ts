@@ -38,8 +38,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 }));
 
+// Response transform middleware (wraps responses in consistent format).
+// Before body parsing, so a parser error (413, bad JSON) is wrapped like the rest.
+app.use(transformResponse);
+
 // Body parsing middleware
-app.use(express.json());
+// 1 MB: a full 500-row dictionary push is ~300 kB, past the 100 kB default.
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Logging middleware - integrated with Winston
@@ -48,9 +53,6 @@ if (config.nodeEnv === 'development') {
 } else {
   app.use(morgan('combined', { stream }));
 }
-
-// Response transform middleware (wraps responses in consistent format)
-app.use(transformResponse);
 
 // API routes
 app.use('/api', routes);

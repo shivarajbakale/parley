@@ -44,9 +44,19 @@ describe('sync client', () => {
   });
 
   it('throws SyncHttpError with the status on a non-2xx', async () => {
-    const fetchMock = vi.fn(() => json(401, { status: 'error', message: 'Invalid token' }));
+    // The API's transformResponse wraps the error handler's body in the envelope.
+    const fetchMock = vi.fn(() => json(401, { data: { status: 'error', message: 'Invalid token' }, meta: {} }));
     const client = createSyncClient({ baseUrl: 'http://x', token: 'bad', fetch: fetchMock as never });
     await expect(client.pull('tasks', 0)).rejects.toMatchObject({ status: 401, message: 'Invalid token' });
     await expect(client.pull('tasks', 0)).rejects.toBeInstanceOf(SyncHttpError);
+  });
+
+  it('still reads a bare error body, and falls back to the status', async () => {
+    const bare = vi.fn(() => json(503, { message: 'Down for maintenance' }));
+    await expect(createSyncClient({ baseUrl: 'http://x', token: 't', fetch: bare as never }).pull('tasks', 0))
+      .rejects.toMatchObject({ status: 503, message: 'Down for maintenance' });
+    const empty = vi.fn(() => json(502, {}));
+    await expect(createSyncClient({ baseUrl: 'http://x', token: 't', fetch: empty as never }).pull('tasks', 0))
+      .rejects.toMatchObject({ status: 502, message: 'HTTP 502' });
   });
 });
