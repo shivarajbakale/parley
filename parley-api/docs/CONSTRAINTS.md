@@ -43,25 +43,11 @@ MUST NOT:
 
 ## Auth
 
-This project **ships no auth**. There is no session, no guard and no
-`requireAuth` middleware, and every route is open by design — it is a data API
-you put behind your own gateway, or a starting point you add auth to yourself.
-
-That is a decision, not an omission, which is why it is written here: `make
-api-lint` (rule A4) reads this section, and a project that has no auth layer
-*and* no declaration fails the check — a reader cannot otherwise tell a
-deliberate choice from a missing file.
-
-If you add an auth layer, A4 changes what it asks for: every route file must
-then name the middleware, so a route left open is left open on purpose. For an
-authenticated backend out of the box, use `create-nestjs-app`, which ships
-Better Auth behind a global guard.
-
-The same declaration is machine-readable one level up, in the scaffolder's
-`card.json`: `provides` omits `auth-host` and `glue.isAuthHost` is `false`. That
-is what the composer reads, and it is why a brief that asks for auth is planned
-onto `create-nestjs-app` instead of this one rather than onto a backend that
-would have had to grow a session it does not have.
+Bearer tokens. `POST /api/auth/token` takes an email and returns a long-lived
+token; the client stores it and sends `Authorization: Bearer <token>`.
+`requireAuth` (src/middleware/auth.middleware.ts) resolves it to `req.userId`.
+Only the SHA-256 hash of a token is stored. Health and the token route are
+public; every other route file names `requireAuth`.
 
 ## Database (`prisma/schema.prisma`)
 

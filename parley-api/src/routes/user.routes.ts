@@ -6,10 +6,13 @@ import {
   updateUser,
   deleteUser
 } from '../controllers/user.controller';
+import { requireAuth } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { createUserSchema, updateUserSchema } from '../types/user.types';
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.get('/', getAllUsers);
 

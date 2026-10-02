@@ -8,8 +8,8 @@ import app from '../src/app';
 describe('request validation (Zod middleware)', () => {
   it('rejects a user with an invalid email', async () => {
     const res = await request(app)
-      .post('/api/users')
-      .send({ name: 'Jo', email: 'not-an-email' })
+      .post('/api/auth/token')
+      .send({ email: 'not-an-email' })
       .set('Content-Type', 'application/json');
 
     expect(res.status).toBe(400);
