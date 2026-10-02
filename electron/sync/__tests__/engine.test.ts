@@ -1,5 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { createDictionaryStore } from '../../dictionary-store';
+import { createSettingsStore, type CryptoLike } from '../../settings-store';
 import { DEFAULT_SETTINGS } from '../../types';
 import { type SyncClient, SyncHttpError } from '../client';
 import { createSyncEngine } from '../engine';
@@ -95,7 +101,8 @@ describe('sync engine', () => {
     expect((settingsPush[1][0] as { data: object }).data).not.toHaveProperty('syncUrl');
     expect((settingsPush[1][0] as { data: object }).data).not.toHaveProperty('syncEnabled');
     expect((settingsPush[1][0] as { data: object }).data).not.toHaveProperty('syncEmail');
-    expect(dictionary.applied).toEqual([{ id: 'r1', word: 'Remote', soundsLike: [], updatedAt: 50, deletedAt: null }]);
+    // The push's answer (our own rows, echoed as winners) is applied too; the store's LWW makes that a no-op.
+    expect(dictionary.applyRemote).toHaveBeenLastCalledWith([{ id: 'r1', word: 'Remote', soundsLike: [], updatedAt: 50, deletedAt: null }]);
     expect(cursor).toBe(1000);
     // The run's start, taken before changedSince, so edits made mid-run fall in the next window.
     expect(clockAtChangedSince).toBe(999);
@@ -115,7 +122,7 @@ describe('sync engine', () => {
       return { rows: [], now: 1, hasMore: false };
     });
     const engine = createSyncEngine({
-      client: asClient(client), dictionary: fakeDictionary(), settings: fakeSettings(), cursor: fixedCursor(0), lastSyncAt: () => 0,
+      client: asClient(client), dictionary: fakeDictionary(), settings: fakeSettings(), cursor: fixedCursor(5), lastSyncAt: () => 0,
     });
     await engine.syncNow();
     expect(order).toEqual(['push:dictionary', 'push:settings', 'pull:dictionary', 'pull:settings']);
@@ -133,7 +140,7 @@ describe('sync engine', () => {
         : { rows: [], now: 1, hasMore: false });
     const settings = fakeSettings();
     const engine = createSyncEngine({
-      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(0), lastSyncAt: () => 0,
+      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(5), lastSyncAt: () => 0,
     });
     await engine.syncNow();
     expect(settings.applyRemote).toHaveBeenCalledWith({ tickSound: true }, 90);
@@ -182,7 +189,7 @@ describe('sync engine', () => {
     const settings = fakeSettings();
     settings.settingsUpdatedAt.mockReturnValueOnce(60).mockReturnValue(95);
     const engine = createSyncEngine({
-      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(0), lastSyncAt: () => 0,
+      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(5), lastSyncAt: () => 0,
     });
     const outcome = await engine.syncNow();
     expect(outcome.ok).toBe(true);
@@ -236,7 +243,7 @@ describe('sync engine', () => {
     client.push.mockRejectedValue(new Error('boom'));
     const settings = fakeSettings();
     const engine = createSyncEngine({
-      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(0), lastSyncAt: () => 0,
+      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(5), lastSyncAt: () => 0,
     });
     const outcome = await engine.syncNow();
     expect(outcome).toMatchObject({ ok: false, message: 'boom' });
@@ -274,7 +281,7 @@ describe('sync engine', () => {
     expect(outcome.ok).toBe(true);
     const dictPulls = client.pull.mock.calls.filter(c => c[0] === 'dictionary');
     expect(dictPulls.map(c => c[1])).toEqual([0, 500]);
-    expect(dictionary.applied).toEqual([{ id: 'a' }, { id: 'b' }]);
+    expect(dictionary.applied.slice(0, 2)).toEqual([{ id: 'a' }, { id: 'b' }]);
     expect(cursor).toBe(700);
   });
 
@@ -304,5 +311,145 @@ describe('sync engine', () => {
     const [a, b] = await Promise.all([engine.syncNow(), engine.syncNow()]);
     expect(a).toBe(b);
     expect(client.pull.mock.calls.filter(c => c[0] === 'dictionary')).toHaveLength(1);
+  });
+  it('first run after a reset pulls first and adopts the account blob, whatever the local stamp', async () => {
+    const order: string[] = [];
+    const client = fakeClient();
+    client.push.mockImplementation(async (r: string, items: unknown[]) => {
+      order.push(`push:${r}`);
+      return { rows: items, now: 1 };
+    });
+    client.pull.mockImplementation(async (r: string) => {
+      order.push(`pull:${r}`);
+      return r === 'settings'
+        ? { rows: [{ id: 'u', data: { vocabulary: 'Kubernetes' }, updatedAt: 20, deletedAt: null }], now: 1, hasMore: false }
+        : { rows: [], now: 1, hasMore: false };
+    });
+    // The local stamp (60) is newer than the account's (20): the account still wins.
+    const settings = fakeSettings();
+    const engine = createSyncEngine({
+      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(0), lastSyncAt: () => 0,
+    });
+    const outcome = await engine.syncNow();
+    expect(outcome.ok).toBe(true);
+    expect(order).toEqual(['pull:dictionary', 'pull:settings', 'push:dictionary']);
+    expect(settings.applyRemote).toHaveBeenCalledWith({ vocabulary: 'Kubernetes' }, 20);
+  });
+
+  it('first run with no account blob pushes the local one', async () => {
+    const client = fakeClient();
+    const settings = fakeSettings();
+    const engine = createSyncEngine({
+      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: fixedCursor(0), lastSyncAt: () => 0,
+    });
+    await engine.syncNow();
+    expect(client.push.mock.calls.filter(c => c[0] === 'settings')).toHaveLength(1);
+    expect(settings.applyRemote).not.toHaveBeenCalled();
+  });
+
+  it('applies the rows a push answers with, so an LWW loser converges', async () => {
+    const client = fakeClient();
+    client.push.mockImplementation(async (r: string) =>
+      r === 'dictionary'
+        ? { rows: [{ id: 'l1', word: 'Server', soundsLike: [], updatedAt: 500, deletedAt: null }], now: 1 }
+        : { rows: [{ id: 'u', data: { tickSound: true }, updatedAt: 500, deletedAt: null }], now: 1 });
+    client.pull.mockResolvedValue({ rows: [], now: 1, hasMore: false });
+    const dictionary = fakeDictionary();
+    const settings = fakeSettings();
+    const engine = createSyncEngine({
+      client: asClient(client), dictionary, settings, cursor: fixedCursor(5), lastSyncAt: () => 0,
+    });
+    const outcome = await engine.syncNow();
+    expect(outcome.ok).toBe(true);
+    expect(dictionary.applied).toEqual([{ id: 'l1', word: 'Server', soundsLike: [], updatedAt: 500, deletedAt: null }]);
+    expect(settings.applyRemote).toHaveBeenCalledWith({ tickSound: true }, 500);
+  });
+});
+
+/** An in-memory parley-api: LWW by updatedAt (ties keep the server's), pull by a server clock. */
+function fakeServer() {
+  let clock = 0;
+  const tables: Record<string, Map<string, { row: { id: string; updatedAt: number }; syncedAt: number }>> = {
+    dictionary: new Map(),
+    settings: new Map(),
+  };
+  const client: SyncClient = {
+    signIn: async () => ({ token: 't' }),
+    async pull<T>(resource: string, since: number) {
+      const rows = [...tables[resource].values()].filter(r => r.syncedAt >= since).map(r => r.row as T);
+      return { rows, now: ++clock, hasMore: false };
+    },
+    async push<T>(resource: string, items: T[]) {
+      const winners: T[] = [];
+      for (const item of items as unknown as { id: string; updatedAt: number }[]) {
+        const id = resource === 'settings' ? 'me' : item.id;
+        const existing = tables[resource].get(id);
+        if (!existing || item.updatedAt > existing.row.updatedAt) {
+          tables[resource].set(id, { row: { ...item, id }, syncedAt: ++clock });
+        }
+        winners.push(tables[resource].get(id)!.row as T);
+      }
+      return { rows: winners, now: ++clock };
+    },
+  };
+  return client;
+}
+
+const fakeCrypto: CryptoLike = {
+  isEncryptionAvailable: () => true,
+  encryptString: plain => Buffer.from(`enc(${plain})`),
+  decryptString: encrypted => encrypted.toString().slice(4, -1),
+};
+
+function device(server: SyncClient) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'parley-sync-device-'));
+  const settings = createSettingsStore({ dir, crypto: fakeCrypto });
+  const dictionary = createDictionaryStore({ dir });
+  const engine = createSyncEngine({
+    client: server,
+    dictionary,
+    settings,
+    cursor: { get: () => settings.getSyncCursor(), set: v => settings.setSyncCursor(v) },
+    lastSyncAt: () => settings.view().syncLastAt,
+  });
+  /** What main's resetSyncWindow does on sign-in. */
+  const signIn = () => {
+    settings.setSyncCursor(0);
+    settings.recordSync({ at: 0 });
+    settings.update({ syncEnabled: true, syncEmail: 'me@example.com' });
+  };
+  return { settings, dictionary, engine, signIn };
+}
+
+describe('two devices on one account', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('a second Mac signing in after onboarding takes the account settings instead of overwriting them', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const server = fakeServer();
+
+    vi.setSystemTime(1_000_000);
+    const a = device(server);
+    a.signIn();
+    a.settings.update({ vocabulary: 'Kubernetes, Parley', tapCount: 3 });
+    a.dictionary.upsert({ word: 'Groq', soundsLike: ['grok'] });
+    expect((await a.engine.syncNow()).ok).toBe(true);
+
+    // B onboards later: its wizard and tour writes, and a real edit, are newer than A's.
+    vi.setSystemTime(2_000_000);
+    const b = device(server);
+    b.settings.update({ wizardStep: 4, tourSeen: true, onboardingComplete: true });
+    b.settings.update({ tickSound: false });
+    b.signIn();
+    expect((await b.engine.syncNow()).ok).toBe(true);
+
+    vi.setSystemTime(3_000_000);
+    expect((await a.engine.syncNow()).ok).toBe(true);
+
+    expect(a.settings.get()).toMatchObject({ vocabulary: 'Kubernetes, Parley', tapCount: 3 });
+    expect(b.settings.get()).toMatchObject({ vocabulary: 'Kubernetes, Parley', tapCount: 3, onboardingComplete: true });
+    expect(b.dictionary.list().map(e => e.word)).toEqual(['Groq']);
   });
 });

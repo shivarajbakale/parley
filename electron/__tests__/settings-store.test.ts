@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createSettingsStore, type CryptoLike } from '../settings-store';
+import { createSettingsStore, DEVICE_LOCAL_KEYS, type CryptoLike } from '../settings-store';
 import { DEFAULT_SETTINGS } from '../types';
 
 const crypto: CryptoLike = {
@@ -387,5 +387,50 @@ describe('settings store', () => {
     expect(store.settingsUpdatedAt()).toBe(100);
     expect(store.get()).toEqual({ ...DEFAULT_SETTINGS, tickSound: false });
     expect(createSettingsStore({ dir, crypto }).settingsUpdatedAt()).toBe(100);
+  });
+  it('onboarding, login-item and agent settings are device-local: no stamp, no remote apply', () => {
+    expect([...DEVICE_LOCAL_KEYS].sort()).toEqual(
+      [
+        'agentAutoStart', 'agentUrl', 'launchAtLogin', 'onboardingComplete', 'syncEmail', 'syncEnabled',
+        'syncUrl', 'tourSeen', 'wizardStep',
+      ].sort()
+    );
+    const store = createSettingsStore({ dir, crypto });
+    store.update({
+      wizardStep: 3,
+      tourSeen: true,
+      onboardingComplete: true,
+      launchAtLogin: true,
+      agentUrl: 'http://127.0.0.1:9999',
+      agentAutoStart: false,
+    });
+    expect(store.settingsUpdatedAt()).toBe(0);
+    expect(store.get()).toMatchObject({ wizardStep: 3, tourSeen: true, agentUrl: 'http://127.0.0.1:9999' });
+    store.applyRemote(
+      { agentUrl: 'https://evil.example.com', agentAutoStart: true, syncUrl: 'https://other.example.com', tickSound: false },
+      100
+    );
+    expect(store.get()).toMatchObject({
+      agentUrl: 'http://127.0.0.1:9999',
+      agentAutoStart: false,
+      syncUrl: DEFAULT_SETTINGS.syncUrl,
+      tickSound: false,
+    });
+  });
+
+  it('a provider change stamps settingsUpdatedAt, so it syncs', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.setTranscriptionProvider('deepgram');
+    expect(store.settingsUpdatedAt()).toBeGreaterThan(0);
+  });
+
+  it('takes a remote provider only when this device holds its key', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.applyRemote({ transcriptionProvider: 'deepgram' }, 100);
+    expect(store.get().transcriptionProvider).toBe('groq');
+    store.setDeepgramKey('dg_key');
+    store.applyRemote({ transcriptionProvider: 'deepgram' }, 200);
+    expect(store.get().transcriptionProvider).toBe('deepgram');
+    expect(createSettingsStore({ dir, crypto }).get().transcriptionProvider).toBe('deepgram');
   });
 });

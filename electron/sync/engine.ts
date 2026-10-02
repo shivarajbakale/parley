@@ -1,12 +1,10 @@
 import type { DictionaryEntry } from '../dictionary';
 import type { DictionaryStore } from '../dictionary-store';
-import type { SettingsStore } from '../settings-store';
+import { DEVICE_LOCAL_KEYS, type SettingsStore } from '../settings-store';
 import type { Settings } from '../types';
 
 import { type SyncClient, SyncHttpError } from './client';
 
-/** Device-local: which server, who, and whether to sync are never synced. */
-const LOCAL_ONLY: (keyof Settings)[] = ['syncEnabled', 'syncUrl', 'syncEmail'];
 /** Mirrors the server's FORBIDDEN_SETTINGS_KEYS. A remote blob is as untrusted as
  * the renderer; the store's patch cleaner drops the rest. */
 const FORBIDDEN = /^(api_?key|key)$|apikey|token|secret|password/i;
@@ -62,7 +60,7 @@ const toWire = (e: DictionaryEntry): DictionaryWire => ({
 function localSettingsBlob(settings: Settings): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(settings)) {
-    if (!LOCAL_ONLY.includes(k as keyof Settings)) data[k] = v;
+    if (!DEVICE_LOCAL_KEYS.includes(k as keyof Settings)) data[k] = v;
   }
   return data;
 }
@@ -70,7 +68,7 @@ function localSettingsBlob(settings: Settings): Record<string, unknown> {
 function remotePatch(data: Record<string, unknown>): Partial<Settings> {
   const patch: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(data)) {
-    if (LOCAL_ONLY.includes(k as keyof Settings) || FORBIDDEN.test(k)) continue;
+    if (DEVICE_LOCAL_KEYS.includes(k as keyof Settings) || FORBIDDEN.test(k)) continue;
     patch[k] = v;
   }
   return patch as Partial<Settings>;
@@ -103,36 +101,68 @@ export function createSyncEngine({ client, dictionary, settings, cursor, lastSyn
     try {
       // Taken before reading local changes: an edit made mid-run lands in the next window.
       const startedAt = now();
-      // Push first so the pull that follows returns our own rows only if they lost.
       const pushFrom = lastSyncAt();
-      const { entries, removed } = dictionary.changedSince(pushFrom);
-      const dictItems: DictionaryWire[] = [
-        ...entries.map(toWire),
-        ...removed.map(r => ({ id: r.id, word: '', soundsLike: [], updatedAt: r.deletedAt, deletedAt: r.deletedAt })),
-      ];
-      for (let i = 0; i < dictItems.length; i += PUSH_BATCH) {
-        const batch = dictItems.slice(i, i + PUSH_BATCH);
-        await client.push('dictionary', batch);
-        pushed += batch.length;
-      }
-      const settingsStamp = settings.settingsUpdatedAt();
-      if (settingsStamp > pushFrom) {
-        await client.push<SettingsWire>('settings', [
+      const since = cursor.get();
+      // The newest settings row seen this run, pulled or answered by a push.
+      let newest: SettingsWire | undefined;
+      const consider = (rows: SettingsWire[]) => {
+        for (const row of rows) if (!newest || row.updatedAt > newest.updatedAt) newest = row;
+      };
+
+      const pushDictionary = async () => {
+        const { entries, removed } = dictionary.changedSince(pushFrom);
+        const dictItems: DictionaryWire[] = [
+          ...entries.map(toWire),
+          ...removed.map(r => ({ id: r.id, word: '', soundsLike: [], updatedAt: r.deletedAt, deletedAt: r.deletedAt })),
+        ];
+        for (let i = 0; i < dictItems.length; i += PUSH_BATCH) {
+          const batch = dictItems.slice(i, i + PUSH_BATCH);
+          // The server answers with each row's winner: a row we lost comes back here.
+          const answer = await client.push('dictionary', batch);
+          if (answer.rows.length) dictionary.applyRemote(answer.rows);
+          pushed += batch.length;
+        }
+      };
+      const pushSettings = async () => {
+        const settingsStamp = settings.settingsUpdatedAt();
+        if (settingsStamp <= pushFrom) return;
+        const answer = await client.push<SettingsWire>('settings', [
           { id: 'me', data: localSettingsBlob(settings.get()), updatedAt: settingsStamp, deletedAt: null },
         ]);
+        consider(answer.rows);
         pushed += 1;
+      };
+      const pull = async () => {
+        const dictNow = await drain<DictionaryWire>('dictionary', since, rows => {
+          if (rows.length) dictionary.applyRemote(rows);
+          pulled += rows.length;
+        });
+        const settingsNow = await drain<SettingsWire>('settings', since, consider);
+        return { dictNow, settingsNow };
+      };
+
+      let cursorNow: { dictNow: number; settingsNow: number };
+      if (since === 0) {
+        // A device that has never synced with this account (or server) pulls first:
+        // its fresh-install settings must not outrank the account's, so an account
+        // blob wins whatever the local stamp. With none, the local blob is pushed.
+        cursorNow = await pull();
+        const account = newest;
+        newest = undefined;
+        if (account && account.deletedAt == null) {
+          settings.applyRemote(remotePatch(account.data), account.updatedAt);
+          pulled += 1;
+        }
+        await pushDictionary();
+        if (!account || account.deletedAt != null) await pushSettings();
+      } else {
+        // Push first so the pull that follows returns our own rows only if they lost.
+        await pushDictionary();
+        await pushSettings();
+        cursorNow = await pull();
       }
+      const { dictNow, settingsNow } = cursorNow;
 
-      const since = cursor.get();
-      const dictNow = await drain<DictionaryWire>('dictionary', since, rows => {
-        if (rows.length) dictionary.applyRemote(rows);
-        pulled += rows.length;
-      });
-
-      let newest: SettingsWire | undefined;
-      const settingsNow = await drain<SettingsWire>('settings', since, rows => {
-        for (const row of rows) if (!newest || row.updatedAt > newest.updatedAt) newest = row;
-      });
       // Re-read: the user may have changed a setting while the network was busy.
       if (newest && newest.deletedAt == null && newest.updatedAt > settings.settingsUpdatedAt()) {
         // Keeps the remote stamp, so the blob is neither echoed back nor allowed to

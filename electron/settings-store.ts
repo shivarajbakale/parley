@@ -57,7 +57,8 @@ export interface SettingsStore {
   /** Envelope-only: the outcome of the last sync attempt. */
   recordSync(result: { at: number; error?: string }): void;
   /** Last-writer-wins apply of a synced blob: sanitized like `update()`, and stamped
-   * with the remote `updatedAt`, never the local clock. */
+   * with the remote `updatedAt`, never the local clock. Device-local keys are
+   * ignored; the provider is taken only when this device holds its key. */
   applyRemote(patch: Partial<Settings>, updatedAt: number): Settings;
   /** Epoch ms of the last `update()` that changed a value; 0 on a fresh store. */
   settingsUpdatedAt(): number;
@@ -96,9 +97,22 @@ function isProvider(value: unknown): value is TranscriptionProvider {
 
 const SYNC_EMAIL_MAX = 200;
 
-/** Settings that belong to this device, never to the synced blob. Keep in step
- * with `localSettingsBlob` in sync/engine.ts. */
-const DEVICE_LOCAL_KEYS: (keyof Settings)[] = ['syncEmail', 'syncEnabled', 'syncUrl'];
+/** Settings that belong to this device, never to the synced blob: which server,
+ * who and whether to sync; where this Mac is in onboarding; its login item; and
+ * its own agent process. They neither stamp `settingsUpdatedAt` nor sync, so a
+ * freshly onboarded Mac never looks newer than the account. sync/engine.ts
+ * imports this list. */
+export const DEVICE_LOCAL_KEYS: readonly (keyof Settings)[] = [
+  'syncEmail',
+  'syncEnabled',
+  'syncUrl',
+  'wizardStep',
+  'tourSeen',
+  'onboardingComplete',
+  'launchAtLogin',
+  'agentUrl',
+  'agentAutoStart',
+];
 
 /** A trimmed http(s) URL within the length cap, or null. */
 function cleanUrl(value: unknown): string | null {
@@ -243,7 +257,13 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       return settings;
     },
     applyRemote(patch, updatedAt) {
-      settings = { ...settings, ...sanitize(patch) };
+      const clean = sanitize(patch);
+      for (const key of DEVICE_LOCAL_KEYS) delete clean[key];
+      // A provider this Mac has no key for would leave it unable to dictate.
+      const remote = patch.transcriptionProvider;
+      const hasKeyFor = (p: TranscriptionProvider) => (p === 'deepgram' ? hasDeepgramKey() : hasGroqKey());
+      if (isProvider(remote) && hasKeyFor(remote)) clean.transcriptionProvider = remote;
+      settings = { ...settings, ...clean };
       settingsUpdatedAt = num(updatedAt);
       save();
       return settings;
@@ -275,6 +295,8 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       decrypt(provider === 'deepgram' ? deepgramKeyEncrypted : apiKeyEncrypted),
     setTranscriptionProvider(provider) {
       if (!isProvider(provider)) throw new Error('Unknown transcription provider');
+      // The provider choice syncs; its key never does.
+      if (provider !== settings.transcriptionProvider) settingsUpdatedAt = Date.now();
       settings = { ...settings, transcriptionProvider: provider };
       save();
       return settings;

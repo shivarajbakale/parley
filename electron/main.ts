@@ -884,7 +884,11 @@ async function startApp() {
   async function runSync(): Promise<SyncOutcome> {
     if (!syncEngine) return { ok: false, pushed: 0, pulled: 0, message: 'Sign in to sync', at: Date.now() };
     const outcome = await syncEngine.syncNow();
-    if (outcome.ok) applySettings(store.get());
+    if (outcome.ok) {
+      applySettings(store.get());
+      // A pulled provider changes what "has a key" means for the tray.
+      refreshTray();
+    }
     return outcome;
   }
   /** Timer runs have no caller to hand a failure to; the view already records it. */
@@ -1004,9 +1008,11 @@ async function startApp() {
   ipcMain.handle('settings:setTranscriptionProvider', async (event, provider: unknown) => {
     onlySettingsWindow(event);
     if (!TRANSCRIPTION_PROVIDERS.includes(provider as never)) return liveView();
+    const stampBefore = store.settingsUpdatedAt();
     store.setTranscriptionProvider(provider as TranscriptionProvider);
     // Readiness is "the selected provider has a key", so the tray may flip.
     refreshTray();
+    if (store.settingsUpdatedAt() !== stampBefore) scheduleSyncSoon();
     return liveView();
   });
   ipcMain.handle('settings:setRewriteKey', async (event, key: unknown): Promise<KeyTestResult> => {
