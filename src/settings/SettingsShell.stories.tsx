@@ -19,6 +19,9 @@ const settled: SettingsView = {
   hasApiKey: true,
   hasRewriteKey: false,
   wordsDictated: 1340,
+  hasSyncToken: false,
+  syncLastAt: 0,
+  syncLastError: '',
   agent: OFFLINE_AGENT_SUMMARY,
 };
 

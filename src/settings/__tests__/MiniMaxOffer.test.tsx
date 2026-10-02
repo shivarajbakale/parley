@@ -23,6 +23,9 @@ function mount(pending: SessionBlockedReason | null = null) {
     hasApiKey: true,
     hasRewriteKey: false,
     wordsDictated: 0,
+    hasSyncToken: false,
+    syncLastAt: 0,
+    syncLastError: '',
     agent: OFFLINE_AGENT_SUMMARY,
   };
   let push: ((reason: SessionBlockedReason) => void) | null = null;

@@ -50,6 +50,9 @@ describe('settings store', () => {
       hasApiKey: true,
       hasRewriteKey: false,
       wordsDictated: 0,
+      hasSyncToken: false,
+      syncLastAt: 0,
+      syncLastError: '',
       agent: {
         online: false,
         managed: false,
@@ -320,5 +323,52 @@ describe('settings store', () => {
         }).agent.mcpServers
       ).toEqual([{ name: 'Files', tools: 12 }]);
     });
+  });
+
+  it('stores the sync token encrypted and reports it in the view', () => {
+    const store = createSettingsStore({ dir, crypto });
+    expect(store.view().hasSyncToken).toBe(false);
+    store.setSyncToken('tok_1');
+    expect(store.getSyncToken()).toBe('tok_1');
+    expect(readFileSync(path.join(dir, 'settings.json'), 'utf8')).not.toContain('tok_1');
+    expect(createSettingsStore({ dir, crypto }).view().hasSyncToken).toBe(true);
+    store.setSyncToken(null);
+    expect(store.getSyncToken()).toBeNull();
+  });
+
+  it('keeps sync url, email and enabled, and drops a bad url', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.update({
+      syncUrl: 'https://sync.example.com',
+      syncEmail: 'me@example.com',
+      syncEnabled: true,
+    });
+    expect(store.get()).toMatchObject({
+      syncUrl: 'https://sync.example.com',
+      syncEmail: 'me@example.com',
+      syncEnabled: true,
+    });
+    store.update({ syncUrl: 'ftp://nope' as never });
+    expect(store.get().syncUrl).toBe('https://sync.example.com');
+  });
+
+  it('records the last sync outcome outside any patch', () => {
+    const store = createSettingsStore({ dir, crypto });
+    store.recordSync({ at: 1234, error: 'offline' });
+    const view = createSettingsStore({ dir, crypto }).view();
+    expect(view.syncLastAt).toBe(1234);
+    expect(view.syncLastError).toBe('offline');
+    store.update({ syncLastAt: 9 } as never);
+    expect(store.view().syncLastAt).toBe(1234);
+  });
+
+  it('stamps settingsUpdatedAt on a real change and persists the sync cursor', () => {
+    const store = createSettingsStore({ dir, crypto });
+    expect(store.settingsUpdatedAt()).toBe(0);
+    const before = Date.now();
+    store.update({ tickSound: false });
+    expect(store.settingsUpdatedAt()).toBeGreaterThanOrEqual(before);
+    store.setSyncCursor(5);
+    expect(createSettingsStore({ dir, crypto }).getSyncCursor()).toBe(5);
   });
 });

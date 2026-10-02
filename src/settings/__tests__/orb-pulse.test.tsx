@@ -16,6 +16,9 @@ describe('trainer pulses the ring orb', () => {
         hasApiKey: true,
         hasRewriteKey: false,
         wordsDictated: 0,
+        hasSyncToken: false,
+        syncLastAt: 0,
+        syncLastError: '',
       })),
     } as unknown as ParleyApi;
     const pulse = vi.fn();

@@ -51,6 +51,12 @@ export interface Settings {
   /** Start the managed server with the app. Off means attach-only, for
    * debugging a toxic server. */
   agentAutoStart: boolean;
+  /** Push the dictionary and settings to a Parley API and pull what other devices wrote. */
+  syncEnabled: boolean;
+  /** Where the sync API answers. http(s) only. */
+  syncUrl: string;
+  /** The account the token was issued to. Shown, never used as a secret. */
+  syncEmail: string;
   /** Free text, comma separated. Sent to Whisper as `prompt`, to Deepgram as keyterms. */
   vocabulary: string;
   /** Which service transcribes. Set only through `setTranscriptionProvider`,
@@ -81,6 +87,9 @@ export const DEFAULT_SETTINGS: Settings = {
   actGestureKey: 'ShiftRight',
   agentUrl: DEFAULT_AGENT_URL,
   agentAutoStart: true,
+  syncEnabled: false,
+  syncUrl: 'http://localhost:3100',
+  syncEmail: '',
   vocabulary: '',
   transcriptionProvider: 'groq',
   tickSound: true,
@@ -187,6 +196,12 @@ export interface SettingsView extends Settings {
   /** Words pasted by dictation, all time. Counted in main; the renderer can
    * read it here but no patch can set it. */
   wordsDictated: number;
+  /** A sync token is stored. The token itself never leaves main. */
+  hasSyncToken: boolean;
+  /** Epoch ms of the last sync attempt; 0 is never. */
+  syncLastAt: number;
+  /** Why the last sync failed; empty when it did not. */
+  syncLastError: string;
   agent: AgentSummary;
 }
 

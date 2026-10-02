@@ -58,6 +58,9 @@ const fresh: SettingsView = {
   hasApiKey: false,
   hasRewriteKey: false,
   wordsDictated: 0,
+  hasSyncToken: false,
+  syncLastAt: 0,
+  syncLastError: '',
   agent: OFFLINE_AGENT_SUMMARY,
 };
 

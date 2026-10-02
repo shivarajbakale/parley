@@ -51,6 +51,15 @@ export interface SettingsStore {
   hasRewriteKey(): boolean;
   /** Count a pasted dictation toward the Overview's time-saved figure. */
   recordDictation(text: string): void;
+  /** The sync token, encrypted at rest like the keys. */
+  getSyncToken(): string | null;
+  setSyncToken(token: string | null): void;
+  /** Envelope-only: the outcome of the last sync attempt. */
+  recordSync(result: { at: number; error?: string }): void;
+  /** Epoch ms of the last `update()` that changed a value; 0 on a fresh store. */
+  settingsUpdatedAt(): number;
+  getSyncCursor(): number;
+  setSyncCursor(value: number): void;
 }
 
 interface FileShape {
@@ -62,6 +71,12 @@ interface FileShape {
   schemaVersion?: number;
   /** Envelope-only as well: main counts it, the renderer only reads it. */
   wordsDictated?: number;
+  /** Envelope-only sync state: a renderer patch can set none of it. */
+  syncTokenEncrypted?: string;
+  syncLastAt?: number;
+  syncLastError?: string;
+  settingsUpdatedAt?: number;
+  syncCursor?: number;
 }
 
 /** Bring an old file forward. v0 to v1 moves nothing: the onboarding fields
@@ -74,6 +89,21 @@ function migrate(shape: FileShape): FileShape {
 
 function isProvider(value: unknown): value is TranscriptionProvider {
   return TRANSCRIPTION_PROVIDERS.includes(value as never);
+}
+
+const SYNC_EMAIL_MAX = 200;
+
+/** A trimmed http(s) URL within the length cap, or null. */
+function cleanUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const url = value.trim();
+  if (url.length === 0 || url.length > AGENT_URL_MAX) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Keep only fields with valid values. The renderer is untrusted input.
@@ -90,16 +120,13 @@ function sanitize(input: Partial<Settings>): Partial<Settings> {
   if (GESTURE_KEYS.includes(input.actGestureKey as never)) {
     out.actGestureKey = input.actGestureKey;
   }
-  if (typeof input.agentUrl === 'string') {
-    const url = input.agentUrl.trim();
-    if (url.length > 0 && url.length <= AGENT_URL_MAX) {
-      try {
-        const parsed = new URL(url);
-        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') out.agentUrl = url;
-      } catch {
-        // Not a URL at all: dropped below.
-      }
-    }
+  const agentUrl = cleanUrl(input.agentUrl);
+  if (agentUrl) out.agentUrl = agentUrl;
+  const syncUrl = cleanUrl(input.syncUrl);
+  if (syncUrl) out.syncUrl = syncUrl;
+  if (typeof input.syncEnabled === 'boolean') out.syncEnabled = input.syncEnabled;
+  if (typeof input.syncEmail === 'string' && input.syncEmail.length <= SYNC_EMAIL_MAX) {
+    out.syncEmail = input.syncEmail.trim();
   }
   if (typeof input.agentAutoStart === 'boolean') out.agentAutoStart = input.agentAutoStart;
   if (input.tapCount === 2 || input.tapCount === 3 || input.tapCount === 4) {
@@ -149,6 +176,14 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     typeof state.wordsDictated === 'number' && Number.isFinite(state.wordsDictated)
       ? Math.max(0, Math.floor(state.wordsDictated))
       : 0;
+  let syncTokenEncrypted =
+    typeof state.syncTokenEncrypted === 'string' ? state.syncTokenEncrypted : null;
+  const num = (v: unknown) =>
+    typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+  let syncLastAt = num(state.syncLastAt);
+  let syncLastError = typeof state.syncLastError === 'string' ? state.syncLastError : '';
+  let settingsUpdatedAt = num(state.settingsUpdatedAt);
+  let syncCursor = num(state.syncCursor);
 
   function save() {
     const body: FileShape = {
@@ -157,6 +192,11 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       ...(deepgramKeyEncrypted ? { deepgramKeyEncrypted } : {}),
       ...(rewriteKeyEncrypted ? { rewriteKeyEncrypted } : {}),
       ...(wordsDictated ? { wordsDictated } : {}),
+      ...(syncTokenEncrypted ? { syncTokenEncrypted } : {}),
+      ...(syncLastAt ? { syncLastAt } : {}),
+      ...(syncLastError ? { syncLastError } : {}),
+      ...(settingsUpdatedAt ? { settingsUpdatedAt } : {}),
+      ...(syncCursor ? { syncCursor } : {}),
       schemaVersion: SETTINGS_SCHEMA_VERSION,
     };
     writeFileSync(file, JSON.stringify(body, null, 2));
@@ -184,7 +224,12 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
   return {
     get: () => settings,
     update(patch) {
-      settings = { ...settings, ...sanitize(patch) };
+      const clean = sanitize(patch);
+      const changed = (Object.keys(clean) as (keyof Settings)[]).some(
+        k => clean[k] !== settings[k]
+      );
+      settings = { ...settings, ...clean };
+      if (changed) settingsUpdatedAt = Date.now();
       save();
       return settings;
     },
@@ -193,6 +238,9 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       hasApiKey: hasApiKey(),
       hasRewriteKey: rewriteKeyEncrypted !== null,
       wordsDictated,
+      hasSyncToken: syncTokenEncrypted !== null,
+      syncLastAt,
+      syncLastError,
       agent: live ?? OFFLINE_AGENT_SUMMARY,
     }),
     hasApiKey,
@@ -220,6 +268,22 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     getRewriteKey: () => decrypt(rewriteKeyEncrypted),
     setRewriteKey(key) {
       rewriteKeyEncrypted = encrypt(key);
+      save();
+    },
+    getSyncToken: () => decrypt(syncTokenEncrypted),
+    setSyncToken(token) {
+      syncTokenEncrypted = token === null ? null : encrypt(token);
+      save();
+    },
+    recordSync(result) {
+      syncLastAt = num(result.at);
+      syncLastError = result.error ?? '';
+      save();
+    },
+    settingsUpdatedAt: () => settingsUpdatedAt,
+    getSyncCursor: () => syncCursor,
+    setSyncCursor(value) {
+      syncCursor = num(value);
       save();
     },
     recordDictation(text) {

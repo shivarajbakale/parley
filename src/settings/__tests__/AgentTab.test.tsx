@@ -22,6 +22,9 @@ function view(agent: AgentSummary): SettingsView {
     hasApiKey: true,
     hasRewriteKey: true,
     wordsDictated: 0,
+    hasSyncToken: false,
+    syncLastAt: 0,
+    syncLastError: '',
     agent,
   };
 }
