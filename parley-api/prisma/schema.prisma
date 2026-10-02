@@ -11,10 +11,87 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
-  name      String
   email     String   @unique
+  name      String   @default("")
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  tokens    ApiToken[]
+  dictionary DictionaryEntry[]
+  settings  SettingsBlob[]
+  history   HistoryItem[]
+  tasks     Task[]
 
   @@map("users")
+}
+
+model ApiToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  label     String   @default("")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("api_tokens")
+}
+
+// Sync rows. `updatedAt` and `deletedAt` are client clocks in ms since the
+// epoch (BigInt), not DateTime: last-writer-wins compares the numbers the
+// clients wrote, and SQLite DateTime would round them.
+
+model DictionaryEntry {
+  id         String  @id
+  userId     String
+  word       String
+  soundsLike String  @default("[]") // JSON string[]
+  updatedAt  BigInt
+  deletedAt  BigInt?
+  user       User    @relation(fields: [userId], references: [id])
+
+  @@index([userId, updatedAt])
+  @@map("dictionary_entries")
+}
+
+model SettingsBlob {
+  id        String  @id // one row per user: id == userId
+  userId    String
+  data      String  @default("{}") // JSON, never API keys
+  updatedAt BigInt
+  deletedAt BigInt?
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@index([userId, updatedAt])
+  @@map("settings_blobs")
+}
+
+model HistoryItem {
+  id        String  @id
+  userId    String
+  mode      String
+  text      String
+  app       String  @default("")
+  createdAt BigInt
+  updatedAt BigInt
+  deletedAt BigInt?
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@index([userId, updatedAt])
+  @@map("history_items")
+}
+
+model Task {
+  id         String  @id
+  userId     String
+  title      String
+  notes      String  @default("")
+  dueAt      BigInt?
+  rrule      String?
+  priority   String  @default("medium")
+  status     String  @default("open")
+  sourceText String  @default("")
+  updatedAt  BigInt
+  deletedAt  BigInt?
+  user       User    @relation(fields: [userId], references: [id])
+
+  @@index([userId, updatedAt])
+  @@map("tasks")
 }
