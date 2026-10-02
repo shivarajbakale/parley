@@ -120,12 +120,21 @@ dbDescribe('sync (e2e)', () => {
       const batch = items.map(i => ({ ...i, id: `${i.id}-${k}` }));
       await request(app).put('/api/history').set('Authorization', `Bearer ${b}`).send({ items: batch });
     }
-    const first = await request(app).get('/api/history').set('Authorization', `Bearer ${b}`);
-    expect(first.body.data).toHaveLength(1000);
-    expect(first.body.meta.hasMore).toBe(true);
-    const second = await request(app).get(`/api/history?since=${first.body.meta.now}`).set('Authorization', `Bearer ${b}`);
-    expect(second.body.meta.hasMore).toBe(false);
-    expect(first.body.data.length + second.body.data.length).toBe(1500);
+    const seen = new Set<string>();
+    let since = 0;
+    let hasMore = true;
+    let sawMore = false;
+    while (hasMore) {
+      const r = await request(app).get(`/api/history?since=${since}`).set('Authorization', `Bearer ${b}`);
+      for (const row of r.body.data) seen.add(row.id);
+      hasMore = r.body.meta.hasMore;
+      sawMore = sawMore || hasMore;
+      since = r.body.meta.now;
+    }
+    expect(sawMore).toBe(true);
+    const expected = new Set<string>();
+    for (let k = 0; k < 3; k++) for (const i of items) expected.add(`${i.id}-${k}`);
+    expect(seen).toEqual(expected);
   });
 
   it('rejects an unauthenticated push and a bad row', async () => {

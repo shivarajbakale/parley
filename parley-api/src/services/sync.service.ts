@@ -3,7 +3,7 @@ import prisma from '../config/database';
 import { mergeRow, type SyncRow } from './merge';
 import type { SyncResource, AnyRow, DictionaryRow, SettingsRow, HistoryRow, TaskRow } from '../types/sync.types';
 
-type DbRow = Record<string, unknown> & { id: string; userId: string; updatedAt: bigint; deletedAt: bigint | null };
+type DbRow = Record<string, unknown> & { id: string; userId: string; updatedAt: bigint; deletedAt: bigint | null; syncedAt: bigint };
 
 const big = (n: number | null | undefined) => (n == null ? null : BigInt(n));
 const num = (b: bigint | null | undefined) => (b == null ? null : Number(b));
@@ -73,24 +73,52 @@ function table(resource: SyncResource, client: Prisma.TransactionClient | typeof
   return map[resource] as unknown as Delegate;
 }
 
-const PAGE = 1000;
+export const PAGE = 1000;
+/** Pulls overlap the tail by this much: a row stamped before its commit lands late. */
+export const CURSOR_LAG_MS = 2000;
+
+/**
+ * Cut a pull's rows (ordered by syncedAt asc, at most PAGE + 1) into a page and
+ * the next cursor. The next pull uses `syncedAt >= cursor`, so overlap is by
+ * design (re-delivery is idempotent under last-writer-wins) and loss is not.
+ * `fetchAll` means one millisecond holds a whole page: the caller must load
+ * every row at that millisecond.
+ */
+export function cutPage<T extends { syncedAt: bigint }>(rows: T[], now: number) {
+  if (rows.length <= PAGE) {
+    return { rows, hasMore: false, cursor: Math.max(0, now - CURSOR_LAG_MS), fetchAll: undefined as number | undefined };
+  }
+  const first = rows.slice(0, PAGE);
+  const lastMs = first[PAGE - 1].syncedAt;
+  if (rows[PAGE].syncedAt !== lastMs) {
+    // No tie across the boundary: keep the full page; gte re-sends only the last row.
+    return { rows: first, hasMore: true, cursor: Number(lastMs), fetchAll: undefined as number | undefined };
+  }
+  let end = PAGE;
+  while (end > 0 && first[end - 1].syncedAt === lastMs) end--;
+  if (end > 0) {
+    return { rows: first.slice(0, end), hasMore: true, cursor: Number(lastMs), fetchAll: undefined as number | undefined };
+  }
+  return { rows: [] as T[], hasMore: true, cursor: Number(lastMs) + 1, fetchAll: Number(lastMs) as number | undefined };
+}
 
 /**
  * Delivery cursor is `syncedAt`, a server clock stamped on every write, so an
- * offline edit with an old client `updatedAt` is still delivered. `now` is
- * captured before the query: a write landing mid-query is re-sent, not lost.
+ * offline edit with an old client `updatedAt` is still delivered.
  */
 export const pull = async (resource: SyncResource, userId: string, since: number) => {
   const now = Date.now();
   const rows = await table(resource).findMany({
-    where: { userId, syncedAt: { gt: BigInt(since) } },
+    where: { userId, syncedAt: { gte: BigInt(since) } },
     orderBy: { syncedAt: 'asc' },
     take: PAGE + 1,
   });
-  const hasMore = rows.length > PAGE;
-  const page = rows.slice(0, PAGE);
-  const cursor = hasMore ? Number(page[PAGE - 1].syncedAt) : now;
-  return { rows: page.map(r => toWire(resource, r)), hasMore, cursor };
+  const cut = cutPage<DbRow>(rows, now);
+  let out: DbRow[] = cut.rows;
+  if (cut.fetchAll !== undefined) {
+    out = await table(resource).findMany({ where: { userId, syncedAt: BigInt(cut.fetchAll) } });
+  }
+  return { rows: out.map(r => toWire(resource, r)), hasMore: cut.hasMore, cursor: cut.cursor };
 };
 
 export const push = async (resource: SyncResource, userId: string, items: AnyRow[], now = Date.now()) => {

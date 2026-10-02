@@ -137,6 +137,9 @@ PUT /api/{resource}   {"items":[<row>,…]}
   1000, **including tombstones** (rows with `deletedAt` set). `meta.now` is the
   next `since`. `meta.hasMore` is true when more rows remain: **while `hasMore`
   is true, call again with the returned `meta.now`, until it is false.**
+- **Pulls may re-deliver rows.** The cursor overlaps by design (a pull's
+  `since` is inclusive and the final cursor trails server time by 2 seconds), so
+  a client must apply rows idempotently under last-writer-wins.
 - Rows are keyed by `(userId, id)`, so two users can use the same row id.
 - A push takes at most **500** items. The response holds the winning row for
   every submitted id, so the client overwrites its copy with it.
