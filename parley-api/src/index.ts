@@ -1,11 +1,23 @@
 import express, { type Request, type Response } from 'express';
 import { MastraServer } from '@mastra/express';
+import { createExplainRouter } from './explain/route.js';
 import { mastra } from './mastra/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// The Explain card's stream. Mounted before Mastra so its /api routes cannot shadow it.
+app.use(
+  '/api/explain',
+  createExplainRouter({
+    stream: async (messages, signal) => {
+      const output = await mastra.getAgent('screenExplainer').stream(messages, { abortSignal: signal });
+      return output.fullStream;
+    },
+  }),
+);
 
 // Registers Mastra's routes (agents, workflows, ...) under /api.
 const server = new MastraServer({ app, mastra });
