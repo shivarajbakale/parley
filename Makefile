@@ -3,7 +3,7 @@
 
 NPM ?= $(if $(NPM_BIN),$(NPM_BIN),npm)
 
-.PHONY: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint a11y feature-plan test ui-probe ui-shots check dev build clean help commit-feature doc-lint loop-lint
+.PHONY: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint a11y feature-plan test ui-probe ui-shots check dev build clean help commit-feature doc-lint loop-lint android-check api-check
 
 help:
 	@echo "Targets:"
@@ -21,7 +21,7 @@ help:
 	@echo "  test        vitest run"
 	@echo "  ui-probe    layout + hierarchy probe in real chromium"
 	@echo "  ui-shots    same probe, writing PNGs to .ui-probe/shots/"
-	@echo "  check       setup + type-check + lint + ui-lint + plan-lint + capability-lint + doc-links + storybook-lint + skill-lint + test + ui-probe + doc-lint + loop-lint (full baseline)"
+	@echo "  check       setup + type-check + lint + ui-lint + plan-lint + capability-lint + doc-links + storybook-lint + skill-lint + test + ui-probe + doc-lint + loop-lint + android-check (full baseline)"
 	@echo "  dev         vite dev server + electron main process"
 	@echo "  build       production build (tsc && vite build && electron-builder)"
 	@echo "  clean       remove dist + node_modules"
@@ -29,6 +29,15 @@ help:
 setup:
 	$(NPM) install
 	$(NPM) --prefix parley-agent install
+
+# The Android app verifies with its own harness. Skipped, not failed, when
+# flutter is absent: the desktop baseline must stay runnable without it.
+android-check:
+	@if command -v "$${FLUTTER_BIN:-flutter}" >/dev/null 2>&1; then \
+		$(MAKE) -C parley-android check; \
+	else \
+		echo "android-check: flutter not on PATH, skipped (set FLUTTER_BIN to run it)"; \
+	fi
 
 type-check:
 	$(NPM) run type-check
@@ -106,7 +115,7 @@ doc-lint: ## Instruction budget — the harness files stay small, true and non-d
 loop-lint: ## Goal contracts — the definition of done was written first, and something ran against it
 	npm run loop-lint
 
-check: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint test ui-probe doc-lint loop-lint
+check: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint test ui-probe doc-lint loop-lint android-check
 
 dev:
 	$(NPM) run dev

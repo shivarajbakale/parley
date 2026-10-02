@@ -12,6 +12,12 @@ echo "==> Working directory: $PWD"
 echo "==> Installing dependencies (npm install)"
 npm install
 npm --prefix parley-agent install
+if command -v "${FLUTTER_BIN:-flutter}" >/dev/null 2>&1; then
+  echo "==> Android dependencies (flutter pub get)"
+  (cd parley-android && "${FLUTTER_BIN:-flutter}" pub get)
+else
+  echo "==> flutter not on PATH: skipping parley-android (set FLUTTER_BIN to include it)"
+fi
 
 echo
 echo "==> Baseline verification passed."

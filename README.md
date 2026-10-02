@@ -1,5 +1,16 @@
 # Parley
 
+## Projects in this repo
+
+| Folder | What | Verify |
+|---|---|---|
+| `/` (root) | macOS desktop app (Electron) | `make check` |
+| `parley-agent/` | Mastra agent behind act mode | `cd parley-agent && npm test` |
+| `parley-api/` | Express sync API (dictionary, settings, history, tasks) | `make -C parley-api check` |
+| `parley-android/` | Android app (Flutter) | `make -C parley-android check` |
+
+`~/Projects/parley_android` is a stale copy. Edit only `parley-android/` here.
+
 Tap-tap-hold voice dictation for macOS. Tap Right Option twice, hold the third
 press, speak, release: Groq Whisper transcribes and the text is pasted at your
 cursor. Design: [docs/superpowers/specs/2026-09-21-parley-design.md](docs/superpowers/specs/2026-09-21-parley-design.md).
