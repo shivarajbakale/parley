@@ -40,3 +40,4 @@ resources/parley-agent
 # Stray root bundle (real entry is dist-electron/main.js) and agent tool scratch.
 /main.js
 .memsearch/
+.impeccable/
