@@ -13,9 +13,9 @@ stack, entry point or commands — those are in [AGENTS.md](AGENTS.md).
 | `electron/types.ts` | Shared types: `GestureKey`, `Settings`, `OrbPhase`, `ParleyApi`, IPC payloads |
 | `electron/gesture-detector.ts` | Pure tap-tap-hold state machine |
 | `electron/key-hook.ts` | Maps `uiohook-napi` events to detector events |
-| `electron/transcriber.ts` | Picks the selected provider per call; providers (Groq, Deepgram) and shared error mapping in `transcribers/` |
+| `electron/transcriber.ts` | Picks the selected provider per call; providers (Groq, Deepgram) and shared error mapping in `transcribers/`, all through parley-api's `/api/providers` pass-through, which adds the key; `server-status.ts` asks which keys it holds |
 | `electron/injector.ts` | Clipboard snapshot, paste keystroke, restore |
-| `electron/settings-store.ts` | JSON settings, the transcription provider, and the encrypted Groq, Deepgram and MiniMax keys |
+| `electron/settings-store.ts` | JSON settings, the transcription provider, and the encrypted sync token; no provider keys (they live in `parley-api/.env`) |
 | `electron/session.ts` | Orchestrates one dictation session |
 | `electron/agent/` | Act mode: the agent supervisor, HTTP/SSE client and tap-to-approve |
 | `electron/windows.ts` | Pure window option and bounds functions for orb and settings windows |

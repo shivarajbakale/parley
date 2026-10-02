@@ -20,8 +20,6 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       ...DEFAULT_SETTINGS,
       tourSeen: true,
       onboardingComplete: true,
-      hasApiKey: true,
-      hasRewriteKey: true,
       wordsDictated: 0,
       hasSyncToken: false,
       syncLastAt: 0,
@@ -33,26 +31,24 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       tourSeen: true,
       onboardingComplete: true,
       ...patch,
-      hasApiKey: true,
-      hasRewriteKey: true,
       agent: OFFLINE_AGENT_SUMMARY,
     })),
-    setApiKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
-    setDeepgramKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     setTranscriptionProvider: vi.fn().mockImplementation(async transcriptionProvider => ({
       ...DEFAULT_SETTINGS,
       tourSeen: true,
       onboardingComplete: true,
       transcriptionProvider,
-      hasApiKey: true,
-      hasRewriteKey: true,
       wordsDictated: 0,
       hasSyncToken: false,
       syncLastAt: 0,
       syncLastError: '',
       agent: OFFLINE_AGENT_SUMMARY,
     })),
-    setRewriteKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
+    serverStatus: vi.fn().mockResolvedValue({
+      reachable: true,
+      url: 'http://localhost:3100',
+      keys: { groq: true, deepgram: false, minimax: true },
+    }),
     setAgentUrl: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
     testAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
     restartAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
@@ -89,19 +85,19 @@ function mount(api: ParleyApi) {
 describe('SettingsShell tab persistence', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('keeps a half-typed API key when switching tabs away and back', async () => {
+  it('keeps a half-typed agent URL when switching tabs away and back', async () => {
     mount(mockApi());
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Replace transcription key' }));
-    const keyInput = await screen.findByLabelText('Groq API key');
-    await userEvent.type(keyInput, 'gsk_half-typed');
-    expect(keyInput).toHaveValue('gsk_half-typed');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Agent' }));
+    const urlInput = await screen.findByPlaceholderText('http://localhost:4111');
+    await userEvent.clear(urlInput);
+    await userEvent.type(urlInput, 'http://localhost:49');
+    expect(urlInput).toHaveValue('http://localhost:49');
 
     await userEvent.click(await screen.findByRole('tab', { name: 'General' }));
 
-    await userEvent.click(await screen.findByRole('tab', { name: 'Overview' }));
-    const keyInputAgain = await screen.findByLabelText('Groq API key');
-    expect(keyInputAgain).toHaveValue('gsk_half-typed');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Agent' }));
+    expect(await screen.findByPlaceholderText('http://localhost:4111')).toHaveValue('http://localhost:49');
   });
 
   it('every tab resolves aria-controls to a panel present in the DOM', async () => {
@@ -131,8 +127,6 @@ describe('SettingsShell tab persistence', () => {
           ...DEFAULT_SETTINGS,
           tourSeen: true,
           onboardingComplete: true,
-          hasApiKey: true,
-          hasRewriteKey: true,
           wordsDictated: 0,
           hasSyncToken: false,
           syncLastAt: 0,

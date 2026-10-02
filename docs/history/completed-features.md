@@ -10,6 +10,7 @@ full register entry, evidence included.
 | `parley-001` | Dictation pipeline units |
 | `parley-002` | Orb window records and animates |
 | `parley-003` | Settings and onboarding window |
+| `parley-014` | Monorepo: Android and the sync API live beside the desktop app |
 
 ## Register entries
 
@@ -97,5 +98,33 @@ full register entry, evidence included.
     "Manual `make dev` verification (grant permissions and watch badges update, test and save a real Groq key including an invalid key, perform the gesture in Notes and confirm paste, cancel with Esc, change gesture key/tap count and confirm the new gesture, use tray 'Copy last transcript') has not been run and is pending — tracked in docs/MANUAL_CHECKLIST.md."
   ],
   "notes": "Plan task 11."
+}
+```
+
+### parley-014
+
+Archived 2026-10-03. Its Express/Prisma server was replaced by the Mastra parley-api (commit 6ef5467).
+
+```json
+{
+  "id": "parley-014",
+  "priority": 16,
+  "area": "repo",
+  "title": "Monorepo: Android and the sync API live beside the desktop app",
+  "user_visible_behavior": "One clone holds the desktop app, the agent, the Android app and the API. ./init.sh installs all of them and make check verifies all of them, skipping Android when flutter is absent.",
+  "status": "passing",
+  "plan": "none: repository plumbing, no UI surface",
+  "verification": [
+    "make check",
+    "git log --oneline 66493cd^2 | wc -l is at least 16 (the Android subtree merge parent)",
+    "make -C parley-api check",
+    "make android-check prints the skip line without flutter and runs the Flutter check with it"
+  ],
+  "evidence": [
+    "2026-10-02 make check exit 0: unit 85 files / 741 tests, ui-probe 140/140, all lints 0 violations; nested parley-api check 43/43 incl. e2e; Android flutter suites (1924+167+131+100+21) and 170 Kotlin pass.",
+    "2026-10-02 make -C parley-api check exit 0: type-check, lint, plan/db/api/capability lints, 43/43 tests, build, boot-check, doc-lint 9.9 KB.",
+    "2026-10-02 git log --oneline 66493cd^2 | wc -l = 16 (Android history kept)."
+  ],
+  "notes": "Spec docs/superpowers/specs/2026-10-02-monorepo-and-api-design.md, layout A."
 }
 ```

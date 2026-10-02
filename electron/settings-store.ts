@@ -17,8 +17,9 @@ import {
  * could produce a valid address the user never meant. */
 const AGENT_URL_MAX = 200;
 
-/** First versioned settings shape. v0 files predate the onboarding fields. */
-export const SETTINGS_SCHEMA_VERSION = 1;
+/** v0 files predate the onboarding fields; v1 still held the provider keys,
+ * which now live in parley-api. */
+export const SETTINGS_SCHEMA_VERSION = 2;
 
 /** The shape of Electron's `safeStorage`, passed in so tests need no Electron. */
 export interface CryptoLike {
@@ -33,22 +34,7 @@ export interface SettingsStore {
   /** `live` is the supervisor's truth, handed over by main — without it the
    * agent reads as offline. */
   view(live?: AgentSummary): SettingsView;
-  /** The Groq key. */
-  getApiKey(): string | null;
-  setApiKey(key: string): void;
-  /** The selected transcription provider has a key: what readiness and the
-   * gesture block mean by "has a key". */
-  hasApiKey(): boolean;
-  hasGroqKey(): boolean;
-  getDeepgramKey(): string | null;
-  setDeepgramKey(key: string): void;
-  hasDeepgramKey(): boolean;
-  /** The key for `provider`, whichever one is selected or not. */
-  getTranscriptionKey(provider: TranscriptionProvider): string | null;
   setTranscriptionProvider(provider: TranscriptionProvider): Settings;
-  getRewriteKey(): string | null;
-  setRewriteKey(key: string): void;
-  hasRewriteKey(): boolean;
   /** Count a pasted dictation toward the Overview's time-saved figure. */
   recordDictation(text: string): void;
   /** The sync token, encrypted at rest like the keys. */
@@ -58,7 +44,7 @@ export interface SettingsStore {
   recordSync(result: { at: number; error?: string }): void;
   /** Last-writer-wins apply of a synced blob: sanitized like `update()`, and stamped
    * with the remote `updatedAt`, never the local clock. Device-local keys are
-   * ignored; the provider is taken only when this device holds its key. */
+   * ignored. */
   applyRemote(patch: Partial<Settings>, updatedAt: number): Settings;
   /** Epoch ms of the last `update()` that changed a value; 0 on a fresh store. */
   settingsUpdatedAt(): number;
@@ -68,6 +54,7 @@ export interface SettingsStore {
 
 interface FileShape {
   settings?: Partial<Settings>;
+  /** v1 only: the provider keys, dropped by `migrate`. */
   apiKeyEncrypted?: string;
   deepgramKeyEncrypted?: string;
   rewriteKeyEncrypted?: string;
@@ -84,11 +71,16 @@ interface FileShape {
 }
 
 /** Bring an old file forward. v0 to v1 moves nothing: the onboarding fields
- * simply did not exist, so `DEFAULT_SETTINGS` supplies them. Idempotent. */
+ * simply did not exist, so `DEFAULT_SETTINGS` supplies them. v1 to v2 drops
+ * the provider keys: parley-api holds them now. Idempotent. */
 function migrate(shape: FileShape): FileShape {
   const version = typeof shape.schemaVersion === 'number' ? shape.schemaVersion : 0;
   if (version >= SETTINGS_SCHEMA_VERSION) return shape;
-  return { ...shape, schemaVersion: SETTINGS_SCHEMA_VERSION };
+  const next: FileShape = { ...shape, schemaVersion: SETTINGS_SCHEMA_VERSION };
+  delete next.apiKeyEncrypted;
+  delete next.deepgramKeyEncrypted;
+  delete next.rewriteKeyEncrypted;
+  return next;
 }
 
 function isProvider(value: unknown): value is TranscriptionProvider {
@@ -174,8 +166,12 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
   const file = path.join(deps.dir, 'settings.json');
 
   let state: FileShape = {};
+  /** An older file on disk: written back once loaded, so the dropped keys leave the disk too. */
+  let migrated = false;
   try {
-    state = migrate(JSON.parse(readFileSync(file, 'utf8')) as FileShape);
+    const raw = JSON.parse(readFileSync(file, 'utf8')) as FileShape;
+    state = migrate(raw);
+    migrated = state !== raw;
   } catch {
     // First launch or a corrupted file: defaults are fine.
   }
@@ -188,11 +184,6 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
       ? storedProvider
       : DEFAULT_SETTINGS.transcriptionProvider,
   };
-  let apiKeyEncrypted = typeof state.apiKeyEncrypted === 'string' ? state.apiKeyEncrypted : null;
-  let deepgramKeyEncrypted =
-    typeof state.deepgramKeyEncrypted === 'string' ? state.deepgramKeyEncrypted : null;
-  let rewriteKeyEncrypted =
-    typeof state.rewriteKeyEncrypted === 'string' ? state.rewriteKeyEncrypted : null;
   let wordsDictated =
     typeof state.wordsDictated === 'number' && Number.isFinite(state.wordsDictated)
       ? Math.max(0, Math.floor(state.wordsDictated))
@@ -209,9 +200,6 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
   function save() {
     const body: FileShape = {
       settings,
-      ...(apiKeyEncrypted ? { apiKeyEncrypted } : {}),
-      ...(deepgramKeyEncrypted ? { deepgramKeyEncrypted } : {}),
-      ...(rewriteKeyEncrypted ? { rewriteKeyEncrypted } : {}),
       ...(wordsDictated ? { wordsDictated } : {}),
       ...(syncTokenEncrypted ? { syncTokenEncrypted } : {}),
       ...(syncLastAt ? { syncLastAt } : {}),
@@ -237,10 +225,7 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     return deps.crypto.encryptString(key).toString('base64');
   }
 
-  const hasGroqKey = () => apiKeyEncrypted !== null;
-  const hasDeepgramKey = () => deepgramKeyEncrypted !== null;
-  const hasApiKey = () =>
-    settings.transcriptionProvider === 'deepgram' ? hasDeepgramKey() : hasGroqKey();
+  if (migrated) save();
 
   return {
     get: () => settings,
@@ -259,10 +244,8 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     applyRemote(patch, updatedAt) {
       const clean = sanitize(patch);
       for (const key of DEVICE_LOCAL_KEYS) delete clean[key];
-      // A provider this Mac has no key for would leave it unable to dictate.
       const remote = patch.transcriptionProvider;
-      const hasKeyFor = (p: TranscriptionProvider) => (p === 'deepgram' ? hasDeepgramKey() : hasGroqKey());
-      if (isProvider(remote) && hasKeyFor(remote)) clean.transcriptionProvider = remote;
+      if (isProvider(remote)) clean.transcriptionProvider = remote;
       settings = { ...settings, ...clean };
       settingsUpdatedAt = num(updatedAt);
       save();
@@ -270,42 +253,18 @@ export function createSettingsStore(deps: { dir: string; crypto: CryptoLike }): 
     },
     view: (live?: AgentSummary) => ({
       ...settings,
-      hasApiKey: hasApiKey(),
-      hasRewriteKey: rewriteKeyEncrypted !== null,
       wordsDictated,
       hasSyncToken: syncTokenEncrypted !== null,
       syncLastAt,
       syncLastError,
       agent: live ?? OFFLINE_AGENT_SUMMARY,
     }),
-    hasApiKey,
-    hasGroqKey,
-    getApiKey: () => decrypt(apiKeyEncrypted),
-    setApiKey(key) {
-      apiKeyEncrypted = encrypt(key);
-      save();
-    },
-    hasDeepgramKey,
-    getDeepgramKey: () => decrypt(deepgramKeyEncrypted),
-    setDeepgramKey(key) {
-      deepgramKeyEncrypted = encrypt(key);
-      save();
-    },
-    getTranscriptionKey: provider =>
-      decrypt(provider === 'deepgram' ? deepgramKeyEncrypted : apiKeyEncrypted),
     setTranscriptionProvider(provider) {
       if (!isProvider(provider)) throw new Error('Unknown transcription provider');
-      // The provider choice syncs; its key never does.
       if (provider !== settings.transcriptionProvider) settingsUpdatedAt = Date.now();
       settings = { ...settings, transcriptionProvider: provider };
       save();
       return settings;
-    },
-    hasRewriteKey: () => rewriteKeyEncrypted !== null,
-    getRewriteKey: () => decrypt(rewriteKeyEncrypted),
-    setRewriteKey(key) {
-      rewriteKeyEncrypted = encrypt(key);
-      save();
     },
     getSyncToken: () => decrypt(syncTokenEncrypted),
     setSyncToken(token) {

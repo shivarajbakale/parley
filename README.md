@@ -17,12 +17,15 @@ cursor. Design: [docs/superpowers/specs/2026-09-21-parley-design.md](docs/superp
 
 Voice edit is the same gesture on a second key (Right Command by default):
 with the cursor in a text field, say "make it shorter" and the selection, or
-the whole field, is rewritten by MiniMax and pasted back. It needs a MiniMax
-API key and reads the field with `native/parley-ax.swift`, which `npm run dev`
+the whole field, is rewritten by MiniMax and pasted back. It reads the field with `native/parley-ax.swift`, which `npm run dev`
 and `npm run build` compile (Xcode command line tools required).
 
-Run it with `make dev`. It needs Microphone and Accessibility permission and a
-Groq API key, all set from the tray's Settings window.
+Run it with `make dev`. It needs Microphone and Accessibility permission, set
+from the tray's Settings window, and the Parley server: `make api` runs
+parley-api on 127.0.0.1:3100. The provider keys live only in
+`parley-api/.env` (`GROQ_API_KEY`, `DEEPGRAM_API_KEY`, `MINIMAX_API_KEY`,
+`EXA_API_KEY`); the app stores none and calls the providers through the
+server.
 
 ## Run
 

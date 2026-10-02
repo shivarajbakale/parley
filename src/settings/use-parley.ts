@@ -11,6 +11,7 @@ import type { PermissionKind, Settings, TranscriptionProvider } from '../../elec
 const SETTINGS = ['parley', 'settings'] as const;
 const PERMISSIONS = ['parley', 'permissions'] as const;
 const AGENT_STATUS = ['parley', 'agent', 'status'] as const;
+const SERVER_STATUS = ['parley', 'server', 'status'] as const;
 
 export function useSettings() {
   return useQuery({ queryKey: SETTINGS, queryFn: () => window.parley.getSettings() });
@@ -41,23 +42,7 @@ export function useRequestPermission() {
   });
 }
 
-export function useSetApiKey() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (key: string) => window.parley.setApiKey(key),
-    onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
-  });
-}
-
-export function useSetDeepgramKey() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (key: string) => window.parley.setDeepgramKey(key),
-    onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
-  });
-}
-
-/** Readiness follows the provider, so the new view replaces the cached one. */
+/** The provider is part of the view, so the new view replaces the cached one. */
 export function useSetTranscriptionProvider() {
   const client = useQueryClient();
   return useMutation({
@@ -67,11 +52,12 @@ export function useSetTranscriptionProvider() {
   });
 }
 
-export function useSetRewriteKey() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (key: string) => window.parley.setRewriteKey(key),
-    onSuccess: () => client.invalidateQueries({ queryKey: SETTINGS }),
+/** Polled, because parley-api is started and stopped outside the app. */
+export function useServerStatus() {
+  return useQuery({
+    queryKey: SERVER_STATUS,
+    queryFn: () => window.parley.serverStatus(),
+    refetchInterval: 5000,
   });
 }
 

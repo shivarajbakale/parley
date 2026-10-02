@@ -3,11 +3,12 @@
 
 NPM ?= $(if $(NPM_BIN),$(NPM_BIN),npm)
 
-.PHONY: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint a11y feature-plan test ui-probe ui-shots check dev build clean help commit-feature doc-lint loop-lint android-check api-check
+.PHONY: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint a11y feature-plan test ui-probe ui-shots check dev build clean help commit-feature doc-lint loop-lint android-check api-check api
 
 help:
 	@echo "Targets:"
 	@echo "  setup       npm install"
+	@echo "  api         run parley-api, the Parley server (keys in parley-api/.env)"
 	@echo "  type-check  tsc --noEmit"
 	@echo "  lint        eslint (max-warnings 0)"
 	@echo "  ui-lint     design-system contract (no hand-rolled primitives)"
@@ -33,6 +34,11 @@ setup:
 
 api-check:
 	$(NPM) --prefix parley-api run check
+
+# The Parley server: holds the provider keys (parley-api/.env) and answers
+# dictation, voice edit, Explain and the Act agent's model on 127.0.0.1:3100.
+api:
+	$(NPM) --prefix parley-api start
 
 # The Android app verifies with its own harness. Skipped, not failed, when
 # flutter is absent: the desktop baseline must stay runnable without it.

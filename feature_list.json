@@ -21,7 +21,9 @@
       "user_visible_behavior": "Dictation pastes into Safari, Chrome, Slack, VS Code, Terminal and Notes.",
       "status": "blocked",
       "plan": "none: packaging config and a manual checklist, no UI",
-      "verification": ["Walk docs/MANUAL_CHECKLIST.md."],
+      "verification": [
+        "Walk docs/MANUAL_CHECKLIST.md."
+      ],
       "evidence": [
         "make check exit 0 on 2026-09-22; full unit suite 275 tests across 37 files pass (includes src/orb/__tests__/phase-handler.test.ts, 9 tests, and electron/__tests__/audio-watchdog.test.ts, 4 tests), story-probe suite 106 tests pass, skill-lint 36 files/145 code blocks pass.",
         "docs/MANUAL_CHECKLIST.md written on 2026-09-22 covering paste targets, gesture (including changing gesture key/tap count), onboarding from a clean state (including the System Settings deep-link check on macOS 26), a real Groq key and an invalid key, errors, offline behaviour, and the tray (including quit and single-instance). No box on that checklist has been ticked yet — manual verification with `make dev` is pending and this feature stays in_progress until it is walked."
@@ -221,27 +223,6 @@
       "notes": "Plan written 2026-09-26; revised four times the same day: inline MCP tools to Mastra handoff, user-run to Parley-managed server, a 20-item edge-case pass, then the full impeccable critique fold (approvals wait until answered, summary-first copy with transcript echo, tab mirror with Approve/Decline, capability-first tab with Advanced collapse, standing failure record, no voice approval v1). Interview: new gesture key, confirm-writes/auto-read, new parley-agent project, Parley spawns and supervises. Implementation complete on feat/parley-013-act; stays in_progress until a human walks the Act mode block of docs/MANUAL_CHECKLIST.md with a real model key and MCP servers. Placement changed after review: parley-agent/ is an in-repo project, not a ../Mastra sibling. Two deviations from the plan worth knowing: agent routes live at /parley/* instead of /api/parley/* (Mastra reserves /api, confirmed in its own docs and the jev-poc house convention), and the packaged bundle ships ~200M of node_modules because bundler.externals:false fails on mastra 1.30 (NOTE in parley-agent/src/mastra/index.ts)."
     },
     {
-      "id": "parley-014",
-      "priority": 16,
-      "area": "repo",
-      "title": "Monorepo: Android and the sync API live beside the desktop app",
-      "user_visible_behavior": "One clone holds the desktop app, the agent, the Android app and the API. ./init.sh installs all of them and make check verifies all of them, skipping Android when flutter is absent.",
-      "status": "passing",
-      "plan": "none: repository plumbing, no UI surface",
-      "verification": [
-        "make check",
-        "git log --oneline 66493cd^2 | wc -l is at least 16 (the Android subtree merge parent)",
-        "make -C parley-api check",
-        "make android-check prints the skip line without flutter and runs the Flutter check with it"
-      ],
-      "evidence": [
-        "2026-10-02 make check exit 0: unit 85 files / 741 tests, ui-probe 140/140, all lints 0 violations; nested parley-api check 43/43 incl. e2e; Android flutter suites (1924+167+131+100+21) and 170 Kotlin pass.",
-        "2026-10-02 make -C parley-api check exit 0: type-check, lint, plan/db/api/capability lints, 43/43 tests, build, boot-check, doc-lint 9.9 KB.",
-        "2026-10-02 git log --oneline 66493cd^2 | wc -l = 16 (Android history kept)."
-      ],
-      "notes": "Spec docs/superpowers/specs/2026-10-02-monorepo-and-api-design.md, layout A."
-    },
-    {
       "id": "parley-015",
       "priority": 17,
       "area": "settings",
@@ -284,6 +265,29 @@
         "Not run: the GUI walk with the real gesture (Explain block of docs/MANUAL_CHECKLIST.md). make dev quit at once on the single-instance lock because /Applications/Parley.app was running; it was left running."
       ],
       "notes": "Server side: parley-api src/explain (commit d616613)."
+    },
+    {
+      "id": "parley-017",
+      "priority": 19,
+      "area": "settings",
+      "title": "Provider keys live in parley-api, not the app",
+      "user_visible_behavior": "Settings never asks for a Groq, Deepgram or MiniMax key. Dictation, voice edit and Act reach the providers through parley-api on this Mac, which holds the keys in its .env. Overview shows whether the Parley server is running and which keys it has; with the server down the pill says so.",
+      "status": "in_progress",
+      "plan": "parley-017.feature-plan.json",
+      "verification": [
+        "make check",
+        "npm --prefix parley-api run check (pass-through: key added, Authorization from the app ignored, only the three paths allowed, 503 when a key is missing)",
+        "Storybook: Overview server Running, KeyMissing, NotRunning; wizard step in dark and light",
+        "Real run with the installed build: parley-api running with GROQ_API_KEY and MINIMAX_API_KEY; dictate, voice edit, Act; stop the server and dictate again to see the pill error"
+      ],
+      "evidence": [
+        "2026-10-03 make check exit 0 (desktop unit + ui-probe, parley-api 41, Android). New tests: parley-api providers-route (key added, caller Authorization dropped, only the allowed paths, 503 no_key, 502 unreachable, anthropic-version forwarded); electron server-status, transcriber/deepgram/rewriter through /api/providers, settings-store v1 to v2 migration deletes the keys, agent env base URL; renderer Overview server states and wizard server step.",
+        "2026-10-03 live against parley-api on 127.0.0.1:3100 with the real electron modules (tsx): status {groq:true,deepgram:false,minimax:true}; Groq transcription of a said WAV 'Kubernetes deployments are rolling out.'; MiniMax rewrite 'The meeting is scheduled for Tuesday at 3:00 p.m.'; Deepgram 'No Deepgram key on the Parley server'; server down 'Parley server not running'. Server listens on 127.0.0.1 only (lsof).",
+        "2026-10-03 installed 0.6.0 build: settings.json migrated from schema 1 with apiKeyEncrypted and rewriteKeyEncrypted to schema 2 with no keys; the managed agent runs with MINIMAX_BASE_URL=http://localhost:3100/api/providers/minimax/anthropic/v1 and a placeholder key, and /api/agents/parley-action/generate answered 'ready' through the server.",
+        "2026-10-03 Storybook screenshots (dark and light) of SettingsShell Ready, NeedsSetup (server down), MiniMaxKeyMissing, DeepgramNeedsKey and Wizard ServerStep, ServerStepNotRunning checked by eye.",
+        "Not run: the GUI walk with the real gesture (Parley server and keys block of docs/MANUAL_CHECKLIST.md)."
+      ],
+      "notes": "Approved 2026-10-03. Server: parley-api src/providers/route.ts. Auto-start of parley-api by the app is a follow-up; you run make api."
     }
   ]
 }

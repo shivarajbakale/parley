@@ -5,6 +5,7 @@ import {
   OFFLINE_AGENT_SUMMARY,
   type ParleyApi,
   type PermissionStatus,
+  type ServerStatus,
   type SettingsView,
 } from '../../electron/types';
 
@@ -14,7 +15,14 @@ import { WizardShell } from './wizard/WizardShell';
  * First-run flow: an orb progress ring above one screen, on the first-run Scene. Each story pins the persisted
  * settings, so the shell opens mid-flow exactly as a resume would.
  */
-function withParley(settings: SettingsView, permissions: PermissionStatus) {
+const RUNNING: ServerStatus = {
+  reachable: true,
+  url: 'http://localhost:3100',
+  keys: { groq: true, deepgram: false, minimax: true },
+};
+const NOT_RUNNING: ServerStatus = { reachable: false, url: 'http://localhost:3100', keys: null };
+
+function withParley(settings: SettingsView, permissions: PermissionStatus, server: ServerStatus = RUNNING) {
   return (Story: () => React.JSX.Element) => {
     let current = settings;
     window.parley = {
@@ -25,13 +33,11 @@ function withParley(settings: SettingsView, permissions: PermissionStatus) {
         current = { ...current, ...patch };
         return current;
       },
-      setApiKey: async () => ({ ok: true, message: 'Key works' }),
-      setDeepgramKey: async () => ({ ok: true, message: 'Key works' }),
       setTranscriptionProvider: async transcriptionProvider => {
         current = { ...current, transcriptionProvider };
         return current;
       },
-      setRewriteKey: async () => ({ ok: true, message: 'Key works' }),
+      serverStatus: async () => server,
       setAgentUrl: async () => ({ ok: true, message: 'Agent works', mcpServers: [] }),
       testAgent: async () => ({ ok: true, message: 'Agent works', mcpServers: [] }),
       restartAgent: async () => ({ ok: true, message: 'Agent works', mcpServers: [] }),
@@ -59,8 +65,6 @@ const fresh: SettingsView = {
   tourSeen: true,
   wizardStep: 0,
   onboardingComplete: false,
-  hasApiKey: false,
-  hasRewriteKey: false,
   wordsDictated: 0,
   hasSyncToken: false,
   syncLastAt: 0,
@@ -87,18 +91,32 @@ export const AccessibilityStep: Story = {
   decorators: [withParley({ ...fresh, wizardStep: 2 }, { microphone: true, accessibility: false })],
 };
 
+/** The transcription step with parley-api up and holding the Groq key. */
+export const ServerStep: Story = {
+  decorators: [withParley({ ...fresh, wizardStep: 3 }, { microphone: true, accessibility: true })],
+};
+
+/** The same step with the server down: the start command, Check again, Continue still open. */
+export const ServerStepNotRunning: Story = {
+  decorators: [
+    withParley({ ...fresh, wizardStep: 3 }, { microphone: true, accessibility: true }, NOT_RUNNING),
+  ],
+};
+
 export const GestureTrainer: Story = {
   decorators: [
-    withParley({ ...fresh, wizardStep: 4, hasApiKey: true }, { microphone: true, accessibility: true }),
+    withParley({ ...fresh, wizardStep: 4}, { microphone: true, accessibility: true }),
   ],
 };
 
 export const Finale: Story = {
   decorators: [
-    withParley({ ...fresh, wizardStep: 6, hasApiKey: true }, { microphone: true, accessibility: true }),
+    withParley({ ...fresh, wizardStep: 6}, { microphone: true, accessibility: true }),
   ],
 };
 
 export const FinaleWithMissing: Story = {
-  decorators: [withParley({ ...fresh, wizardStep: 6 }, { microphone: true, accessibility: false })],
+  decorators: [
+    withParley({ ...fresh, wizardStep: 6 }, { microphone: true, accessibility: false }, NOT_RUNNING),
+  ],
 };

@@ -4,9 +4,8 @@ import type { TranscriptionProvider } from '../../electron/types';
 export interface ProviderCopy {
   /** The SegmentedControl label. */
   label: string;
-  /** The key field's label; the tests find the field by it. */
-  keyLabel: string;
-  placeholder: string;
+  /** The variable that holds its key in parley-api/.env. */
+  envVar: string;
   /** What turns speech into text, as a sentence subject. */
   service: string;
   /** Who the vocabulary is for: "Names and jargon ___ should recognise". */
@@ -16,15 +15,13 @@ export interface ProviderCopy {
 export const PROVIDER_COPY: Record<TranscriptionProvider, ProviderCopy> = {
   groq: {
     label: 'Whisper (Groq)',
-    keyLabel: 'Groq API key',
-    placeholder: 'gsk_…',
+    envVar: 'GROQ_API_KEY',
     service: 'Groq’s Whisper',
     listener: 'Whisper',
   },
   deepgram: {
     label: 'Deepgram Nova-3',
-    keyLabel: 'Deepgram API key',
-    placeholder: 'Paste your key',
+    envVar: 'DEEPGRAM_API_KEY',
     service: 'Deepgram Nova-3',
     listener: 'Deepgram',
   },

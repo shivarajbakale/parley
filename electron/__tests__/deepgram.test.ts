@@ -16,29 +16,27 @@ function listen(transcript: string) {
   return { results: { channels: [{ alternatives: [{ transcript, confidence: 0.99 }] }] } };
 }
 
-function deepgram(fetchFn: ReturnType<typeof vi.fn>, key: string | null = 'dg_test') {
-  return createTranscriber({
-    getApiKey: provider => (provider === 'deepgram' ? key : 'gsk_groq'),
-    getProvider: () => 'deepgram',
-    fetchFn,
-  });
+const SERVER = 'http://localhost:3100';
+
+function deepgram(fetchFn: ReturnType<typeof vi.fn>) {
+  return createTranscriber({ serverUrl: () => SERVER, getProvider: () => 'deepgram', fetchFn });
 }
 
 describe('deepgram transcriber', () => {
-  it('posts the raw audio to Nova-3 with model, language and smart formatting', async () => {
+  it('posts the raw audio to Nova-3 through the Parley server, with no key', async () => {
     const fetchFn = respond(200, listen(' hello world '));
     const text = await deepgram(fetchFn).transcribe(audio, { vocabulary: '' });
 
     expect(text).toBe('hello world');
     const [url, init] = fetchFn.mock.calls[0];
     const parsed = new URL(url);
-    expect(`${parsed.origin}${parsed.pathname}`).toBe('https://api.deepgram.com/v1/listen');
+    expect(`${parsed.origin}${parsed.pathname}`).toBe(`${SERVER}/api/providers/deepgram/v1/listen`);
     expect(parsed.searchParams.get('model')).toBe('nova-3');
     expect(parsed.searchParams.get('language')).toBe('en');
     expect(parsed.searchParams.get('smart_format')).toBe('true');
     expect(parsed.searchParams.has('keyterm')).toBe(false);
     expect(init.method).toBe('POST');
-    expect(init.headers.Authorization).toBe('Token dg_test');
+    expect(init.headers.Authorization).toBeUndefined();
     expect(init.headers['Content-Type']).toBe('audio/webm;codecs=opus');
     expect(init.body).toBe(audio.data);
   });
@@ -69,18 +67,16 @@ describe('deepgram transcriber', () => {
     }
   });
 
-  it('fails with no_key before any request when no Deepgram key is stored', async () => {
-    const fetchFn = vi.fn();
-    const error = await deepgram(fetchFn, null)
+  it('says the Deepgram key is missing on the server when the server answers no_key', async () => {
+    const error = await deepgram(respond(503, { error: { code: 'no_key' } }))
       .transcribe(audio, { vocabulary: '' })
       .catch(e => e);
-    expect(error).toMatchObject({ kind: 'no_key', message: 'No API key' });
-    expect(fetchFn).not.toHaveBeenCalled();
+    expect(error).toMatchObject({ kind: 'no_key', message: 'No Deepgram key on the Parley server' });
   });
 
   it.each([
-    [401, 'auth', 'Invalid API key'],
-    [403, 'auth', 'Invalid API key'],
+    [401, 'auth', 'Invalid Deepgram key'],
+    [403, 'auth', 'Invalid Deepgram key'],
     [429, 'rate_limit', 'Rate limited'],
     [500, 'server', 'Deepgram error'],
   ])('maps HTTP %i to %s', async (status, kind, message) => {
@@ -91,14 +87,15 @@ describe('deepgram transcriber', () => {
     expect(error).toMatchObject({ kind, message });
   });
 
-  it('maps a rejected or aborted fetch to network', async () => {
-    for (const reason of [new TypeError('fetch failed'), new DOMException('t', 'TimeoutError')]) {
-      const fetchFn = vi.fn().mockRejectedValue(reason);
-      await expect(deepgram(fetchFn).transcribe(audio, { vocabulary: '' })).rejects.toMatchObject({
-        kind: 'network',
-        message: 'No connection',
-      });
-    }
+  it('maps a refused connection to offline and a timeout to network', async () => {
+    await expect(
+      deepgram(vi.fn().mockRejectedValue(new TypeError('fetch failed'))).transcribe(audio, { vocabulary: '' })
+    ).rejects.toMatchObject({ kind: 'offline', message: 'Parley server not running' });
+    await expect(
+      deepgram(vi.fn().mockRejectedValue(new DOMException('t', 'TimeoutError'))).transcribe(audio, {
+        vocabulary: '',
+      })
+    ).rejects.toMatchObject({ kind: 'network', message: 'No connection' });
   });
 
   it('maps a non-JSON 200 body to a Deepgram server error', async () => {
@@ -109,29 +106,10 @@ describe('deepgram transcriber', () => {
     expect(error).toMatchObject({ kind: 'server', message: 'Deepgram error' });
   });
 
-  it('gives the transcribe request and the key test an abort signal', async () => {
+  it('gives the transcribe request an abort signal', async () => {
     const fetchFn = respond(200, listen('hi'));
-    const t = deepgram(fetchFn);
-    await t.transcribe(audio, { vocabulary: '' });
-    await t.testKey('dg_new');
+    await deepgram(fetchFn).transcribe(audio, { vocabulary: '' });
     expect(fetchFn.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
-    expect(fetchFn.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
-  });
-
-  it('tests a key against the projects endpoint', async () => {
-    const fetchFn = respond(200, { projects: [] });
-    expect(await deepgram(fetchFn).testKey('dg_new')).toEqual({ ok: true, message: 'Key works' });
-    const [url, init] = fetchFn.mock.calls[0];
-    expect(url).toBe('https://api.deepgram.com/v1/projects');
-    expect(init.method).toBe('GET');
-    expect(init.headers.Authorization).toBe('Token dg_new');
-  });
-
-  it('reports a rejected key', async () => {
-    expect(await deepgram(respond(401, {})).testKey('bad')).toEqual({
-      ok: false,
-      message: 'Invalid API key',
-    });
   });
 });
 
@@ -167,37 +145,27 @@ describe('provider selection', () => {
           ? new Response(JSON.stringify({ text: 'from groq' }), { status: 200 })
           : new Response(JSON.stringify(listen('from deepgram')), { status: 200 })
       );
-    const getApiKey = vi.fn((p: TranscriptionProvider) => (p === 'groq' ? 'gsk' : 'dg'));
-    const t = createTranscriber({ getApiKey, getProvider: () => provider, fetchFn });
+    const t = createTranscriber({ serverUrl: () => SERVER, getProvider: () => provider, fetchFn });
 
     expect(await t.transcribe(audio, { vocabulary: '' })).toBe('from groq');
     provider = 'deepgram';
     expect(await t.transcribe(audio, { vocabulary: '' })).toBe('from deepgram');
-    expect(getApiKey).toHaveBeenNthCalledWith(1, 'groq');
-    expect(getApiKey).toHaveBeenNthCalledWith(2, 'deepgram');
   });
 
   it('keeps Groq as the provider when none is given', async () => {
     const fetchFn = respond(200, { text: 'hi' });
-    await createTranscriber({ getApiKey: () => 'k', fetchFn }).transcribe(audio, {
+    await createTranscriber({ serverUrl: () => SERVER, fetchFn }).transcribe(audio, {
       vocabulary: '',
     });
-    expect(fetchFn.mock.calls[0][0]).toBe('https://api.groq.com/openai/v1/audio/transcriptions');
+    expect(fetchFn.mock.calls[0][0]).toBe(`${SERVER}/api/providers/groq/openai/v1/audio/transcriptions`);
   });
 
   it('gives Groq the prose prompt and ignores the term list', async () => {
     const fetchFn = respond(200, { text: 'hi' });
-    await createTranscriber({ getApiKey: () => 'k', getProvider: () => 'groq', fetchFn }).transcribe(
+    await createTranscriber({ serverUrl: () => SERVER, getProvider: () => 'groq', fetchFn }).transcribe(
       audio,
       { vocabulary: 'Notes about MiniMax.', terms: ['MiniMax'] }
     );
     expect((fetchFn.mock.calls[0][1].body as FormData).get('prompt')).toBe('Notes about MiniMax.');
-  });
-
-  it('tests a key against the named provider, not the selected one', async () => {
-    const fetchFn = respond(200, {});
-    const t = createTranscriber({ getApiKey: () => null, getProvider: () => 'groq', fetchFn });
-    await t.testKey('dg', 'deepgram');
-    expect(fetchFn.mock.calls[0][0]).toBe('https://api.deepgram.com/v1/projects');
   });
 });

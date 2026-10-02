@@ -19,8 +19,6 @@ const settledView: SettingsView = {
   ...DEFAULT_SETTINGS,
   tourSeen: true,
   onboardingComplete: true,
-  hasApiKey: true,
-  hasRewriteKey: true,
   wordsDictated: 0,
   hasSyncToken: false,
   syncLastAt: 0,

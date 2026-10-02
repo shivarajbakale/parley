@@ -62,8 +62,6 @@ export interface SessionDeps {
    * as a list for a keyterm provider. */
   dictionary: { prompt(): string; terms(): string[]; apply(text: string): string };
   getSettings(): Settings;
-  hasApiKey(): boolean;
-  hasRewriteKey(): boolean;
   /** Act mode: run the transcribed command through the agent and settle the
    * pill — progress, approvals, the result or the failure. Never rejects:
    * every failure is a painted error, never a thrown one. */
@@ -73,8 +71,6 @@ export interface SessionDeps {
   cancelAgent(): void;
   /** The agent answers and has at least one MCP server to act through. */
   isAgentReady(): boolean;
-  /** True while Parley owns the server process — the MiniMax gate applies. */
-  isAgentManaged(): boolean;
   getPermissions(): PermissionStatus;
   /** The settings window doubles as onboarding. */
   openSettings(): void;
@@ -143,39 +139,16 @@ export function createSession(deps: SessionDeps): Session {
       }
       if (requested === 'act') {
         // No keystrokes: the command is transcribed, then the agent — not
-        // the pill — does everything else.
-        if (!deps.hasApiKey()) {
-          deps.onBlocked?.('apiKey');
-          deps.openSettings();
-          return;
-        }
+        // the pill — does everything else. Keys live in parley-api, so a
+        // missing one fails on the pill after the take, not here.
         if (!deps.isAgentReady()) {
           deps.onBlocked?.('agent');
-          deps.openSettings();
-          return;
-        }
-        // A server Parley spawned thinks with the stored MiniMax key, so a
-        // missing key blocks with the same offer voice edit uses. An
-        // attached server brings its own model and is left alone.
-        if (deps.isAgentManaged() && !deps.hasRewriteKey()) {
-          deps.onBlocked?.('rewriteKey');
           deps.openSettings();
           return;
         }
       } else {
         if (!permissions.accessibility) {
           deps.onBlocked?.('accessibility');
-          deps.openSettings();
-          return;
-        }
-        if (!deps.hasApiKey()) {
-          deps.onBlocked?.('apiKey');
-          deps.openSettings();
-          return;
-        }
-        // Only voice edit thinks with the stored MiniMax key; Explain asks parley-api.
-        if (requested === 'edit' && !deps.hasRewriteKey()) {
-          deps.onBlocked?.('rewriteKey');
           deps.openSettings();
           return;
         }

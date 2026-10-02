@@ -8,10 +8,13 @@ import { GeneralTab } from './GeneralTab';
 import { GestureTab } from './GestureTab';
 import { OverviewTab } from './OverviewTab';
 import { PANEL_SHIFT_PX, tabDirection } from './motion-variants';
+import { providerOf } from './providers';
+import { transcriptionReady } from './server-readiness';
 import classes from './settings.module.css';
 import { SyncTab } from './SyncTab';
 import { type TabId } from './tabs';
 import { TabRail } from './TabRail';
+import { useServerStatus } from './use-parley';
 
 export function SettingsShell({
   settings,
@@ -31,7 +34,10 @@ export function SettingsShell({
    * without remounting, so half-typed keys in other panels survive. */
   tabRequest?: { tab: TabId; n: number } | null;
 }) {
-  const needsSetup = !permissions.microphone || !permissions.accessibility || !settings.hasApiKey;
+  const server = useServerStatus();
+  // An unanswered first check is not counted, so the dot does not flicker on open.
+  const serverMissing = server.data ? !transcriptionReady(server.data, providerOf(settings)) : false;
+  const needsSetup = !permissions.microphone || !permissions.accessibility || serverMissing;
   const [active, setActive] = useState<TabId>(initialTab);
   const [direction, setDirection] = useState<1 | -1>(1);
 

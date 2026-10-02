@@ -8,6 +8,7 @@ import {
   OFFLINE_AGENT_SUMMARY,
   type AgentSummary,
   type ParleyApi,
+  type ServerStatus,
   type SettingsView,
 } from '../../electron/types';
 
@@ -17,14 +18,20 @@ const settled: SettingsView = {
   ...DEFAULT_SETTINGS,
   tourSeen: true,
   onboardingComplete: true,
-  hasApiKey: true,
-  hasRewriteKey: false,
   wordsDictated: 1340,
   hasSyncToken: false,
   syncLastAt: 0,
   syncLastError: '',
   agent: OFFLINE_AGENT_SUMMARY,
 };
+
+const RUNNING: ServerStatus = {
+  reachable: true,
+  url: 'http://localhost:3100',
+  keys: { groq: true, deepgram: false, minimax: true },
+};
+
+const NOT_RUNNING: ServerStatus = { reachable: false, url: 'http://localhost:3100', keys: null };
 
 const ONLINE_AGENT: AgentSummary = {
   online: true,
@@ -59,15 +66,15 @@ const meta = {
         OFFLINE_AGENT_SUMMARY;
       const signInSync = (context as { parameters?: { signInSync?: ParleyApi['signInSync'] } })
         .parameters?.signInSync;
+      const server =
+        (context as { parameters?: { server?: ServerStatus } }).parameters?.server ?? RUNNING;
       window.parley = {
         ...window.parley,
-        setApiKey: async () => ({ ok: true, message: 'Key works' }),
-        setDeepgramKey: async () => ({ ok: true, message: 'Key works' }),
         setTranscriptionProvider: async transcriptionProvider => ({
           ...settled,
           transcriptionProvider,
         }),
-        setRewriteKey: async () => ({ ok: true, message: 'Key works' }),
+        serverStatus: async () => server,
         setAgentUrl: async () => ({ ok: true, message: 'Starting…', mcpServers: [] }),
         testAgent: async () => ({ ok: agent.online, message: agent.message || 'Agent works', mcpServers: agent.mcpServers }),
         restartAgent: async () => ({ ok: true, message: 'Restarting…', mcpServers: agent.mcpServers }),
@@ -103,13 +110,20 @@ const base = {
 /** Everything green, with a running time-saved figure. */
 export const Ready: Story = { args: base };
 
-/** Accessibility revoked and no transcription key: the title says so and each row carries its fix. */
+/** Accessibility revoked and the Parley server down: the title counts both, the server group says how to start it. */
 export const NeedsSetup: Story = {
   args: {
     ...base,
-    settings: { ...settled, hasApiKey: false, wordsDictated: 0 },
+    settings: { ...settled, wordsDictated: 0 },
     permissions: { microphone: true, accessibility: false },
   },
+  parameters: { server: NOT_RUNNING },
+};
+
+/** The server is up without a MiniMax key: voice edit and Act say which variable to add. */
+export const MiniMaxKeyMissing: Story = {
+  args: base,
+  parameters: { server: { ...RUNNING, keys: { groq: true, deepgram: false, minimax: false } } },
 };
 
 /** The Gesture tab as a grouped list: Keys, then Timing. */
@@ -118,11 +132,11 @@ export const Gesture: Story = { args: { ...base, initialTab: 'gesture' } };
 /** The General tab: Behaviour, Dictation and Help groups. */
 export const General: Story = { args: { ...base, initialTab: 'general' } };
 
-/** Deepgram Nova-3 selected with no Deepgram key yet: the provider choice and its key form are open. */
+/** Deepgram Nova-3 selected and the server has no Deepgram key: the row says Not set and names DEEPGRAM_API_KEY. */
 export const DeepgramNeedsKey: Story = {
   args: {
     ...base,
-    settings: { ...settled, transcriptionProvider: 'deepgram', hasApiKey: false },
+    settings: { ...settled, transcriptionProvider: 'deepgram' },
   },
 };
 

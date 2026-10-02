@@ -1,6 +1,5 @@
 import {
   Alert,
-  Anchor,
   Badge,
   Box,
   Button,
@@ -30,8 +29,11 @@ import { GestureTab } from '../GestureTab';
 import { KEY_GLYPHS, KEY_LABELS } from '../gesture-keys';
 import { Pressable, StaggerGroup, StaggerItem } from '../motion';
 import shell from '../settings.module.css';
-import { ApiKeySection, PermissionRow } from '../SetupTab';
-import { usePermissions, useSetApiKey, useSettings, useUpdateSettings } from '../use-parley';
+import { providerOf } from '../providers';
+import { transcriptionReady } from '../server-readiness';
+import { ServerCheck } from '../ServerStatus';
+import { PermissionRow } from '../SetupTab';
+import { usePermissions, useServerStatus, useSettings, useUpdateSettings } from '../use-parley';
 
 import classes from './Trainer.module.css';
 import { MISS_COPY, TRAINER_START, trainerStep, type TrainerState } from './trainer';
@@ -288,41 +290,31 @@ export function AccessStep() {
 
 export function TranscriptionStep() {
   const settings = useSettings();
-  const setApiKey = useSetApiKey();
   const { next } = useOnboarding();
-  const hasKey = settings.data?.hasApiKey ?? false;
+  const provider = providerOf(settings.data ?? {});
 
   return (
     <StaggerGroup>
       <Stack gap="md">
         <StaggerItem>
           <Box>
-            <StepHead>Connect transcription</StepHead>
+            <StepHead>Transcription runs on your Parley server</StepHead>
             <Text size="sm" c="dimmed" mt={4}>
-              Groq’s Whisper turns your voice into text. Paste a Groq API key — it is tested before
-              it is stored, and never shown again.{' '}
-              <Anchor href="https://console.groq.com/keys" target="_blank" size="sm">
-                Get a free key
-              </Anchor>
+              Parley sends your speech to parley-api on this Mac, which holds the Groq key, so
+              there is no key to paste here.
             </Text>
           </Box>
         </StaggerItem>
         <StaggerItem>
           <Box className={shell.glass} p="md">
-            <ApiKeySection
-              label="Groq API key"
-              placeholder="gsk_…"
-              purpose="Transcribes what you say."
-              submitLabel="Test and save"
-              hasApiKey={hasKey}
-              setApiKey={setApiKey}
-            />
+            <ServerCheck provider={provider} />
           </Box>
         </StaggerItem>
         <StepFoot>
           <BackButton />
           <Pressable>
-            <Button className={shell.primary} onClick={next} disabled={!hasKey}>
+            {/* Never blocked: setup can finish, and the pill names what is missing. */}
+            <Button className={shell.primary} onClick={next}>
               Continue →
             </Button>
           </Pressable>
@@ -686,6 +678,7 @@ export function FinaleStep() {
   const reduced = useReducedMotion();
   const [landed, setLanded] = useState(!!reduced);
   const data = settings.data;
+  const server = useServerStatus();
 
   useEffect(() => {
     if (landed) return;
@@ -700,7 +693,13 @@ export function FinaleStep() {
   const missing: { label: string; value: string; step: number }[] = [];
   if (!mic) missing.push({ label: 'Microphone', value: 'Missing', step: 1 });
   if (!a11y) missing.push({ label: 'Accessibility', value: 'Missing', step: 2 });
-  if (!data.hasApiKey) missing.push({ label: 'Transcription', value: 'No key', step: 3 });
+  if (server.data && !transcriptionReady(server.data, providerOf(data))) {
+    missing.push({
+      label: 'Transcription',
+      value: server.data.reachable ? 'No key' : 'Server off',
+      step: 3,
+    });
+  }
 
   return (
     <Stack gap="md">

@@ -28,11 +28,9 @@ const parley: ParleyApi = {
   sendAudio: (audio: RecordedAudio) => ipcRenderer.send('orb:audio', audio),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   updateSettings: (patch: Partial<Settings>) => ipcRenderer.invoke('settings:update', patch),
-  setApiKey: (key: string) => ipcRenderer.invoke('settings:setApiKey', key),
-  setDeepgramKey: (key: string) => ipcRenderer.invoke('settings:setDeepgramKey', key),
   setTranscriptionProvider: (provider: TranscriptionProvider) =>
     ipcRenderer.invoke('settings:setTranscriptionProvider', provider),
-  setRewriteKey: (key: string) => ipcRenderer.invoke('settings:setRewriteKey', key),
+  serverStatus: () => ipcRenderer.invoke('server:status'),
   setAgentUrl: (url: string) => ipcRenderer.invoke('agent:setUrl', url),
   testAgent: () => ipcRenderer.invoke('agent:test'),
   restartAgent: () => ipcRenderer.invoke('agent:restart'),

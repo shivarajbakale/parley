@@ -62,7 +62,7 @@ From a clean state (delete `~/Library/Application Support/parley/settings.json`,
 - [ ] Welcome opens, not the tour: the three modes with violet, amber and cyan dots; Get started goes to the microphone. There is no Back on Welcome.
 - [ ] Mic screen: grant, then the live orb follows your voice for ~3 s and the screen auto-continues. Back returns to Welcome.
 - [ ] Accessibility: the button opens the right System Settings pane; toggling Parley on auto-continues after the beat. The Missing badge and Grant button are tinted, not black, in dark mode.
-- [ ] Transcription: "Get a free key" opens console.groq.com in the browser; an invalid key shows an inline error and stores nothing; a valid key shows "Key works" and then Continue. There is no MiniMax screen after it.
+- [ ] Transcription: "Transcription runs on your Parley server", with Server and Whisper (Groq) key rows and no key field. With `make api` running and `GROQ_API_KEY` in `parley-api/.env` both read green; with the server stopped it says Not running and shows the start command; Check again re-reads; Continue works either way. There is no MiniMax screen after it.
 - [ ] Gesture trainer: each tap lights a key cap, the last cap fills while held, and the finished gesture turns all caps teal with "That’s the gesture ✓".
 - [ ] Gesture trainer misses: a slow tap says "That tap was a hold"; a long pause between taps says "Too slow between taps"; letting go of the hold early says "Hold the last press a moment longer".
 - [ ] Gesture trainer: Capture plus pressing Right Command sets the key and the caps redraw with ⌘; pressing "A" shows "Modifiers only"; More keys opens the voice edit, Explain and presses rows.
@@ -74,15 +74,19 @@ From a clean state (delete `~/Library/Application Support/parley/settings.json`,
 - [ ] Keyboard-only: every screen completes without a pointer; focus lands on each heading.
 - [ ] Existing users mid-wizard on 0.3.0: they resume at their stored step number, which may be one screen off from where they left. Nothing breaks.
 
-## MiniMax on first use
+## Parley server and keys (parley-017)
 
-With no MiniMax key stored and onboarding complete:
+Provider keys live in `parley-api/.env` (`GROQ_API_KEY`, `DEEPGRAM_API_KEY`,
+`MINIMAX_API_KEY`); the app stores none. Start the server with `make api`.
 
-- [ ] Settings window closed: the voice edit gesture opens it with the "Voice edit and Act need MiniMax" dialog already showing.
-- [ ] Settings window open and in front: the same gesture shows the dialog over the current tab.
-- [ ] The Explain gesture does not ask for MiniMax: it opens the card and asks parley-api.
-- [ ] A bad key shows MiniMax's reason in red and the dialog stays; a good key shows "Try the gesture again" and the dialog closes itself; the gesture then works.
-- [ ] Not now (the close button) dismisses it; dictation keeps working without a key.
+- [ ] Upgrading from 0.5.0 or earlier: after the first launch, `~/Library/Application Support/parley/settings.json` has `schemaVersion` 2 and no `apiKeyEncrypted`, `deepgramKeyEncrypted` or `rewriteKeyEncrypted`.
+- [ ] Settings has no field that asks for a key anywhere: Overview, wizard, any dialog.
+- [ ] Overview → Parley server: Running, the Transcription row and the Voice edit and Act row each read On the server.
+- [ ] Stop the server: within five seconds Server reads Not running, the red alert gives `make api`, the title reads Finish setup and the rail says Setup needed. Start it again: everything returns to green without reopening the window.
+- [ ] Remove `MINIMAX_API_KEY` from `.env` and restart the server: the Voice edit and Act row reads Not set and names `MINIMAX_API_KEY`; dictation still works; a voice edit shows "No MiniMax key on the Parley server" on the pill.
+- [ ] With the server stopped, dictate: the gesture is not refused, the pill listens, then shows "Parley server not running"; nothing is pasted and the clipboard is unchanged. Voice edit shows the same.
+- [ ] Act with the server running and the agent online: a voice command runs with no MiniMax key in the app; with the server stopped the run fails with a readable error.
+- [ ] From another device on the same network, `curl http://<this Mac's IP>:3100/api/providers/status` is refused: the server listens on 127.0.0.1 only.
 
 ## Settings Overview
 
@@ -92,22 +96,15 @@ After onboarding:
 - [ ] Time saved starts as "Your first dictation starts the count." Dictate two sentences, reopen or refocus the window, and the words count and the minutes rise. Voice edit and Explain do not add to it.
 - [ ] Quit and relaunch: the count survives.
 - [ ] Revoke Accessibility in System Settings: within two seconds the title turns to "Finish setup", the row shows Grant Accessibility, and the rail says Setup needed. The button fixes it.
-- [ ] Replace on the transcription key opens its form inline; a good key shows "Key works". Add on the MiniMax row does the same for MiniMax.
+- [ ] The Parley server group shows the server address, its state, and which keys it holds, with Check again.
 - [ ] Gesture and General are grouped lists (Keys, Timing; Behaviour, Dictation, Help) with hairlines between rows; every control still saves at once, and vocabulary saves on blur.
 - [ ] The rail labels sit left beside their icons, and the rail orb sits in line with "Parley".
-
-## Groq API key
-
-- [ ] Entering a real Groq API key in Settings and saving it succeeds and the
-      key test passes.
-- [ ] Entering an invalid key shows an inline error message and the key is
-      not stored.
 
 ## Errors
 
 - [ ] Wi-Fi off: the orb turns red with "No connection" for 3 s; nothing is
       pasted; the clipboard is unchanged.
-- [ ] Invalid stored key: the orb shows "Invalid API key".
+- [ ] An invalid `GROQ_API_KEY` in `parley-api/.env`: the orb shows "Invalid Groq key".
 
 ## Menu bar
 
@@ -169,10 +166,9 @@ After onboarding:
 
 ### Deepgram Nova-3 provider (parley-012)
 
-- [ ] Overview → Transcription key → Replace: the choice reads Whisper (Groq) / Deepgram Nova-3, with Groq selected on an existing install.
-- [ ] Choose Deepgram Nova-3 with no Deepgram key: the title flips to Finish setup, the tray shows not ready, and a gesture is refused with “Add a Deepgram API key before trying the gesture.”
-- [ ] Paste an invalid Deepgram key and Test and save: “Invalid API key”, nothing stored.
-- [ ] Paste a real Deepgram key: “Key works”, the row says Stored, the title returns to Parley is ready.
+- [ ] Overview → Parley server → Transcription: the choice reads Whisper (Groq) / Deepgram Nova-3, with Groq selected on an existing install.
+- [ ] Choose Deepgram Nova-3 with no `DEEPGRAM_API_KEY` on the server: the row reads Not set and names `DEEPGRAM_API_KEY`, the title flips to Finish setup, and a dictation shows "No Deepgram key on the Parley server".
+- [ ] Add a real `DEEPGRAM_API_KEY` to `parley-api/.env` and restart the server: the row reads On the server and the title returns to Parley is ready.
 - [ ] Dictate a sentence that uses a dictionary word (e.g. MiniMax): it pastes spelled as in the dictionary.
 - [ ] Voice edit and Explain still work with Deepgram selected.
 - [ ] Switch back to Whisper (Groq): dictation uses Groq again with no key re-entry.
@@ -180,7 +176,7 @@ After onboarding:
 
 ## Voice edit
 
-Needs a MiniMax key saved on the Overview tab. The voice edit key defaults to Right
+Needs `MINIMAX_API_KEY` in `parley-api/.env` and the server running. The voice edit key defaults to Right
 Command, with the same number of presses as dictation.
 
 - [ ] Type a sentence into Notes, leave the cursor in it with nothing
@@ -198,8 +194,8 @@ Command, with the same number of presses as dictation.
       focused".
 - [ ] In an empty field the orb shows "Nothing to edit".
 - [ ] The clipboard holds what it held before each of the checks above.
-- [ ] With no MiniMax key, the voice edit gesture opens Settings on the
-      MiniMax dialog and dictation still works.
+- [ ] With no `MINIMAX_API_KEY` on the server, voice edit shows "No MiniMax
+      key on the Parley server" on the pill and dictation still works.
 - [ ] Setting the voice edit key to the dictation key turns voice edit off
       and the row says so.
 - [ ] Voice edit works in the packaged build: `parley-ax` is inside
@@ -234,8 +230,7 @@ inside the app.
 
 Needs parley-api running at the Parley server address (Settings, Sync;
 default http://localhost:3100) with `MINIMAX_API_KEY` and `EXA_API_KEY` in
-`parley-api/.env`: `npm --prefix parley-api start`. No MiniMax key is needed
-on the desktop. Default explain key is Right Control.
+`parley-api/.env`: `make api`. Default explain key is Right Control.
 
 - [ ] Select a word in Notes, tap-tap-hold the explain key: the usual orb
       appears above the Dock (indigo) and listens. Say "why is this named that?"

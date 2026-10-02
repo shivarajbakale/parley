@@ -21,8 +21,6 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       ...DEFAULT_SETTINGS,
       tourSeen: true,
       onboardingComplete: true,
-      hasApiKey: true,
-      hasRewriteKey: true,
       wordsDictated: 0,
       hasSyncToken: false,
       syncLastAt: 0,
@@ -34,26 +32,24 @@ function mockApi(overrides: Partial<ParleyApi> = {}): ParleyApi {
       tourSeen: true,
       onboardingComplete: true,
       ...patch,
-      hasApiKey: true,
-      hasRewriteKey: true,
       agent: OFFLINE_AGENT_SUMMARY,
     })),
-    setApiKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
-    setDeepgramKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
     setTranscriptionProvider: vi.fn().mockImplementation(async transcriptionProvider => ({
       ...DEFAULT_SETTINGS,
       tourSeen: true,
       onboardingComplete: true,
       transcriptionProvider,
-      hasApiKey: false,
-      hasRewriteKey: true,
       wordsDictated: 0,
       hasSyncToken: false,
       syncLastAt: 0,
       syncLastError: '',
       agent: OFFLINE_AGENT_SUMMARY,
     })),
-    setRewriteKey: vi.fn().mockResolvedValue({ ok: true, message: 'Key works' }),
+    serverStatus: vi.fn().mockResolvedValue({
+      reachable: true,
+      url: 'http://localhost:3100',
+      keys: { groq: true, deepgram: false, minimax: true },
+    }),
     setAgentUrl: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
     testAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
     restartAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
@@ -104,8 +100,6 @@ describe('SettingsApp', () => {
           ...DEFAULT_SETTINGS,
           tourSeen: true,
           onboardingComplete: true,
-          hasApiKey: true,
-          hasRewriteKey: true,
           wordsDictated: 600,
           agent: OFFLINE_AGENT_SUMMARY,
         }),
@@ -131,25 +125,18 @@ describe('SettingsApp', () => {
     expect(api.requestPermission).toHaveBeenCalledWith('accessibility');
   });
 
-  it('shows the setup banner when no API key is stored', async () => {
+  it('shows the setup banner when the server has no key for the selected provider', async () => {
     mount(
       mockApi({
-        getSettings: vi.fn().mockResolvedValue({
-          ...DEFAULT_SETTINGS,
-          tourSeen: true,
-          onboardingComplete: true,
-          hasApiKey: false,
-          hasRewriteKey: false,
-          agent: OFFLINE_AGENT_SUMMARY,
+        serverStatus: vi.fn().mockResolvedValue({
+          reachable: true,
+          url: 'http://localhost:3100',
+          keys: { groq: false, deepgram: false, minimax: true },
         }),
       })
     );
     expect(await screen.findByText('Finish setup')).toBeInTheDocument();
-    // The missing key's form is the fix, so it is already open.
-    expect(screen.getByRole('button', { name: 'Add transcription key' })).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
+    expect(screen.getByText('GROQ_API_KEY')).toBeInTheDocument();
   });
 
   it('saves a toggle at once', async () => {
@@ -162,56 +149,45 @@ describe('SettingsApp', () => {
     expect(api.updateSettings).toHaveBeenCalledWith({ tickSound: false });
   });
 
-  it('tests and saves the API key, and shows the result', async () => {
-    const api = mockApi();
-    mount(api);
-    await userEvent.click(await screen.findByRole('button', { name: 'Replace transcription key' }));
-    await userEvent.type(await screen.findByLabelText('Groq API key'), 'gsk_abc');
-    await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
-    await waitFor(() => expect(api.setApiKey).toHaveBeenCalledWith('gsk_abc'));
-    expect(await screen.findByText('Key works')).toBeInTheDocument();
+  it('shows the Parley server running and the keys it holds, never a key field', async () => {
+    mount(mockApi());
+    expect(await screen.findByText('Running')).toBeInTheDocument();
+    expect(await screen.findAllByText('On the server')).toHaveLength(2);
+    expect(screen.queryByLabelText(/API key/)).not.toBeInTheDocument();
+    expect(await screen.findByText('Parley is ready')).toBeInTheDocument();
   });
 
-  it('adds the optional MiniMax key from its own row', async () => {
-    let hasRewriteKey = false;
-    const api = mockApi({
-      getSettings: vi.fn(async () => ({
-        ...DEFAULT_SETTINGS,
-        tourSeen: true,
-        onboardingComplete: true,
-        hasApiKey: true,
-        hasRewriteKey,
-        wordsDictated: 0,
-        hasSyncToken: false,
-        syncLastAt: 0,
-        syncLastError: '',
-        agent: OFFLINE_AGENT_SUMMARY,
-      })),
-      setRewriteKey: vi.fn(async () => {
-        hasRewriteKey = true;
-        return { ok: true, message: 'Key works' };
-      }),
-    });
-    mount(api);
-    expect(await screen.findByText('Optional')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Add MiniMax key' }));
-    await userEvent.type(await screen.findByLabelText('MiniMax API key'), 'mm_abc');
-    await userEvent.click(screen.getByRole('button', { name: 'Test and save MiniMax key' }));
-    await waitFor(() => expect(api.setRewriteKey).toHaveBeenCalledWith('mm_abc'));
-    // The stored key closes the form and the row flips to Stored.
-    expect(await screen.findByRole('button', { name: 'Replace MiniMax key' })).toHaveAttribute(
-      'aria-expanded',
-      'false'
+  it('says how to start the server when it does not answer, and counts it as setup', async () => {
+    mount(
+      mockApi({
+        serverStatus: vi.fn().mockResolvedValue({ reachable: false, url: 'http://localhost:3100', keys: null }),
+      })
     );
+    expect(await screen.findByText('Not running')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Start it with make api in the parley folder.');
+    expect(await screen.findByText('Finish setup')).toBeInTheDocument();
   });
 
-  it('rejects an empty key without calling main', async () => {
+  it('names the .env variable for a key the server lacks', async () => {
+    mount(
+      mockApi({
+        serverStatus: vi.fn().mockResolvedValue({
+          reachable: true,
+          url: 'http://localhost:3100',
+          keys: { groq: true, deepgram: false, minimax: false },
+        }),
+      })
+    );
+    expect(await screen.findByText('MINIMAX_API_KEY')).toBeInTheDocument();
+    expect(screen.getByText('Not set')).toBeInTheDocument();
+  });
+
+  it('checks the server again on request', async () => {
     const api = mockApi();
     mount(api);
-    await userEvent.click(await screen.findByRole('button', { name: 'Replace transcription key' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Test and save' }));
-    expect(await screen.findByText('Enter your Groq API key')).toBeInTheDocument();
-    expect(api.setApiKey).not.toHaveBeenCalled();
+    await screen.findByText('Running');
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(api.serverStatus).toHaveBeenCalledTimes(2));
   });
 
   it('shows an alert when saving a setting rejects', async () => {
@@ -236,23 +212,11 @@ describe('SettingsApp', () => {
     expect(await screen.findByText('Could not open System Settings')).toBeInTheDocument();
   });
 
-  it('shows an alert when testing the API key rejects, without rendering the key', async () => {
-    const api = mockApi({ setApiKey: vi.fn().mockRejectedValue(new Error('network down')) });
-    mount(api);
-    await userEvent.click(await screen.findByRole('button', { name: 'Replace transcription key' }));
-    await userEvent.type(await screen.findByLabelText('Groq API key'), 'gsk_secret');
-    await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
-    const alert = await screen.findByText('Could not test the key');
-    expect(alert).toBeInTheDocument();
-    expect(screen.queryByText(/gsk_secret/)).not.toBeInTheDocument();
-  });
   describe('transcription provider', () => {
     const view = (over: Record<string, unknown> = {}) => ({
       ...DEFAULT_SETTINGS,
       tourSeen: true,
       onboardingComplete: true,
-      hasApiKey: true,
-      hasRewriteKey: true,
       wordsDictated: 0,
       hasSyncToken: false,
       syncLastAt: 0,
@@ -261,9 +225,9 @@ describe('SettingsApp', () => {
       ...over,
     });
 
-    it('switches to Deepgram and tests and saves a Deepgram key, not a Groq one', async () => {
-      // Stateful, as main is: the refetch after a saved key sees the switch.
-      let current = view({ hasApiKey: false });
+    it('switches to Deepgram and says the server has no Deepgram key', async () => {
+      // Stateful, as main is: the refetch sees the switch.
+      let current = view();
       const api = mockApi({
         getSettings: vi.fn(async () => current),
         setTranscriptionProvider: vi.fn(async transcriptionProvider => {
@@ -280,34 +244,13 @@ describe('SettingsApp', () => {
       expect(
         await screen.findByText('Deepgram Nova-3 turns speech into text.')
       ).toBeInTheDocument();
-      expect(screen.queryByLabelText('Groq API key')).not.toBeInTheDocument();
-
-      await userEvent.type(await screen.findByLabelText('Deepgram API key'), 'dg_abc');
-      await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
-      await waitFor(() => expect(api.setDeepgramKey).toHaveBeenCalledWith('dg_abc'));
-      expect(api.setApiKey).not.toHaveBeenCalled();
-      expect(await screen.findByText('Key works')).toBeInTheDocument();
-    });
-
-    it('keeps the form open when switching to a provider that already has a key', async () => {
-      const api = mockApi({
-        getSettings: vi.fn().mockResolvedValue(view({ hasApiKey: false })),
-        setTranscriptionProvider: vi.fn(async transcriptionProvider =>
-          view({ transcriptionProvider, hasApiKey: true })
-        ),
-      });
-      mount(api);
-      await userEvent.click(await screen.findByRole('radio', { name: 'Deepgram Nova-3' }));
-      expect(await screen.findByText('Parley is ready')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Replace transcription key' })).toHaveAttribute(
-        'aria-expanded',
-        'true'
-      );
+      expect(await screen.findByText('DEEPGRAM_API_KEY')).toBeInTheDocument();
+      expect(await screen.findByText('Finish setup')).toBeInTheDocument();
     });
 
     it('shows an alert when switching the provider rejects', async () => {
       const api = mockApi({
-        getSettings: vi.fn().mockResolvedValue(view({ hasApiKey: false })),
+        getSettings: vi.fn().mockResolvedValue(view()),
         setTranscriptionProvider: vi.fn().mockRejectedValue(new Error('disk full')),
       });
       mount(api);
@@ -327,22 +270,6 @@ describe('SettingsApp', () => {
       expect(
         await screen.findByText('Names and jargon Deepgram should recognise, separated by commas.')
       ).toBeInTheDocument();
-    });
-
-    it('names the selected provider’s key when a refused gesture opened the window', async () => {
-      const error = vi.spyOn(toast, 'error').mockImplementation(() => {});
-      mount(
-        mockApi({
-          getSettings: vi
-            .fn()
-            .mockResolvedValue(view({ transcriptionProvider: 'deepgram', hasApiKey: false })),
-          takeBlockedReason: vi.fn(async () => 'apiKey' as const),
-        })
-      );
-      await waitFor(() =>
-        expect(error).toHaveBeenCalledWith('Add a Deepgram API key before trying the gesture.')
-      );
-      error.mockRestore();
     });
   });
 
@@ -370,8 +297,6 @@ describe('SettingsApp', () => {
             ...DEFAULT_SETTINGS,
             tourSeen: true,
             onboardingComplete: true,
-            hasApiKey: true,
-            hasRewriteKey: true,
             wordsDictated: 0,
             hasSyncToken: false,
             syncLastAt: 0,

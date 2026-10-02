@@ -110,8 +110,6 @@ export type SessionMode = 'dictate' | 'edit' | 'explain' | 'act';
 export type SessionBlockedReason =
   | 'microphone'
   | 'accessibility'
-  | 'apiKey'
-  | 'rewriteKey'
   | 'agent';
 
 /** `notice` is the pill speaking outside a session: an offer to remember a word. */
@@ -189,12 +187,23 @@ export const OFFLINE_AGENT_SUMMARY: AgentSummary = {
   mcpServers: [],
 };
 
-/** What the settings window may see. The API key itself never leaves main. */
+/** Which provider keys parley-api holds; never the keys. */
+export interface ServerKeys {
+  groq: boolean;
+  deepgram: boolean;
+  minimax: boolean;
+}
+
+/** What `server:status` reports: whether the Parley server answers at `url`,
+ * and if so which keys it has. `keys` is null when it did not answer. */
+export interface ServerStatus {
+  reachable: boolean;
+  url: string;
+  keys: ServerKeys | null;
+}
+
+/** What the settings window may see. Tokens never leave main. */
 export interface SettingsView extends Settings {
-  /** The selected transcription provider has a key stored. */
-  hasApiKey: boolean;
-  /** The MiniMax key that voice edit rewrites with. */
-  hasRewriteKey: boolean;
   /** Words pasted by dictation, all time. Counted in main; the renderer can
    * read it here but no patch can set it. */
   wordsDictated: number;
@@ -272,12 +281,9 @@ export interface ParleyApi {
   sendAudio(audio: RecordedAudio): void;
   getSettings(): Promise<SettingsView>;
   updateSettings(patch: Partial<Settings>): Promise<SettingsView>;
-  /** The Groq key: tested, then stored if it works. */
-  setApiKey(key: string): Promise<KeyTestResult>;
-  /** The Deepgram key: tested, then stored if it works. */
-  setDeepgramKey(key: string): Promise<KeyTestResult>;
   setTranscriptionProvider(provider: TranscriptionProvider): Promise<SettingsView>;
-  setRewriteKey(key: string): Promise<KeyTestResult>;
+  /** Is the Parley server up, and which provider keys does it hold. */
+  serverStatus(): Promise<ServerStatus>;
   /** The agent URL: tested, then stored if the agent answers. */
   setAgentUrl(url: string): Promise<AgentTestResult>;
   testAgent(): Promise<AgentTestResult>;

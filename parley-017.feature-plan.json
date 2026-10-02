@@ -1,0 +1,266 @@
+{
+  "feature": {
+    "id": "parley-017",
+    "title": "Provider keys live in parley-api, not the app",
+    "problem": "The Groq, Deepgram and MiniMax keys are pasted into the desktop app and stored there, one copy per device, even though parley-api now runs on this Mac and already holds the MiniMax and Exa keys for Explain. This feature moves every provider key to parley-api's .env. Dictation, voice edit and the Act agent call the providers through parley-api, which adds the key; the app stores none. The app keeps its request code: parley-api is a narrow pass-through for the exact provider calls the app already makes, bound to 127.0.0.1 so nothing off this Mac can spend the keys. Settings stops asking for keys and instead shows whether the Parley server is reachable and which keys it has. When the server is down, the pill says so, as Explain already does. Frame note: the settings window is not PageShell, so the archetypes below are illustrative and not probe-enforced, as in parley-007 to parley-016.",
+    "nonGoals": [
+      "Parley starting parley-api by itself: you run it (make api / npm --prefix parley-api start) as today. Auto-start, like the Act agent's supervisor, is a follow-up.",
+      "Android: it keeps its own keys and native transcriber; it cannot reach this Mac's localhost.",
+      "Queueing audio while the server is down: the take fails with a clear error.",
+      "Copying the keys the app stores today into .env automatically: they are encrypted with this app's keychain entry; you add them to parley-api/.env once, and the app then deletes its copies."
+    ]
+  },
+  "app": "Parley",
+  "nav": [
+    "Overview",
+    "Gesture",
+    "General",
+    "Agent",
+    "Sync"
+  ],
+  "surfaces": [
+    {
+      "id": "overview-server",
+      "name": "Overview tab · Parley server",
+      "route": "settings.html · settings · Overview",
+      "archetype": "list-detail",
+      "purpose": "Show whether dictation, voice edit and Act can run: is the Parley server up, and does it have the key each one needs.",
+      "primaryAction": "Check again",
+      "panels": [
+        {
+          "id": "rail",
+          "kind": "rail",
+          "ratio": 0.3,
+          "title": "Parley",
+          "rows": [
+            [
+              "▣ Overview"
+            ],
+            [
+              "□ Gesture"
+            ],
+            [
+              "□ General"
+            ],
+            [
+              "□ Agent"
+            ],
+            [
+              "□ Sync"
+            ]
+          ]
+        },
+        {
+          "id": "pane",
+          "kind": "Detail",
+          "title": "Overview",
+          "subtitle": "Keys live in parley-api on this Mac.",
+          "rows": [
+            [
+              "Microphone ....... Granted"
+            ],
+            [
+              "Accessibility .... Granted"
+            ],
+            [
+              "PARLEY SERVER"
+            ],
+            [
+              "Server ........... http://localhost:3100  ● Running   Check again"
+            ],
+            [
+              "Transcription .... [Groq | Deepgram]   Groq key ✓"
+            ],
+            [
+              "Voice edit + Act . MiniMax key ✓"
+            ],
+            [
+              "  Missing a key? Add it to parley-api/.env and restart the server."
+            ],
+            [
+              "Agent ............ Online"
+            ]
+          ],
+          "actions": [
+            "Check again"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "Checking: the Server row shows a small Loader in place of the badge; the key rows keep their last answer.",
+        "empty": "Server up but a key missing: that row shows a 'Not set' badge and the line 'Add GROQ_API_KEY to parley-api/.env and restart the server.' Dictation with that provider fails on the pill with the same sentence.",
+        "error": "Server unreachable: the Server row shows a red 'Not running' badge and an Alert: 'Start it with make api in the parley folder. Dictation, voice edit and Explain need it.' Key rows show 'Unknown'.",
+        "success": "Running: a green badge on Server, a check on each key the server has, and the provider SegmentedControl still switches Groq and Deepgram."
+      }
+    },
+    {
+      "id": "wizard-server",
+      "name": "Setup wizard · Transcription step",
+      "route": "settings.html · wizard · step 3",
+      "archetype": "centered-card",
+      "purpose": "Replace 'paste your Groq key' with 'make sure the Parley server is running', so first-run setup no longer asks for a key.",
+      "primaryAction": "Continue",
+      "panels": [
+        {
+          "id": "card",
+          "kind": "Card",
+          "title": "Transcription runs on your Parley server",
+          "subtitle": "Parley sends your speech to parley-api on this Mac, which holds the Groq key.",
+          "rows": [
+            [
+              "Server ...... http://localhost:3100  ● Running"
+            ],
+            [
+              "Groq key .... ✓ on the server"
+            ],
+            [
+              "[Check again]            [Continue]"
+            ]
+          ],
+          "actions": [
+            "Check again",
+            "Continue"
+          ]
+        }
+      ],
+      "states": {
+        "loading": "The status rows show a Loader while the first check runs.",
+        "empty": "Server up, no Groq key: 'Add GROQ_API_KEY to parley-api/.env and restart the server', Continue still enabled (setup can finish; dictation will say what is missing).",
+        "error": "Server not running: the start command in a Code block and Check again; Continue still enabled.",
+        "success": "Both checks green, Continue is the primary button."
+      }
+    }
+  ],
+  "overlays": [],
+  "components": [
+    {
+      "surface": "overview-server",
+      "control": "SettingRow + Badge for server and key status, Button 'Check again'",
+      "why": "Read-only status in the same label-left, state-right rows the Overview and Agent tabs already use; one action re-runs the check.",
+      "rejected": "Keeping PasswordInputs that write to the server (the server's .env is the single place keys live; a write path would need auth for no gain on one Mac), a Card per provider (heavier than the rest of the tab)"
+    },
+    {
+      "surface": "overview-server",
+      "control": "Alert (red) when the server is unreachable, plain dimmed Text for a missing key",
+      "why": "Unreachable blocks everything, so it earns the one banner; a missing key blocks one mode, so a line under its row is enough.",
+      "rejected": "A toast (it would vanish while the problem stays), a Modal like MiniMaxOffer (that modal is removed: there is no key to collect)"
+    },
+    {
+      "surface": "wizard-server",
+      "control": "The wizard's existing step Card with status rows and a Code block for the start command",
+      "why": "Same frame as the other steps; the step now verifies instead of collecting.",
+      "rejected": "Dropping the step (first run would never learn the server must be running), blocking Continue on a red check (setup should finish; the pill explains later)"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Settings",
+      "fields": [
+        {
+          "name": "apiKeyEncrypted / deepgramKeyEncrypted / rewriteKeyEncrypted",
+          "type": "removed",
+          "note": "schema v2 migration deletes them; the getters, setters and hasApiKey/hasRewriteKey go"
+        },
+        {
+          "name": "syncUrl",
+          "type": "string",
+          "note": "kept as the Parley server address for Explain, transcription and rewrite (default http://localhost:3100)"
+        }
+      ],
+      "relations": [
+        "SettingsView drops hasApiKey and hasRewriteKey; the renderer asks main for server status instead"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "parley-api /api/providers/groq/openai/v1/audio/transcriptions",
+      "purpose": "pass-through to Groq with GROQ_API_KEY; the app's existing multipart request, unchanged but for base URL and no Authorization"
+    },
+    {
+      "method": "POST",
+      "path": "parley-api /api/providers/deepgram/v1/listen",
+      "purpose": "pass-through to Deepgram with DEEPGRAM_API_KEY; raw audio body and keyterm query kept"
+    },
+    {
+      "method": "POST",
+      "path": "parley-api /api/providers/minimax/v1/chat/completions",
+      "purpose": "pass-through to MiniMax with MINIMAX_API_KEY; streaming passes through, so the Act agent can use it as its model base URL"
+    },
+    {
+      "method": "GET",
+      "path": "parley-api /api/providers/status",
+      "purpose": "{ groq, deepgram, minimax } booleans: which keys the server has, never the keys"
+    },
+    {
+      "method": "IPC invoke",
+      "path": "server:status",
+      "purpose": "settings window only; main fetches /api/providers/status and returns { reachable, url, keys }"
+    }
+  ],
+  "integration": [
+    {
+      "from": "electron/transcribers/groq.ts + deepgram.ts",
+      "to": "parley-api /api/providers/*",
+      "note": "base URL from settings.syncUrl, no key; a 503 'no key' and an unreachable server become TranscribeError messages the pill shows"
+    },
+    {
+      "from": "electron/rewriter.ts",
+      "to": "parley-api /api/providers/minimax",
+      "note": "same request, same errors, no key"
+    },
+    {
+      "from": "electron/agent/env.ts",
+      "to": "parley-agent",
+      "note": "the managed agent gets the MiniMax base URL pointed at parley-api instead of MINIMAX_API_KEY"
+    },
+    {
+      "from": "electron/session.ts",
+      "to": "pill",
+      "note": "the apiKey and rewriteKey gates go; failures surface after the take, as Explain's do"
+    },
+    {
+      "from": "parley-api src/index.ts",
+      "to": "127.0.0.1",
+      "note": "listens on 127.0.0.1 only (HOST overrides), since the pass-through spends real keys"
+    }
+  ],
+  "blastRadius": {
+    "new": [
+      "parley-api/src/providers/route.ts",
+      "parley-api/test/providers-route.test.ts",
+      "src/settings/ServerStatus.tsx"
+    ],
+    "changed": [
+      "parley-api/src/index.ts",
+      "parley-api/.env.example",
+      "electron/transcriber.ts",
+      "electron/transcribers/groq.ts",
+      "electron/transcribers/deepgram.ts",
+      "electron/transcribers/shared.ts",
+      "electron/rewriter.ts",
+      "electron/settings-store.ts",
+      "electron/session.ts",
+      "electron/agent/env.ts",
+      "electron/main.ts",
+      "electron/preload.ts",
+      "electron/types.ts",
+      "src/settings/OverviewTab.tsx",
+      "src/settings/SetupTab.tsx",
+      "src/settings/wizard/steps.tsx",
+      "src/settings/SettingsApp.tsx",
+      "src/settings/SettingsShell.tsx",
+      "src/settings/use-parley.ts",
+      "src/settings/providers.ts",
+      "src/settings/MiniMaxOffer.tsx (removed)",
+      "tests and stories that reference the key fields"
+    ]
+  },
+  "verification": [
+    "make check",
+    "npm --prefix parley-api run check (pass-through: key added, Authorization from the app ignored, only the three paths allowed, 503 when a key is missing)",
+    "Storybook: Overview server Running, KeyMissing, NotRunning; wizard step in dark and light",
+    "Real run with the installed build: parley-api running with GROQ_API_KEY and MINIMAX_API_KEY; dictate, voice edit, Act; stop the server and dictate again to see the pill error"
+  ]
+}

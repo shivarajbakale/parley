@@ -29,10 +29,7 @@ function setup(overrides: Partial<SessionDeps> = {}) {
       apply: vi.fn((text: string) => text),
     },
     getSettings: () => DEFAULT_SETTINGS,
-    hasApiKey: () => true,
-    hasRewriteKey: () => true,
     isAgentReady: () => true,
-    isAgentManaged: () => false,
     runAgent: vi.fn().mockResolvedValue(undefined),
     cancelAgent: vi.fn(),
     getPermissions: () => ({ microphone: true, accessibility: true }),
@@ -81,11 +78,11 @@ describe('session', () => {
     expect(session.state()).toBe('idle');
   });
 
-  it('opens settings instead of recording when there is no API key', () => {
-    const { deps, session } = setup({ hasApiKey: () => false });
+  it('records without checking for a key: parley-api holds it, and a missing one fails on the pill', () => {
+    const { deps, session } = setup();
     session.start();
-    expect(deps.openSettings).toHaveBeenCalled();
-    expect(session.state()).toBe('idle');
+    expect(deps.openSettings).not.toHaveBeenCalled();
+    expect(session.state()).toBe('listening');
   });
 
   it('discards audio shorter than 300 ms without calling Groq', async () => {
@@ -366,27 +363,6 @@ describe('session', () => {
       expect(deps.rewriter.rewrite).not.toHaveBeenCalled();
     });
 
-    it('opens settings when the MiniMax key is missing', () => {
-      const { deps, session } = setup({ hasRewriteKey: () => false });
-      session.start('edit');
-      expect(deps.openSettings).toHaveBeenCalled();
-      expect(session.state()).toBe('idle');
-    });
-
-    it('explain works without a MiniMax key: parley-api does the thinking', () => {
-      const { deps, session } = setup({ hasRewriteKey: () => false });
-      session.start('explain');
-      expect(deps.openSettings).not.toHaveBeenCalled();
-      expect(session.state()).toBe('listening');
-    });
-
-    it('dictation still works without a MiniMax key', () => {
-      const { deps, session } = setup({ hasRewriteKey: () => false });
-      session.start();
-      expect(deps.openSettings).not.toHaveBeenCalled();
-      expect(session.state()).toBe('listening');
-    });
-
     it('shows the reason and changes nothing when there is no field to edit', async () => {
       const { deps, session } = setup({
         editTargets: {
@@ -442,49 +418,22 @@ describe('session', () => {
       expect(session.state()).toBe('idle');
     });
 
-    it('needs no accessibility permission, and no rewrite key when attached', () => {
+    it('needs no accessibility permission', () => {
       const { session } = setup({
         getPermissions: () => ({ microphone: true, accessibility: false }),
-        hasRewriteKey: () => false,
-        isAgentManaged: () => false,
       });
       session.start('act');
       expect(session.state()).toBe('listening');
     });
 
-    it('is blocked with the rewrite-key reason when managed with no MiniMax key', () => {
-      const onBlocked = vi.fn();
-      const { deps, session } = setup({
-        hasRewriteKey: () => false,
-        isAgentManaged: () => true,
-        onBlocked,
-      });
-      session.start('act');
-      expect(onBlocked).toHaveBeenCalledWith('rewriteKey');
-      expect(deps.openSettings).toHaveBeenCalled();
-      expect(deps.orb.show).not.toHaveBeenCalled();
-      expect(session.state()).toBe('idle');
-    });
-
-    it('runs managed with a MiniMax key', () => {
-      const { session } = setup({ hasRewriteKey: () => true, isAgentManaged: () => true });
-      session.start('act');
-      expect(session.state()).toBe('listening');
-    });
-
-    it('still needs the microphone and a transcription key', () => {
+    it('still needs the microphone', () => {
       const blocked: string[] = [];
       const micless = setup({
         getPermissions: () => ({ microphone: false, accessibility: true }),
         onBlocked: reason => void blocked.push(reason),
       });
       micless.session.start('act');
-      const keyless = setup({
-        hasApiKey: () => false,
-        onBlocked: reason => void blocked.push(reason),
-      });
-      keyless.session.start('act');
-      expect(blocked).toEqual(['microphone', 'apiKey']);
+      expect(blocked).toEqual(['microphone']);
     });
 
     it('hands the transcribed words to the agent and pastes nothing', async () => {

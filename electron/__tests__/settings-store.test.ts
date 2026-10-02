@@ -22,8 +22,6 @@ describe('settings store', () => {
   it('returns the defaults on first launch', () => {
     const store = createSettingsStore({ dir, crypto });
     expect(store.get()).toEqual(DEFAULT_SETTINGS);
-    expect(store.hasApiKey()).toBe(false);
-    expect(store.getApiKey()).toBeNull();
   });
 
   it('persists an update across instances', () => {
@@ -38,17 +36,9 @@ describe('settings store', () => {
     expect(store.get()).toEqual({ ...DEFAULT_SETTINGS, tickSound: false });
   });
 
-  it('round-trips the API key through encryption and never writes it in plain text', () => {
-    createSettingsStore({ dir, crypto }).setApiKey('gsk_secret');
-    const raw = readFileSync(path.join(dir, 'settings.json'), 'utf8');
-    expect(raw).not.toContain('gsk_secret');
-
-    const reopened = createSettingsStore({ dir, crypto });
-    expect(reopened.getApiKey()).toBe('gsk_secret');
-    expect(reopened.view()).toEqual({
+  it('shows the settings window no provider key: they live in parley-api', () => {
+    expect(createSettingsStore({ dir, crypto }).view()).toEqual({
       ...DEFAULT_SETTINGS,
-      hasApiKey: true,
-      hasRewriteKey: false,
       wordsDictated: 0,
       hasSyncToken: false,
       syncLastAt: 0,
@@ -64,19 +54,6 @@ describe('settings store', () => {
     });
   });
 
-  it('keeps the MiniMax key apart from the Groq key, encrypted the same way', () => {
-    const store = createSettingsStore({ dir, crypto });
-    store.setApiKey('gsk_secret');
-    store.setRewriteKey('mm_secret');
-    const raw = readFileSync(path.join(dir, 'settings.json'), 'utf8');
-    expect(raw).not.toContain('mm_secret');
-
-    const reopened = createSettingsStore({ dir, crypto });
-    expect(reopened.getApiKey()).toBe('gsk_secret');
-    expect(reopened.getRewriteKey()).toBe('mm_secret');
-    expect(reopened.view().hasRewriteKey).toBe(true);
-  });
-
   it('stores a valid voice edit key and drops an invalid one', () => {
     const store = createSettingsStore({ dir, crypto });
     store.update({ editGestureKey: 'CtrlRight' });
@@ -89,7 +66,7 @@ describe('settings store', () => {
       dir,
       crypto: { ...crypto, isEncryptionAvailable: () => false },
     });
-    expect(() => store.setApiKey('gsk_secret')).toThrow('Encryption is not available');
+    expect(() => store.setSyncToken('tok_secret')).toThrow('Encryption is not available');
   });
 
   it('falls back to the defaults when the file is corrupted', () => {
@@ -97,7 +74,7 @@ describe('settings store', () => {
     expect(createSettingsStore({ dir, crypto }).get()).toEqual(DEFAULT_SETTINGS);
   });
 
-  it('migrates a v0 file forward, keeping settings and keys', () => {
+  it('migrates a v0 file forward, keeping settings and dropping the provider keys', () => {
     writeFileSync(
       path.join(dir, 'settings.json'),
       JSON.stringify({
@@ -108,13 +85,35 @@ describe('settings store', () => {
     const store = createSettingsStore({ dir, crypto });
     expect(store.get()).toEqual({ ...DEFAULT_SETTINGS, tapCount: 2 });
     expect(store.get().tourSeen).toBe(false);
-    expect(store.getApiKey()).toBe('gsk_old');
+    const saved = JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8')) as Record<string, unknown>;
+    expect(saved.schemaVersion).toBe(2);
+    expect(saved).not.toHaveProperty('apiKeyEncrypted');
+  });
 
-    store.update({ vocabulary: 'MiniMax' });
-    const saved = JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8')) as {
-      schemaVersion?: number;
-    };
-    expect(saved.schemaVersion).toBe(1);
+  it('migrates a v1 file to v2, deleting every stored provider key from disk at once', () => {
+    const enc = (plain: string) => Buffer.from(`enc(${plain})`).toString('base64');
+    writeFileSync(
+      path.join(dir, 'settings.json'),
+      JSON.stringify({
+        schemaVersion: 1,
+        settings: { tapCount: 4, transcriptionProvider: 'deepgram' },
+        apiKeyEncrypted: enc('gsk_old'),
+        deepgramKeyEncrypted: enc('dg_old'),
+        rewriteKeyEncrypted: enc('mm_old'),
+        syncTokenEncrypted: enc('tok'),
+        wordsDictated: 12,
+      })
+    );
+    const store = createSettingsStore({ dir, crypto });
+    const raw = readFileSync(path.join(dir, 'settings.json'), 'utf8');
+    const saved = JSON.parse(raw) as Record<string, unknown>;
+    expect(saved.schemaVersion).toBe(2);
+    for (const field of ['apiKeyEncrypted', 'deepgramKeyEncrypted', 'rewriteKeyEncrypted']) {
+      expect(saved).not.toHaveProperty(field);
+    }
+    expect(store.get()).toMatchObject({ tapCount: 4, transcriptionProvider: 'deepgram' });
+    expect(store.getSyncToken()).toBe('tok');
+    expect(store.view().wordsDictated).toBe(12);
   });
 
   it('round-trips the onboarding fields', () => {
@@ -144,7 +143,7 @@ describe('settings store', () => {
     const saved = JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8')) as {
       schemaVersion?: number;
     };
-    expect(saved.schemaVersion).toBe(1);
+    expect(saved.schemaVersion).toBe(2);
   });
 
   it('counts dictated words across instances, ignoring empty text', () => {
@@ -172,26 +171,7 @@ describe('settings store', () => {
   });
   describe('transcription provider', () => {
     it('defaults to Groq, so an existing user sees no change', () => {
-      const store = createSettingsStore({ dir, crypto });
-      store.setApiKey('gsk_secret');
-      expect(store.get().transcriptionProvider).toBe('groq');
-      expect(store.hasApiKey()).toBe(true);
-    });
-
-    it('round-trips the Deepgram key encrypted, apart from the Groq key', () => {
-      const store = createSettingsStore({ dir, crypto });
-      store.setApiKey('gsk_secret');
-      store.setDeepgramKey('dg_secret');
-      const raw = readFileSync(path.join(dir, 'settings.json'), 'utf8');
-      expect(raw).not.toContain('dg_secret');
-      expect(JSON.parse(raw)).toHaveProperty('deepgramKeyEncrypted');
-
-      const reopened = createSettingsStore({ dir, crypto });
-      expect(reopened.getDeepgramKey()).toBe('dg_secret');
-      expect(reopened.getApiKey()).toBe('gsk_secret');
-      expect(reopened.hasDeepgramKey()).toBe(true);
-      expect(reopened.getTranscriptionKey('deepgram')).toBe('dg_secret');
-      expect(reopened.getTranscriptionKey('groq')).toBe('gsk_secret');
+      expect(createSettingsStore({ dir, crypto }).get().transcriptionProvider).toBe('groq');
     });
 
     it('persists the selected provider across instances', () => {
@@ -200,28 +180,6 @@ describe('settings store', () => {
         ...DEFAULT_SETTINGS,
         transcriptionProvider: 'deepgram',
       });
-    });
-
-    it('means "the selected provider has a key" by hasApiKey', () => {
-      const store = createSettingsStore({ dir, crypto });
-      store.setApiKey('gsk_secret');
-      store.setTranscriptionProvider('deepgram');
-      expect(store.hasApiKey()).toBe(false);
-      expect(store.view().hasApiKey).toBe(false);
-      expect(store.hasGroqKey()).toBe(true);
-
-      store.setDeepgramKey('dg_secret');
-      expect(store.hasApiKey()).toBe(true);
-      expect(store.view().hasApiKey).toBe(true);
-
-      const groqless = createSettingsStore({
-        dir: mkdtempSync(path.join(tmpdir(), 'parley-settings-')),
-        crypto,
-      });
-      groqless.setDeepgramKey('dg_secret');
-      expect(groqless.hasApiKey()).toBe(false);
-      groqless.setTranscriptionProvider('groq');
-      expect(groqless.view().hasApiKey).toBe(false);
     });
 
     it('refuses to take the provider from a settings patch', () => {
@@ -424,11 +382,8 @@ describe('settings store', () => {
     expect(store.settingsUpdatedAt()).toBeGreaterThan(0);
   });
 
-  it('takes a remote provider only when this device holds its key', () => {
+  it('takes a remote provider: the server, not this device, decides whether it has the key', () => {
     const store = createSettingsStore({ dir, crypto });
-    store.applyRemote({ transcriptionProvider: 'deepgram' }, 100);
-    expect(store.get().transcriptionProvider).toBe('groq');
-    store.setDeepgramKey('dg_key');
     store.applyRemote({ transcriptionProvider: 'deepgram' }, 200);
     expect(store.get().transcriptionProvider).toBe('deepgram');
     expect(createSettingsStore({ dir, crypto }).get().transcriptionProvider).toBe('deepgram');

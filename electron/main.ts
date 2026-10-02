@@ -19,6 +19,7 @@ import { uIOhook, UiohookKey } from 'uiohook-napi';
 import { createActionConfirm } from './agent/confirm';
 import { createAgentClient } from './agent/client';
 import { buildAgentEnv } from './agent/env';
+import { fetchServerStatus } from './server-status';
 import { createSupervisor } from './agent/supervisor';
 import { createAudioWatchdog } from './audio-watchdog';
 import { createCommonWords } from './common-words';
@@ -49,7 +50,7 @@ import type {
   AgentSummary,
   AgentTestResult,
   ExplainContent,
-  KeyTestResult,
+  ServerStatus,
   OrbPhasePayload,
   PermissionKind,
   Rect,
@@ -203,8 +204,11 @@ async function startApp() {
 
   const store = createSettingsStore({ dir: app.getPath('userData'), crypto: safeStorage });
   const dictionary = createDictionaryStore({ dir: app.getPath('userData') });
+  // Transcription, voice edit and Explain all go to parley-api, at the address
+  // Sync uses; it holds the provider keys.
+  const serverUrl = () => store.get().syncUrl;
   const transcriber = createTranscriber({
-    getApiKey: (provider) => store.getTranscriptionKey(provider),
+    serverUrl,
     getProvider: () => store.get().transcriptionProvider,
   });
 
@@ -231,9 +235,8 @@ async function startApp() {
     sendSelectAll: () => uIOhook.keyTap(UiohookKey.A, [UiohookKey.Meta]),
   });
 
-  const rewriter = createRewriter({ getApiKey: () => store.getRewriteKey() });
-  // Explain streams from parley-api at the same address Sync uses.
-  const explainClient = createExplainClient({ baseUrl: () => store.get().syncUrl });
+  const rewriter = createRewriter({ serverUrl });
+  const explainClient = createExplainClient({ baseUrl: serverUrl });
   const editTargets = createEditTargets({
     reader: createFieldReader({
       helperPath: AX_HELPER,
@@ -322,7 +325,7 @@ async function startApp() {
 
   const isReady = () => {
     const permissions = getPermissions();
-    return permissions.microphone && permissions.accessibility && store.hasApiKey();
+    return permissions.microphone && permissions.accessibility;
   };
 
   function refreshTray() {
@@ -466,7 +469,7 @@ async function startApp() {
       const env = buildAgentEnv({
         processEnv: process.env,
         port,
-        rewriteKey: store.getRewriteKey(),
+        serverUrl: serverUrl(),
         packaged: app.isPackaged,
         execPath: process.execPath,
       });
@@ -721,15 +724,12 @@ async function startApp() {
       },
     },
     getSettings: () => store.get(),
-    hasApiKey: () => store.hasApiKey(),
-    hasRewriteKey: () => store.hasRewriteKey(),
     runAgent,
     cancelAgent,
     isAgentReady: () => {
       const status = supervisor.status();
       return status.state === 'online' && status.mcpServers.length > 0;
     },
-    isAgentManaged: () => supervisor.status().managed,
     getPermissions,
     openSettings,
     onBlocked: (reason) => {
@@ -998,42 +998,17 @@ async function startApp() {
     }
     return liveView();
   });
-  ipcMain.handle('settings:setApiKey', async (event, key: unknown): Promise<KeyTestResult> => {
-    onlySettingsWindow(event);
-    if (typeof key !== 'string' || key.trim() === '') return { ok: false, message: 'Enter a key' };
-    const result = await transcriber.testKey(key.trim(), 'groq');
-    if (result.ok) {
-      store.setApiKey(key.trim());
-      refreshTray();
-    }
-    return result;
-  });
-  ipcMain.handle('settings:setDeepgramKey', async (event, key: unknown): Promise<KeyTestResult> => {
-    onlySettingsWindow(event);
-    if (typeof key !== 'string' || key.trim() === '') return { ok: false, message: 'Enter a key' };
-    const result = await transcriber.testKey(key.trim(), 'deepgram');
-    if (result.ok) {
-      store.setDeepgramKey(key.trim());
-      refreshTray();
-    }
-    return result;
-  });
   ipcMain.handle('settings:setTranscriptionProvider', async (event, provider: unknown) => {
     onlySettingsWindow(event);
     if (!TRANSCRIPTION_PROVIDERS.includes(provider as never)) return liveView();
     const stampBefore = store.settingsUpdatedAt();
     store.setTranscriptionProvider(provider as TranscriptionProvider);
-    // Readiness is "the selected provider has a key", so the tray may flip.
-    refreshTray();
     if (store.settingsUpdatedAt() !== stampBefore) scheduleSyncSoon();
     return liveView();
   });
-  ipcMain.handle('settings:setRewriteKey', async (event, key: unknown): Promise<KeyTestResult> => {
+  ipcMain.handle('server:status', async (event): Promise<ServerStatus> => {
     onlySettingsWindow(event);
-    if (typeof key !== 'string' || key.trim() === '') return { ok: false, message: 'Enter a key' };
-    const result = await rewriter.testKey(key.trim());
-    if (result.ok) store.setRewriteKey(key.trim());
-    return result;
+    return fetchServerStatus(serverUrl());
   });
   ipcMain.handle('agent:setUrl', async (event, url: unknown): Promise<AgentTestResult> => {
     onlySettingsWindow(event);

@@ -1,29 +1,26 @@
-# parley-016: Explain streams from parley-api (on main, uncommitted)
+# parley-017: provider keys live in parley-api (on main)
 
 ## What landed
 
-- `parley-api/` is now Mastra on Express (port 3100). Its `screen-explainer`
-  agent teaches rather than summarises and searches with Exa; `POST
-  /api/explain` streams it over SSE (delta, search, reset, sources, done,
-  error). Keys live in `parley-api/.env` (`MINIMAX_API_KEY`, `EXA_API_KEY`).
-  The old Express/Prisma sync API is gone, so `parley-015` sync has no server.
-- Desktop: `electron/explain-client.ts` reads the stream; `electron/explain.ts`
-  folds it into a `streaming` turn, throttled to one push per 32 ms; the card
-  shows a live caret, a Searching line, and Sources that open in the browser
-  through `explain:openExternal`. Explain no longer needs a desktop MiniMax
-  key. The old direct-MiniMax explain and `web-search.ts` are removed.
-- `boilerplate-001` and `parley-001` to `003` moved to
-  `docs/history/completed-features.md` to keep the prelude under budget.
-
-## Run it
-
-`npm --prefix parley-api start`, then `make dev` (quit /Applications/Parley.app
-first: the single-instance lock closes the dev build otherwise).
+- parley-api `/api/providers/*` passes the app's exact Groq, Deepgram and
+  MiniMax calls on with the key from `parley-api/.env`; only those paths are
+  allowed, and the server listens on 127.0.0.1. `GET /api/providers/status`
+  says which keys it holds. `make api` runs it.
+- Desktop: transcribers and the rewriter call the server with no key
+  (`offline` = "Parley server not running", `no_key` = "No <provider> key on
+  the Parley server"). Settings schema v2 deletes the stored keys. The key
+  gates, key IPC, key forms and the MiniMax offer are gone; Overview has a
+  Parley server group and the wizard step checks the server. The managed Act
+  agent gets `MINIMAX_BASE_URL` pointed at the server.
+- 0.6.0 is built and installed in /Applications.
 
 ## Next step
 
-Walk the Explain block of `docs/MANUAL_CHECKLIST.md`, record it, and mark
-`parley-016` passing. Open: about 1 in 5 "check several sources" questions end
-in "No answer came back" (MiniMax keeps calling tools); a no-tools retry on the
-server is the proposed fix. Rebuilding the sync routes in the new API is
-`parley-015`'s remaining work.
+Walk the "Parley server and keys" block of `docs/MANUAL_CHECKLIST.md`, then
+mark `parley-017` passing. Follow-up: the app starting parley-api itself.
+
+# Earlier
+
+`parley-016` (Explain streams from parley-api over SSE) and `parley-015`
+(sync, no server since the Mastra rewrite) are in progress; their next steps
+are in `feature_list.json` evidence.

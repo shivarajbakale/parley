@@ -10,6 +10,7 @@ import {
   OFFLINE_AGENT_SUMMARY,
   type ParleyApi,
   type PermissionStatus,
+  type ServerStatus,
   type SettingsView,
 } from '../../../electron/types';
 import { SettingsApp } from '../SettingsApp';
@@ -26,11 +27,17 @@ if (!window.IntersectionObserver) {
   } as unknown as typeof IntersectionObserver;
 }
 
-function mockApi(init: { settings?: Partial<SettingsView>; permissions?: PermissionStatus } = {}) {
+const RUNNING: ServerStatus = {
+  reachable: true,
+  url: 'http://localhost:3100',
+  keys: { groq: true, deepgram: false, minimax: true },
+};
+
+function mockApi(
+  init: { settings?: Partial<SettingsView>; permissions?: PermissionStatus; server?: ServerStatus } = {}
+) {
   let settings: SettingsView = {
     ...DEFAULT_SETTINGS,
-    hasApiKey: false,
-    hasRewriteKey: false,
     wordsDictated: 0,
     hasSyncToken: false,
     syncLastAt: 0,
@@ -50,13 +57,11 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
       settings = { ...settings, ...patch };
       return settings;
     }),
-    setApiKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
-    setDeepgramKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
     setTranscriptionProvider: vi.fn(async transcriptionProvider => {
       settings = { ...settings, transcriptionProvider };
       return settings;
     }),
-    setRewriteKey: vi.fn(async () => ({ ok: true, message: 'Key works' })),
+    serverStatus: vi.fn(async () => init.server ?? RUNNING),
     setAgentUrl: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
     testAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
     restartAgent: vi.fn(async () => ({ ok: true, message: 'Agent works', mcpServers: [] })),
@@ -81,7 +86,7 @@ function mockApi(init: { settings?: Partial<SettingsView>; permissions?: Permiss
   return api;
 }
 
-function mount(init: { settings?: Partial<SettingsView>; permissions?: PermissionStatus } = {}) {
+function mount(init: Parameters<typeof mockApi>[0] = {}) {
   const api = mockApi(init);
   window.parley = api;
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -123,7 +128,7 @@ describe('onboarding tour (replay)', () => {
 
   const replaying = () =>
     mount({
-      settings: { tourSeen: false, onboardingComplete: true, hasApiKey: true },
+      settings: { tourSeen: false, onboardingComplete: true },
       permissions: { microphone: true, accessibility: true },
     });
 
@@ -215,19 +220,30 @@ describe('first-run flow', () => {
     expect(api.requestPermission).toHaveBeenCalledWith('accessibility');
   });
 
-  it('tests the Groq key and gates Continue on a stored one', async () => {
-    const api = wizardAt(3);
-    expect(await screen.findByRole('heading', { name: 'Connect transcription' })).toBeInTheDocument();
-    const keyInput = screen.getByLabelText('Groq API key');
-    expect(screen.getByRole('button', { name: 'Continue →' })).toBeDisabled();
-    await userEvent.type(keyInput, 'gsk_abc');
-    await userEvent.click(screen.getByRole('button', { name: 'Test and save' }));
-    await waitFor(() => expect(api.setApiKey).toHaveBeenCalledWith('gsk_abc'));
-    expect(await screen.findByText('Key works')).toBeInTheDocument();
+  it('checks the Parley server for the Groq key instead of asking for one', async () => {
+    wizardAt(3);
+    expect(
+      await screen.findByRole('heading', { name: 'Transcription runs on your Parley server' })
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Running')).toBeInTheDocument();
+    expect(screen.getByText('On the server')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/API key/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue →' })).toBeEnabled();
+  });
+
+  it('says how to start a server that is down, and still lets setup go on', async () => {
+    mount({
+      settings: { onboardingComplete: false, wizardStep: 3 },
+      permissions: { microphone: true, accessibility: true },
+      server: { reachable: false, url: 'http://localhost:3100', keys: null },
+    });
+    expect(await screen.findByText('Not running')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Start it with make api');
+    expect(screen.getByRole('button', { name: 'Continue →' })).toBeEnabled();
   });
 
   it('continues past transcription straight to the trainer, with no MiniMax screen', async () => {
-    wizardAt(3, { hasApiKey: true });
+    wizardAt(3);
     await userEvent.click(await screen.findByRole('button', { name: 'Continue →' }));
     expect(await screen.findByRole('heading', { name: 'Learn the gesture' })).toBeInTheDocument();
     expect(screen.queryByLabelText('MiniMax API key')).not.toBeInTheDocument();
@@ -303,14 +319,14 @@ describe('first-run flow', () => {
   });
 
   it('starts using Parley from the finale, marking the tour seen', async () => {
-    const api = wizardAt(6, { hasApiKey: true });
+    const api = wizardAt(6);
     await userEvent.click(await screen.findByRole('button', { name: 'Start using Parley' }));
     expect(await screen.findByRole('tab', { name: 'Gesture' })).toBeInTheDocument();
     expect(api.updateSettings).toHaveBeenCalledWith({ onboardingComplete: true, tourSeen: true });
   });
 
   it('lists only what is missing on the finale, each with a fix', async () => {
-    wizardAt(6, { hasApiKey: true });
+    wizardAt(6);
     const fixes = await screen.findAllByRole('button', { name: 'Re-open step' });
     expect(fixes).toHaveLength(2);
     expect(screen.queryByText('Transcription')).not.toBeInTheDocument();
@@ -320,7 +336,7 @@ describe('first-run flow', () => {
 
   it('shows no missing list when everything is set', async () => {
     mount({
-      settings: { onboardingComplete: false, wizardStep: 6, hasApiKey: true },
+      settings: { onboardingComplete: false, wizardStep: 6 },
       permissions: { microphone: true, accessibility: true },
     });
     await screen.findByRole('heading', { name: 'Parley lives in your menu bar' });
@@ -328,7 +344,7 @@ describe('first-run flow', () => {
   });
 
   it('takes the tour from the finale', async () => {
-    wizardAt(6, { hasApiKey: true });
+    wizardAt(6);
     await userEvent.click(await screen.findByRole('button', { name: 'Take the tour' }));
     expect(
       await screen.findByRole('heading', { name: 'Hold to talk, release to paste' })
@@ -342,7 +358,7 @@ describe('first-run flow', () => {
 
   it('replays the tour from General settings', async () => {
     mount({
-      settings: { tourSeen: true, onboardingComplete: true, hasApiKey: true, hasRewriteKey: true },
+      settings: { tourSeen: true, onboardingComplete: true },
       permissions: { microphone: true, accessibility: true },
     });
     await userEvent.click(await screen.findByRole('tab', { name: 'General' }));

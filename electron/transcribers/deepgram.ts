@@ -1,18 +1,16 @@
 import {
   createRequest,
-  keyResult,
+  providerUrl,
   readJson,
-  TEST_KEY_TIMEOUT_MS,
   TRANSCRIBE_TIMEOUT_MS,
   type TranscriptionProviderClient,
 } from './shared';
 
 /**
- * The only file that talks to Deepgram. Nova-3 takes no prose prompt; it
- * takes `keyterm`s, one query parameter per word or phrase to favour.
+ * The only file that talks to Deepgram, through parley-api, which adds the
+ * key. Nova-3 takes no prose prompt; it takes `keyterm`s, one query
+ * parameter per word or phrase to favour.
  */
-
-const BASE = 'https://api.deepgram.com/v1';
 const MODEL = 'nova-3';
 
 /**
@@ -50,17 +48,17 @@ export function createDeepgramProvider(fetchFn: typeof fetch): TranscriptionProv
   const request = createRequest('deepgram', fetchFn);
 
   return {
-    async transcribe(audio, { vocabulary, terms }, key) {
+    async transcribe(audio, { vocabulary, terms }, server) {
       const params = [`model=${MODEL}`, 'language=en', 'smart_format=true'];
       for (const term of keyterms(terms ?? vocabulary)) {
         params.push(`keyterm=${encodeURIComponent(term)}`);
       }
 
       const response = await request(
-        `${BASE}/listen?${params.join('&')}`,
+        `${providerUrl(server, '/deepgram/v1/listen')}?${params.join('&')}`,
         {
           method: 'POST',
-          headers: { Authorization: `Token ${key}`, 'Content-Type': audio.mimeType },
+          headers: { 'Content-Type': audio.mimeType },
           body: audio.data,
         },
         TRANSCRIBE_TIMEOUT_MS
@@ -69,13 +67,5 @@ export function createDeepgramProvider(fetchFn: typeof fetch): TranscriptionProv
       return (body?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '').trim();
     },
 
-    testKey: key =>
-      keyResult(() =>
-        request(
-          `${BASE}/projects`,
-          { method: 'GET', headers: { Authorization: `Token ${key}` } },
-          TEST_KEY_TIMEOUT_MS
-        )
-      ),
   };
 }

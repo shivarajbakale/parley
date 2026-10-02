@@ -1,18 +1,20 @@
 /**
- * The agent child's environment. The server thinks with the stored MiniMax
- * key, so Parley hands it over at spawn — no second setup step, no key in
- * a dotfile. An explicitly exported MINIMAX_API_KEY wins over the stored
- * one: the environment is the escape hatch. Packaged builds additionally
- * run Electron-as-Node and say so, so MCP stdio servers spawn without a
- * system `node`.
- *
- * Same-user local process, never logged: the key travels further than the
- * keychain but nowhere it can be read across the machine boundary.
+ * The agent child's environment. The agent thinks with MiniMax, whose key
+ * lives in parley-api: Mastra's `MINIMAX_BASE_URL` points the model at the
+ * server's pass-through, which adds the real key, and `MINIMAX_API_KEY` is a
+ * placeholder Mastra insists on (the server drops it). An explicitly exported
+ * MINIMAX_API_KEY wins and talks to MiniMax directly: the environment is the
+ * escape hatch. Packaged builds additionally run Electron-as-Node and say so,
+ * so MCP stdio servers spawn without a system `node`.
  */
+
+/** Sent in place of a key; parley-api never forwards it. */
+export const SERVER_KEY_PLACEHOLDER = 'parley-server';
 export function buildAgentEnv(deps: {
   processEnv: Record<string, string | undefined>;
   port: number;
-  rewriteKey: string | null;
+  /** The Parley server address. */
+  serverUrl: string;
   packaged: boolean;
   execPath: string;
 }): Record<string, string> {
@@ -21,8 +23,9 @@ export function buildAgentEnv(deps: {
     if (value !== undefined) env[key] = value;
   }
   env.PORT = String(deps.port);
-  if (env.MINIMAX_API_KEY === undefined && deps.rewriteKey) {
-    env.MINIMAX_API_KEY = deps.rewriteKey;
+  if (env.MINIMAX_API_KEY === undefined) {
+    env.MINIMAX_API_KEY = SERVER_KEY_PLACEHOLDER;
+    env.MINIMAX_BASE_URL = `${deps.serverUrl.replace(/\/+$/, '')}/api/providers/minimax/anthropic/v1`;
   }
   if (deps.packaged) {
     env.ELECTRON_RUN_AS_NODE = '1';

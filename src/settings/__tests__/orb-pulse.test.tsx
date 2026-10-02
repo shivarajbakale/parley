@@ -13,8 +13,6 @@ describe('trainer pulses the ring orb', () => {
     window.parley = {
       getSettings: vi.fn(async () => ({
         ...DEFAULT_SETTINGS,
-        hasApiKey: true,
-        hasRewriteKey: false,
         wordsDictated: 0,
         hasSyncToken: false,
         syncLastAt: 0,
