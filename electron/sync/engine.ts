@@ -33,7 +33,11 @@ export interface SyncDeps {
   settings: Pick<SettingsStore, 'get' | 'update' | 'recordSync' | 'settingsUpdatedAt'>;
   /** The server's pull cursor: the last `now` of a successful drain. */
   cursor: { get(): number; set(value: number): void };
-  /** Local clock of the last sync: what bounds the push window. */
+  /**
+   * Local clock of the last successful sync (the run's start, not its end): what
+   * bounds the push window. Main passes `() => store.view().syncLastAt`; the
+   * engine only ever advances it on success.
+   */
   lastSyncAt: () => number;
   now?: () => number;
 }
@@ -95,6 +99,8 @@ export function createSyncEngine({ client, dictionary, settings, cursor, lastSyn
     let pushed = 0;
     let pulled = 0;
     try {
+      // Taken before reading local changes: an edit made mid-run lands in the next window.
+      const startedAt = now();
       // Push first so the pull that follows returns our own rows only if they lost.
       const pushFrom = lastSyncAt();
       const { entries, removed } = dictionary.changedSince(pushFrom);
@@ -131,14 +137,15 @@ export function createSyncEngine({ client, dictionary, settings, cursor, lastSyn
       }
 
       cursor.set(Math.min(dictNow, settingsNow));
+      settings.recordSync({ at: startedAt });
       const at = now();
-      settings.recordSync({ at });
       return { ok: true, pushed, pulled, message: `Synced ${pushed} up, ${pulled} down`, at };
     } catch (err) {
       const message = describe(err);
       const at = now();
       try {
-        settings.recordSync({ at, error: message });
+        // The window stays at the last success, so nothing unpushed is skipped next run.
+        settings.recordSync({ at: lastSyncAt(), error: message });
       } catch {
         // A disk that cannot record the failure must not turn it into a throw.
       }

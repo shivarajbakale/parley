@@ -59,13 +59,22 @@ describe('sync engine', () => {
     const dictionary = fakeDictionary();
     const settings = fakeSettings();
     let cursor = 10;
+    let clock = 998;
+    let clockAtChangedSince = 0;
+    dictionary.changedSince.mockImplementation((since: number) => {
+      clockAtChangedSince = clock;
+      return fakeDictionary().changedSince(since);
+    });
     const engine = createSyncEngine({
       client: asClient(client),
       dictionary,
       settings,
       cursor: { get: () => cursor, set: v => (cursor = v) },
       lastSyncAt: () => 10,
-      now: () => 999,
+      now: vi.fn(() => {
+        clock += 1;
+        return clock;
+      }),
     });
     const outcome = await engine.syncNow();
 
@@ -83,7 +92,10 @@ describe('sync engine', () => {
     expect((settingsPush[1][0] as { data: object }).data).not.toHaveProperty('syncEmail');
     expect(dictionary.applied).toEqual([{ id: 'r1', word: 'Remote', soundsLike: [], updatedAt: 50, deletedAt: null }]);
     expect(cursor).toBe(1000);
+    // The run's start, taken before changedSince, so edits made mid-run fall in the next window.
+    expect(clockAtChangedSince).toBe(999);
     expect(settings.recordSync).toHaveBeenCalledWith({ at: 999 });
+    expect(outcome.at).toBeGreaterThan(999);
   });
 
   it('pushes before it pulls', async () => {
@@ -136,12 +148,15 @@ describe('sync engine', () => {
     const settings = fakeSettings();
     const set = vi.fn();
     const engine = createSyncEngine({
-      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: { get: () => 0, set }, lastSyncAt: () => 0,
+      client: asClient(client), dictionary: fakeDictionary(), settings, cursor: { get: () => 0, set }, lastSyncAt: () => 10,
+      now: () => 999,
     });
     const outcome = await engine.syncNow();
     expect(outcome.ok).toBe(false);
     expect(outcome.message).toContain('fetch failed');
-    expect(settings.recordSync).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('fetch failed') }));
+    expect(outcome.at).toBe(999);
+    // A failed run leaves the push window where the last success put it.
+    expect(settings.recordSync).toHaveBeenCalledWith({ at: 10, error: expect.stringContaining('fetch failed') });
     expect(set).not.toHaveBeenCalled();
   });
 
