@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   explainWindowOptions,
+  floatOverEverything,
   ORB_SIZE,
   orbBounds,
   orbWindowOptions,
@@ -120,5 +121,29 @@ describe('explain window', () => {
       contextIsolation: true,
       nodeIntegration: false,
     });
+  });
+});
+
+describe('floatOverEverything', () => {
+  const fakeWindow = () => ({ setVisibleOnAllWorkspaces: vi.fn(), setAlwaysOnTop: vi.fn() });
+
+  it('puts a window on every Space, full-screen ones too, above everything', () => {
+    const win = fakeWindow();
+    floatOverEverything(win, { first: true });
+    expect(win.setVisibleOnAllWorkspaces).toHaveBeenCalledWith(true, {
+      visibleOnFullScreen: true,
+      skipTransformProcessType: false,
+    });
+    expect(win.setAlwaysOnTop).toHaveBeenCalledWith(true, 'screen-saver');
+  });
+
+  it('re-asserts it on each show without touching the dock again', () => {
+    const win = fakeWindow();
+    floatOverEverything(win);
+    expect(win.setVisibleOnAllWorkspaces).toHaveBeenCalledWith(true, {
+      visibleOnFullScreen: true,
+      skipTransformProcessType: true,
+    });
+    expect(win.setAlwaysOnTop).toHaveBeenCalledWith(true, 'screen-saver');
   });
 });

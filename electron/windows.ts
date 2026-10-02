@@ -42,6 +42,28 @@ export function orbBounds(workArea: Rect, windowBounds: Rect | null = null): Rec
   };
 }
 
+/** The two calls `floatOverEverything` makes; a `BrowserWindow` has both. */
+export interface Floatable {
+  setVisibleOnAllWorkspaces(
+    visible: boolean,
+    options?: { visibleOnFullScreen?: boolean; skipTransformProcessType?: boolean }
+  ): void;
+  setAlwaysOnTop(flag: boolean, level?: 'screen-saver'): void;
+}
+
+/**
+ * Puts the orb or the card on every Space, full-screen apps included, above
+ * every window. Called at creation and again before every show: a long-running
+ * Parley was seen with both windows pinned to one full-screen Space, so they
+ * opened where the user could not see them. Re-asserting is cheap.
+ * `skipTransformProcessType` after the first call: the dock icon is already
+ * hidden, and a transform each show would flicker it.
+ */
+export function floatOverEverything(win: Floatable, { first = false } = {}) {
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: !first });
+  win.setAlwaysOnTop(true, 'screen-saver');
+}
+
 const lockedDown = (preloadPath: string) => ({
   preload: preloadPath,
   contextIsolation: true,

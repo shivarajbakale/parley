@@ -61,7 +61,13 @@ import type {
   TranscriptionProvider,
 } from './types';
 import { NOTICE_MS, TRANSCRIPTION_PROVIDERS } from './types';
-import { explainWindowOptions, orbBounds, orbWindowOptions, settingsWindowOptions } from './windows';
+import {
+  explainWindowOptions,
+  floatOverEverything,
+  orbBounds,
+  orbWindowOptions,
+  settingsWindowOptions,
+} from './windows';
 
 /**
  * How long the session may sit in `awaiting_audio` before the watchdog
@@ -153,15 +159,13 @@ let hookRunning = false;
 function createOrbWindow() {
   orbWindow = new BrowserWindow(orbWindowOptions(PRELOAD));
   orbWindow.setIgnoreMouseEvents(true);
-  orbWindow.setAlwaysOnTop(true, 'screen-saver');
-  orbWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  floatOverEverything(orbWindow, { first: true });
   loadPage(orbWindow, 'orb');
 }
 
 function createExplainWindow() {
   explainWindow = new BrowserWindow(explainWindowOptions(PRELOAD));
-  explainWindow.setAlwaysOnTop(true, 'screen-saver');
-  explainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  floatOverEverything(explainWindow, { first: true });
   loadPage(explainWindow, 'explain');
 }
 
@@ -299,6 +303,7 @@ async function startApp() {
         placeExplain();
         pushExplain(content, { opening: true });
         // `showInactive`, never `show`: the selection must keep focus.
+        if (explainWindow) floatOverEverything(explainWindow);
         explainWindow?.showInactive();
       },
       update: updateExplain,
@@ -379,6 +384,7 @@ async function startApp() {
       const cursorDisplay = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
       orbWindow?.setBounds(orbBounds(cursorDisplay.workArea));
       // `showInactive`, never `show`: the user's text field must keep focus.
+      if (orbWindow) floatOverEverything(orbWindow);
       orbWindow?.showInactive();
       const shownFor = orbWindow;
       void windowLocator.frontWindowBounds().then((bounds) => {
