@@ -2,6 +2,8 @@ import express, { type Request, type Response } from 'express';
 import { MastraServer } from '@mastra/express';
 import { createExplainRouter } from './explain/route.js';
 import { createProvidersRouter } from './providers/route.js';
+import { createSearchRouter } from './search/route.js';
+import { exaFromEnv, searchWeb } from './mastra/tools/exa-search.js';
 import { answerWithoutTools } from './mastra/agents/screen-explainer.js';
 import { mastra } from './mastra/index.js';
 
@@ -27,6 +29,9 @@ app.use(
     },
   }),
 );
+
+// Web search for the act-mode agent, with the Exa key added here.
+app.use('/api/search', createSearchRouter({ search: (query) => searchWeb(query, exaFromEnv()) }));
 
 // Registers Mastra's routes (agents, workflows, ...) under /api.
 const server = new MastraServer({ app, mastra });

@@ -18,6 +18,11 @@ describe('buildAgentEnv', () => {
     expect(env.MINIMAX_API_KEY).toBe(SERVER_KEY_PLACEHOLDER);
   });
 
+  it('hands the agent the Parley server address for web search', () => {
+    expect(buildAgentEnv({ ...base, processEnv: {}, serverUrl: 'http://localhost:3100/' }).PARLEY_SERVER_URL).toBe('http://localhost:3100');
+    expect(buildAgentEnv({ ...base, processEnv: { MINIMAX_API_KEY: 'k' } }).PARLEY_SERVER_URL).toBe('http://localhost:3100');
+  });
+
   it('lets an exported key win and talk to MiniMax directly', () => {
     const env = buildAgentEnv({ ...base, processEnv: { MINIMAX_API_KEY: 'shell-key' } });
     expect(env.MINIMAX_API_KEY).toBe('shell-key');

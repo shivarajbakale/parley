@@ -323,6 +323,13 @@ until a real `mcp-servers.json` replaces it.
       runs and the run continues.
 - [ ] Run another write and press Esc: the pill flashes "Skipped —
       continuing…" and the run goes on without that tool.
+- [ ] With parley-api running, Settings → Agent lists `web search` above
+      the MCP servers. Ask "what's the weather in Pune right now": the pill
+      shows "Using Web search…" and answers from the results.
+- [ ] Say "note down buy milk" five times: every time the pill asks before
+      adding — it never answers "Added" without the question. If MiniMax
+      answers without a tool twice, the pill reads "Nothing was done — no
+      tool ran" instead of a made-up line.
 - [ ] While a run is working, open Settings → Agent: the waiting approval
       mirrors with Approve and Decline. Answer from the tab: the pill and
       the run follow.

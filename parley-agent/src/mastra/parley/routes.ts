@@ -1,7 +1,7 @@
 import { registerApiRoute } from '@mastra/core/server';
 import type { MCPClient } from '@mastra/mcp';
 
-import { listCatalog } from './mcp';
+import { listCatalog, type McpCatalogEntry } from './mcp';
 import type { RunStore } from './runs';
 
 /**
@@ -13,7 +13,7 @@ import type { RunStore } from './runs';
  *   GET    /parley/runs/:id/events  SSE: step, approval_requested, completed, failed
  *   POST   /parley/runs/:id/approve {approved} -> 200, 404 when the run is gone
  *   DELETE /parley/runs/:id       cancel; always 200, a gone run is already cancelled
- *   GET    /parley/health         -> {online, mcpServers[]}
+ *   GET    /parley/health         -> {online, mcpServers[]} (built-in tools listed first)
  */
 
 const HEARTBEAT_MS = 15_000;
@@ -70,7 +70,7 @@ function sseResponse(runId: string, store: RunStore): Response {
   });
 }
 
-export function createParleyRoutes(store: RunStore, mcp: MCPClient) {
+export function createParleyRoutes(store: RunStore, mcp: MCPClient, builtins: McpCatalogEntry[] = []) {
   const startRun = registerApiRoute('/parley/run', {
     method: 'POST',
     handler: async c => {
@@ -124,7 +124,7 @@ export function createParleyRoutes(store: RunStore, mcp: MCPClient) {
   const health = registerApiRoute('/parley/health', {
     method: 'GET',
     handler: async c => {
-      const mcpServers = await listCatalog(mcp);
+      const mcpServers = [...builtins, ...(await listCatalog(mcp))];
       return c.json({ online: true, mcpServers });
     },
   });

@@ -4,7 +4,8 @@
  * server's pass-through, which adds the real key, and `MINIMAX_API_KEY` is a
  * placeholder Mastra insists on (the server drops it). An explicitly exported
  * MINIMAX_API_KEY wins and talks to MiniMax directly: the environment is the
- * escape hatch. Packaged builds additionally run Electron-as-Node and say so,
+ * escape hatch. `PARLEY_SERVER_URL` gives the agent's web search the same
+ * server. Packaged builds additionally run Electron-as-Node and say so,
  * so MCP stdio servers spawn without a system `node`.
  */
 
@@ -23,9 +24,12 @@ export function buildAgentEnv(deps: {
     if (value !== undefined) env[key] = value;
   }
   env.PORT = String(deps.port);
+  const server = deps.serverUrl.replace(/\/+$/, '');
+  // The agent's web search asks the server too, which holds the Exa key.
+  env.PARLEY_SERVER_URL = server;
   if (env.MINIMAX_API_KEY === undefined) {
     env.MINIMAX_API_KEY = SERVER_KEY_PLACEHOLDER;
-    env.MINIMAX_BASE_URL = `${deps.serverUrl.replace(/\/+$/, '')}/api/providers/minimax/anthropic/v1`;
+    env.MINIMAX_BASE_URL = `${server}/api/providers/minimax/anthropic/v1`;
   }
   if (deps.packaged) {
     env.ELECTRON_RUN_AS_NODE = '1';

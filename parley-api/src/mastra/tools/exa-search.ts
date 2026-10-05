@@ -46,7 +46,7 @@ export async function searchWeb(query: string, exa: ExaSearcher | null): Promise
   }
 }
 
-function exaFromEnv(): ExaSearcher | null {
+export function exaFromEnv(): ExaSearcher | null {
   const key = process.env.EXA_API_KEY?.trim();
   return key ? new Exa(key) : null;
 }
