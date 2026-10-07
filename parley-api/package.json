@@ -8,7 +8,11 @@
     "start": "tsx --env-file-if-exists=.env src/index.ts",
     "type-check": "tsc --noEmit",
     "check": "npm run type-check && npm run test",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "bash deploy/deploy.sh",
+    "deploy:status": "bash deploy/deploy.sh --status",
+    "deploy:logs": "bash deploy/deploy.sh --logs",
+    "deploy:down": "bash deploy/deploy.sh --down"
   },
   "type": "module",
   "dependencies": {

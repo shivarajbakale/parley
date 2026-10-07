@@ -137,3 +137,6 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# deploy-kit: ts-deploy output holds the expanded .env
+.ts-deploy.*
