@@ -2,7 +2,7 @@ import Foundation
 
 /// The shell's side of the engine wire: newline-delimited JSON-RPC 2.0, the
 /// same framing as `engine/headless/rpc.ts`. Bump both together.
-public let protocolVersion = 1
+public let protocolVersion = 2
 
 public enum RPCIncoming: Sendable, Equatable {
     case request(id: JSONValue, method: String, params: JSONValue?)

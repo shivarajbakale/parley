@@ -8,7 +8,7 @@
  * from the other side. That keeps the whole protocol testable without a pipe.
  */
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 export const REQUEST_TIMEOUT_MS = 10_000;
 
 /** JSON-RPC's own error codes, plus one for a handler that threw. */

@@ -6,12 +6,12 @@
   SwiftUI app in `macos/` driving the TypeScript engine in `engine/` over stdio.
 - **parley-019** (native shell, dictation) is `passing` (2026-11-05), archived in
   `docs/history/completed-features.md`. Merged to main in PR #1.
-- The ports of what the Electron app did are `not_started`: parley-020 settings
-  window, 021 voice edit, 022 Explain, 023 Act, 024 sync. Their Electron-era
-  register entries are in `docs/history/electron-features.md`.
+- Ports parley-020…024 are built on `feat/native-ports` (protocol v2, spec in
+  `docs/plans/parley-020-024-native-ports.md`): settings window, voice edit,
+  Explain, sync, Act. 020 is `in_progress`; 021–024 are `blocked` only on a
+  live check by the user.
 
 ## Next step
 
-Start parley-020, the settings window (design:
-https://claude.ai/artifact/Mirpic2JxR1ZZyewgN8nZL): plan it in `docs/plans/`,
-then set it `in_progress`.
+Live-check each port in the real app (each feature's `verification`), mark
+them `passing` one at a time, then open the PR.

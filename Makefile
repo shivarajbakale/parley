@@ -4,13 +4,14 @@
 NPM ?= $(if $(NPM_BIN),$(NPM_BIN),npm)
 
 .PHONY: help setup type-check lint test plan-lint skill-lint doc-lint loop-lint \
-	api-check android-check macos-check check engine app run api clean commit-feature
+	api-check android-check macos-check check engine agent app run api clean commit-feature
 
 help:
 	@echo "Targets:"
 	@echo "  setup        npm install (engine, parley-agent, parley-api)"
 	@echo "  check        type-check + lint + test + plan/skill/doc/loop lints + api, android and macos checks"
 	@echo "  engine       bundle the engine and its Node runtime into macos/build/engine"
+	@echo "  agent        build the Act agent server into resources/parley-agent"
 	@echo "  app          build Parley Native.app (Debug)"
 	@echo "  run          build and open the app"
 	@echo "  api          run parley-api, the Parley server (keys in parley-api/.env)"
@@ -68,6 +69,10 @@ check: setup type-check lint test plan-lint skill-lint doc-lint loop-lint api-ch
 
 engine:
 	$(NPM) run build:engine
+
+# Act mode's agent server (about 200 MB), copied into the app on the next build.
+agent:
+	$(NPM) run build:agent
 
 app:
 	$(MAKE) -C macos build

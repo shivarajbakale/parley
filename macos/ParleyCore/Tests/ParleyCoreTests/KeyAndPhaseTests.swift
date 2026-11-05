@@ -59,6 +59,10 @@ import Testing
         #expect(phase == HUDPhase(phase: .error, message: "Parley server not running"))
         #expect(HUDPhase(["phase": "listening", "tick": true])?.tick == true)
         #expect(HUDPhase(["phase": "dancing"]) == nil)
+        let offer = HUDPhase(["phase": "notice", "message": "Remember Mastra?", "hint": "Tap to keep it", "accepted": true])
+        #expect(offer?.hint == "Tap to keep it")
+        #expect(offer?.accepted == true)
+        #expect(HUDPhase(["phase": "listening", "mode": "edit"])?.mode == "edit")
         #expect(HUDPhase(nil) == nil)
     }
 
@@ -76,33 +80,90 @@ import Testing
 
 @MainActor
 @Suite struct PasterTests {
-    @Test func pastesThenRestoresEveryType() async {
+    func board() -> NSPasteboard {
         let board = NSPasteboard(name: NSPasteboard.Name("parley-test-\(UUID().uuidString)"))
-        defer { board.releaseGlobally() }
         board.clearContents()
+        return board
+    }
+
+    func seed(_ board: NSPasteboard) {
         let item = NSPasteboardItem()
         item.setString("original", forType: .string)
         item.setString("<b>original</b>", forType: .html)
         board.writeObjects([item])
+    }
 
+    @Test func pastesThenRestoresEveryType() async {
+        let board = board()
+        defer { board.releaseGlobally() }
+        seed(board)
+        var keys: [Keystroke] = []
         var seenAtPaste: String?
-        let paster = Paster(
-            pasteboard: board,
-            sendPaste: { seenAtPaste = board.string(forType: .string) },
-            sleep: { _ in }
-        )
+        let paster = Paster(pasteboard: board, send: { key in
+            keys.append(key)
+            if key == .paste { seenAtPaste = board.string(forType: .string) }
+        }, sleep: { _ in })
         await paster.paste("dictated text")
-
+        #expect(keys == [.paste])
         #expect(seenAtPaste == "dictated text")
         #expect(board.string(forType: .string) == "original")
         #expect(board.string(forType: .html) == "<b>original</b>")
     }
 
-    @Test func anEmptyClipboardStaysEmpty() async {
-        let board = NSPasteboard(name: NSPasteboard.Name("parley-test-\(UUID().uuidString)"))
+    @Test func pasteOverTheWholeFieldSelectsAllFirst() async {
+        let board = board()
         defer { board.releaseGlobally() }
-        board.clearContents()
-        let paster = Paster(pasteboard: board, sendPaste: {}, sleep: { _ in })
+        var keys: [Keystroke] = []
+        let paster = Paster(pasteboard: board, send: { keys.append($0) }, sleep: { _ in })
+        await paster.paste("rewritten", selectAll: true)
+        #expect(keys == [.selectAll, .paste])
+    }
+
+    @Test func copyAllReadsWhatTheAppCopiedAndRestores() async {
+        let board = board()
+        defer { board.releaseGlobally() }
+        seed(board)
+        var keys: [Keystroke] = []
+        let paster = Paster(pasteboard: board, send: { key in
+            keys.append(key)
+            // The app answers ⌘C by putting the field on the pasteboard.
+            if key == .copy {
+                board.clearContents()
+                board.setString("whole field", forType: .string)
+            }
+        }, sleep: { _ in })
+        #expect(await paster.copyAll() == "whole field")
+        #expect(keys == [.selectAll, .copy])
+        #expect(board.string(forType: .string) == "original")
+    }
+
+    @Test func copySelectionThatCopiesNothingReadsAsNothing() async {
+        let board = board()
+        defer { board.releaseGlobally() }
+        seed(board)
+        let paster = Paster(pasteboard: board, send: { _ in }, sleep: { _ in })
+        #expect(await paster.copySelection() == "")
+        #expect(board.string(forType: .string) == "original")
+    }
+
+    @Test func eraseSendsOneBackspacePerCharacterInBatches() async {
+        let board = board()
+        defer { board.releaseGlobally() }
+        var keys: [Keystroke] = []
+        var pauses = 0
+        let paster = Paster(pasteboard: board, send: { keys.append($0) }, sleep: { _ in pauses += 1 })
+        await paster.erase(120)
+        #expect(keys.count == 120)
+        #expect(keys.allSatisfy { $0 == .backspace })
+        #expect(pauses == 3)
+        await paster.erase(0)
+        #expect(keys.count == 120)
+    }
+
+    @Test func anEmptyClipboardStaysEmpty() async {
+        let board = board()
+        defer { board.releaseGlobally() }
+        let paster = Paster(pasteboard: board, send: { _ in }, sleep: { _ in })
         await paster.paste("x")
         #expect(board.string(forType: .string) == nil)
     }

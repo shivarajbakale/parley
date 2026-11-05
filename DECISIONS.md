@@ -6,6 +6,23 @@ silently undo.
 
 ---
 
+## 2026-11-05: The engine ports the whole Electron composition; the token key lives in the Keychain
+
+- **What:** `engine/headless/engine.ts` wires every mode the way the Electron
+  main process did; the app answers protocol v2 calls for Accessibility,
+  paste/copy/erase, the pill, the Explain card and settings. The sync token is
+  AES-256-GCM encrypted under a random 32-byte key the app keeps in the
+  Keychain and hands to the engine in `hello`.
+- **Why:** reusing the tested composition keeps behaviour identical to the
+  Electron build; only the OS edge changed. Node cannot reach `safeStorage`,
+  and the Keychain key keeps the token encrypted at rest without the engine
+  ever storing a secret.
+- **Rejected alternatives:** moving sync and the agent into Swift (rewrites
+  tested code); storing the token itself in the Keychain via RPC on every
+  sync (the settings store reads it synchronously); a plaintext token.
+- **Constraint:** sign-in refuses without the Keychain key. Tokens written by
+  the Electron build cannot be decrypted and need a fresh sign-in.
+
 ## 2026-11-05: Native SwiftUI shell; Electron and the React UI removed
 
 - **What:** Parley is a SwiftUI menu-bar app (`macos/`, macOS 26) that runs the
