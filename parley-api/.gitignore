@@ -143,3 +143,6 @@ vite.config.ts.timestamp-*
 
 # Provider keys saved from the app in local dev (src/providers/keys.ts).
 .data/
+
+# Machine-specific deploy settings (the tailnet name).
+deploy/config.local.env
