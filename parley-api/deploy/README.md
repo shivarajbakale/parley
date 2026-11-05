@@ -5,23 +5,24 @@ the `ts-deploy` CLI.
 
 | Command | Result |
 | --- | --- |
-| `npm run deploy` | private: `https://parley-api.taile506df.ts.net`, tailnet devices only |
-| `npm run deploy:public` | the same URL on the public internet (asks you to type `publish`) |
+| `npm run deploy` | private: `https://parley-api.<your-tailnet>.ts.net`, tailnet devices only |
 | `npm run deploy:status` | every node on the host |
 | `npm run deploy:logs` | follow this node's logs |
 | `npm run deploy:down` | stop and remove the node |
-| `npm run tunnel` | your *local* dev server on a public URL until Ctrl-C |
 
-From GitHub: **Actions → deploy → Run workflow**, pick `mini` or `public`.
-Secrets it needs are listed at the top of `.github/workflows/deploy.yml`.
+Deploys are manual and private. Nothing in CI deploys, and there is no public
+deploy: `/api/providers` spends (and `/api/providers/keys` replaces) your
+provider keys, so the tailnet is the only gate.
+
+Put your tailnet name in `deploy/config.local.env` (gitignored):
+`TAILNET=<your-tailnet>.ts.net`. It is only used to print the URL.
 
 ## Files
 
 - `deploy/config.env` — node name, port, health paths, excludes. Edit this.
+- `deploy/config.local.env` — your tailnet name. Gitignored.
 - `compose.ts-deploy.yml` — the services as they run on the node. Edit this.
-- `deploy/deploy.sh`, `deploy/funnel.sh`, `.github/workflows/deploy.yml` — generic,
-  managed by create-rocketship's deploy-kit. Upgrade by re-running the installer
-  with `--force`, not by hand.
+- `deploy/deploy.sh` — generic, from create-rocketship's deploy-kit.
 - `.ts-deploy.*` — generated on every deploy and holds the expanded `.env`.
   Gitignored; never commit it.
 
@@ -30,8 +31,7 @@ Secrets it needs are listed at the top of `.github/workflows/deploy.yml`.
 1. On the mini: Tailscale up, OrbStack or Docker running, `ts-deploy` installed,
    auth key in `~/.config/ts-deploy/authkey`, Remote Login on.
 2. On the laptop: `ts-deploy host set <user@mini>` and `ts-deploy host doctor`.
-3. Tailnet admin: enable **HTTPS Certificates**. For public deploys, also give the
-   node the `funnel` attribute in the policy file.
+3. Tailnet admin: enable **HTTPS Certificates**.
 
 ## Rules that bite
 

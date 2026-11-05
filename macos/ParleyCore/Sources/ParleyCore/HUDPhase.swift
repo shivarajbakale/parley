@@ -9,12 +9,20 @@ public struct HUDPhase: Equatable, Sendable {
 
     public let phase: Phase
     public let message: String?
+    /// With `notice`: the smaller line that says how to answer.
+    public let hint: String?
+    /// With `notice`: the answer was yes.
+    public let accepted: Bool
+    /// With `listening`: edit, explain or act; nil is dictation.
     public let mode: String?
     public let tick: Bool
 
-    public init(phase: Phase, message: String? = nil, mode: String? = nil, tick: Bool = false) {
+    public init(phase: Phase, message: String? = nil, hint: String? = nil, accepted: Bool = false,
+                mode: String? = nil, tick: Bool = false) {
         self.phase = phase
         self.message = message
+        self.hint = hint
+        self.accepted = accepted
         self.mode = mode
         self.tick = tick
     }
@@ -24,6 +32,8 @@ public struct HUDPhase: Equatable, Sendable {
         self.init(
             phase: phase,
             message: params?["message"]?.string,
+            hint: params?["hint"]?.string,
+            accepted: params?["accepted"]?.bool ?? false,
             mode: params?["mode"]?.string,
             tick: params?["tick"]?.bool ?? false
         )

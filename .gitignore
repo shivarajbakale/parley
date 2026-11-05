@@ -24,8 +24,6 @@ dist
 
 tsconfig.tsbuildinfo
 
-# Compiled from native/parley-ax.swift by scripts/build-ax-helper.sh.
-resources/parley-ax
 # Bundled from parley-agent/ by scripts/build-agent.sh.
 resources/parley-agent
 

@@ -9,6 +9,8 @@
 #
 # Keys come from .env via env_file (synced to the host, never committed). The
 # environment: block overrides the loopback HOST .env carries for local dev.
+# Keys saved from the app's settings window live in the `keys` volume, which a
+# redeploy never touches, and win over .env.
 name: parley-api
 
 services:
@@ -23,6 +25,9 @@ services:
       PORT: '3100'
       # Listen on every interface in the node's netns, so the serve proxy reaches it.
       HOST: '0.0.0.0'
+      PARLEY_KEYS_FILE: /data/provider-keys.json
+    volumes:
+      - keys:/data
     expose:
       - '3100'
     # node:*-slim has no curl, so probe with node.
@@ -38,3 +43,6 @@ services:
       timeout: 5s
       start_period: 40s
       retries: 3
+
+volumes:
+  keys:

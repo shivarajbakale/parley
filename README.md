@@ -92,17 +92,17 @@ third tap, speak, release.
 
 ## Status
 
-Parley recently moved from Electron to a native SwiftUI app. Dictation is
-native today; the rest is being ported from the engine that already does it.
+Parley recently moved from Electron to a native SwiftUI app. Every mode is
+ported; dictation is verified in daily use and the rest are in live testing.
 
-| | Feature | Status |
-|---|---|---|
-| 🎙️ | Dictation with a personal dictionary | ✅ native |
-| 🪟 | Liquid Glass settings window and onboarding | 🛠️ [parley-020](feature_list.json) |
-| ✍️ | Voice edit — “make it shorter”, including in terminals | 🛠️ parley-021 |
-| 💬 | Explain — ask about the selected text | 🛠️ parley-022 |
-| 🤖 | Act — voice commands run by an agent | 🛠️ parley-023 |
-| 🔄 | Sync with the Android app | 🛠️ parley-024 |
+| | Feature | Gesture (default) | Status |
+|---|---|---|---|
+| 🎙️ | Dictation with a personal dictionary | Right ⌥ | ✅ verified |
+| ✍️ | Voice edit — “make it shorter”, including in terminals | Right ⌘ | 🧪 in testing |
+| 💬 | Explain — ask about the selected text | Right ⌃ | 🧪 in testing |
+| 🤖 | Act — voice commands run by an agent | Right ⇧ | 🧪 in testing |
+| 🪟 | Settings window, dictionary, learning words | — | 🧪 in testing |
+| 🔄 | Sync with the Android app | — | 🧪 in testing |
 
 ## Repository
 

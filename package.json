@@ -6,7 +6,6 @@
   "description": "Parley's engine: the dictation session, gestures, transcription and dictionary, run headless under Node by the native macOS app in macos/.",
   "scripts": {
     "build:engine": "bash scripts/build-engine.sh",
-    "build:ax-helper": "bash scripts/build-ax-helper.sh",
     "build:agent": "bash scripts/build-agent.sh",
     "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",

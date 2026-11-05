@@ -15,7 +15,7 @@ const ok = (body: string, type = 'application/json') =>
 describe('/api/providers', () => {
   it('says which keys it has, never the keys', async () => {
     const res = await request(appWith({ GROQ_API_KEY: 'gsk_secret', MINIMAX_API_KEY: ' ' })).get('/api/providers/status');
-    expect(res.body).toEqual({ groq: true, deepgram: false, minimax: false });
+    expect(res.body).toEqual({ groq: true, deepgram: false, minimax: false, exa: false });
     expect(res.text).not.toContain('gsk_secret');
   });
 

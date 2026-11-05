@@ -31,6 +31,9 @@ cd "$PROJECT_DIR"
 
 # shellcheck source=/dev/null
 . "$KIT_DIR/config.env"
+# Machine-specific values (your tailnet name), kept out of git.
+# shellcheck source=/dev/null
+[ -f "$KIT_DIR/config.local.env" ] && . "$KIT_DIR/config.local.env"
 : "${NODE_NAME:?set NODE_NAME in deploy/config.env}"
 : "${SERVE_PORT:?set SERVE_PORT in deploy/config.env}"
 COMPOSE_FILE="${COMPOSE_FILE:-compose.ts-deploy.yml}"

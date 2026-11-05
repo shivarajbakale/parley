@@ -2,6 +2,31 @@ import AppKit
 import ParleyCore
 import SwiftUI
 
+/// Parley's colours: violet for dictation (the brand), and one hue per mode
+/// so the pill says which gesture you made before you speak.
+enum Brand {
+    static let violet = Color(red: 0x5B / 255, green: 0x3D / 255, blue: 0xF5 / 255)
+    static let violetBright = Color(red: 0x8F / 255, green: 0x7C / 255, blue: 0xFF / 255)
+
+    static func hue(for mode: String?) -> Color {
+        switch mode {
+        case "edit": Color(red: 0.75, green: 0.35, blue: 0.95)
+        case "explain": Color(red: 0.19, green: 0.69, blue: 0.78)
+        case "act": Color(red: 1.0, green: 0.62, blue: 0.04)
+        default: violetBright
+        }
+    }
+
+    static func label(for mode: String?) -> String {
+        switch mode {
+        case "edit": "Voice edit"
+        case "explain": "Explain"
+        case "act": "Act"
+        default: "Listening"
+        }
+    }
+}
+
 /// What the pill shows. Driven by the engine's `hud.*` notifications and the
 /// recorder's level.
 @MainActor
@@ -11,8 +36,20 @@ final class HUDModel {
 
     var phase: HUDPhase.Phase = .listening
     var message: String?
+    var hint: String?
+    var accepted = false
+    var mode: String?
     var levels: [Float] = Array(repeating: 0, count: barCount)
     var startedAt = Date()
+
+    func apply(_ update: HUDPhase) {
+        phase = update.phase
+        message = update.message
+        hint = update.hint
+        accepted = update.accepted
+        // The mode is set when a session starts and worn until it ends.
+        if update.phase == .listening { mode = update.mode }
+    }
 
     func push(level: Float) {
         levels.removeFirst()
@@ -23,17 +60,20 @@ final class HUDModel {
         levels = Array(repeating: 0, count: Self.barCount)
         startedAt = Date()
         message = nil
+        hint = nil
+        accepted = false
     }
 }
 
 /// A borderless, non-activating panel: it floats over every app and space,
 /// never takes focus from the field being dictated into, and lets clicks
-/// through.
+/// through. It sits at the bottom of the window the user is working in.
 @MainActor
 final class HUDPanel {
     let model = HUDModel()
     private let panel: NSPanel
-    private static let size = NSSize(width: 420, height: 72)
+    private static let size = NSSize(width: 520, height: 84)
+    private var placement = 0
 
     init() {
         panel = NSPanel(
@@ -53,18 +93,31 @@ final class HUDPanel {
         panel.contentView = NSHostingView(rootView: HUDView(model: model))
     }
 
+    var isVisible: Bool { panel.isVisible && panel.alphaValue > 0 }
+
     func show() {
-        let mouse = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
-        if let frame = screen?.visibleFrame {
-            panel.setFrameOrigin(NSPoint(x: frame.midX - Self.size.width / 2, y: frame.minY + 48))
+        let wasVisible = isVisible
+        if !wasVisible {
+            model.reset()
+            // At once on the mouse's screen, then onto the user's window once
+            // Accessibility says where it is (it can be on another display).
+            place(in: Self.screenFrame(containing: NSEvent.mouseLocation))
+            placement += 1
+            let mine = placement
+            Task.detached(priority: .userInitiated) {
+                let window = Accessibility.frontWindowBounds()
+                await MainActor.run {
+                    guard mine == self.placement, let window else { return }
+                    self.place(onto: window)
+                }
+            }
         }
-        model.reset()
         panel.alphaValue = 1
         panel.orderFrontRegardless()
     }
 
     func hide() {
+        placement += 1
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.15
             panel.animator().alphaValue = 0
@@ -72,10 +125,30 @@ final class HUDPanel {
             MainActor.assumeIsolated { panel.orderOut(nil) }
         })
     }
+
+    private static func screenFrame(containing point: NSPoint) -> NSRect {
+        (NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main)?.visibleFrame ?? .zero
+    }
+
+    private func place(in frame: NSRect) {
+        panel.setFrameOrigin(NSPoint(x: frame.midX - Self.size.width / 2, y: frame.minY + 40))
+    }
+
+    /// `window` is in Accessibility's top-left coordinates.
+    private func place(onto window: CGRect) {
+        guard let primary = NSScreen.screens.first else { return }
+        let flipped = NSRect(x: window.minX, y: primary.frame.maxY - window.maxY, width: window.width, height: window.height)
+        let visible = Self.screenFrame(containing: NSPoint(x: flipped.midX, y: flipped.midY))
+        let bottom = max(flipped.minY, visible.minY) + 40
+        let x = min(max(flipped.midX - Self.size.width / 2, visible.minX + 8), visible.maxX - Self.size.width - 8)
+        panel.setFrameOrigin(NSPoint(x: x, y: bottom))
+    }
 }
 
 struct HUDView: View {
     let model: HUDModel
+
+    private var hue: Color { Brand.hue(for: model.mode) }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -84,7 +157,7 @@ struct HUDView: View {
         }
         .padding(.leading, 9)
         .padding(.trailing, 20)
-        .frame(height: 52)
+        .frame(minHeight: 52)
         .glassEffect(.regular, in: .capsule)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.smooth(duration: 0.25), value: model.phase)
@@ -94,52 +167,68 @@ struct HUDView: View {
         switch model.phase {
         case .listening:
             Circle()
-                .fill(Color.accentColor)
+                .fill(hue)
                 .frame(width: 34, height: 34)
-                .shadow(color: .accentColor.opacity(0.6), radius: 10)
+                .shadow(color: hue.opacity(0.6), radius: 10)
         case .transcribing:
             ProgressView()
                 .controlSize(.small)
                 .frame(width: 34, height: 34)
         case .done:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 30))
-                .foregroundStyle(.green)
+            symbol("checkmark.circle.fill", .green)
         case .error:
-            Image(systemName: "exclamationmark.circle.fill")
-                .font(.system(size: 30))
-                .foregroundStyle(.red)
+            symbol("exclamationmark.circle.fill", .red)
         case .notice:
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 30))
-                .foregroundStyle(Color.accentColor)
+            symbol(model.accepted ? "checkmark.circle.fill" : noticeSymbol, model.accepted ? .green : hue)
         case .cancelled:
-            Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 30))
-                .foregroundStyle(.secondary)
+            symbol("xmark.circle.fill", .secondary)
         }
+    }
+
+    private var noticeSymbol: String {
+        switch model.mode {
+        case "act": "sparkles"
+        default: "text.badge.plus"
+        }
+    }
+
+    private func symbol(_ name: String, _ color: Color) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 28))
+            .foregroundStyle(color)
+            .frame(width: 34, height: 34)
     }
 
     @ViewBuilder private var content: some View {
         switch model.phase {
         case .listening:
-            HStack(spacing: 3) {
-                ForEach(Array(model.levels.enumerated()), id: \.offset) { _, level in
-                    Capsule()
-                        .fill(Color.accentColor.opacity(0.45 + Double(level) * 0.55))
-                        .frame(width: 4, height: 6 + CGFloat(level) * 22)
+            VStack(alignment: .leading, spacing: 1) {
+                if model.mode != nil {
+                    Text(Brand.label(for: model.mode))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                HStack(spacing: 10) {
+                    HStack(spacing: 3) {
+                        ForEach(Array(model.levels.enumerated()), id: \.offset) { _, level in
+                            Capsule()
+                                .fill(hue.opacity(0.45 + Double(level) * 0.55))
+                                .frame(width: 4, height: 6 + CGFloat(level) * 22)
+                        }
+                    }
+                    .frame(height: 28)
+                    .animation(.linear(duration: 0.08), value: model.levels)
+                    TimelineView(.periodic(from: model.startedAt, by: 1)) { context in
+                        Text(elapsed(since: model.startedAt, now: context.date))
+                            .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                    }
                 }
             }
-            .frame(height: 28)
-            .animation(.linear(duration: 0.08), value: model.levels)
-            TimelineView(.periodic(from: model.startedAt, by: 1)) { context in
-                Text(elapsed(since: model.startedAt, now: context.date))
-                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
-            }
         case .transcribing:
-            Text("Writing it down…").font(.system(size: 13.5, weight: .medium))
+            Text(model.mode == "edit" ? "Rewriting…" : model.mode == "explain" ? "Thinking…" : "Writing it down…")
+                .font(.system(size: 13.5, weight: .medium))
         case .done:
-            Text("Pasted").font(.system(size: 13.5, weight: .medium))
+            Text("Done").font(.system(size: 13.5, weight: .medium))
         case .error:
             Text(model.message ?? "Something went wrong")
                 .font(.system(size: 13.5, weight: .semibold))
@@ -147,7 +236,16 @@ struct HUDView: View {
         case .cancelled:
             Text("Cancelled").font(.system(size: 13.5, weight: .medium))
         case .notice:
-            Text(model.message ?? "").font(.system(size: 13.5, weight: .medium))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(model.message ?? "")
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .lineLimit(2)
+                if let hint = model.hint, !model.accepted {
+                    Text(hint)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 

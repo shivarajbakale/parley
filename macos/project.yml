@@ -58,3 +58,17 @@ targets:
           DEST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/engine"
           mkdir -p "$DEST"
           cp -f "$SRCROOT/build/engine/engine.mjs" "$SRCROOT/build/engine/node" "$DEST/"
+      - name: Copy the agent into Resources
+        basedOnDependencyAnalysis: false
+        script: |
+          # Act mode's Mastra server, built by `make agent` (scripts/build-agent.sh).
+          # Optional: without it the app runs and reports the agent offline.
+          AGENT="$SRCROOT/../resources/parley-agent"
+          DEST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/parley-agent"
+          if [ -f "$AGENT/index.mjs" ]; then
+            mkdir -p "$DEST"
+            rsync -a --delete "$AGENT/" "$DEST/"
+          else
+            echo "warning: no agent bundle at resources/parley-agent; run make agent for Act mode"
+            rm -rf "$DEST"
+          fi

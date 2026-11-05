@@ -14,45 +14,27 @@
   },
   "features": [
     {
-      "id": "parley-019",
-      "priority": 21,
-      "area": "native-shell",
-      "title": "Native macOS shell, phase 1: headless engine + Swift dictation",
-      "user_visible_behavior": "SwiftUI menu-bar Parley.app dictates end to end (gesture, speak, release, pasted) with a glass HUD, driving the TypeScript engine under bundled Node over stdio JSON-RPC.",
-      "status": "in_progress",
-      "plan": "none: native shell, no web surface. Spec: docs/plans/parley-019-native-shell.md",
-      "verification": [
-        "make check",
-        "Live: dictate into TextEdit, Notes, Slack from Parley.app; latency and RSS vs Electron"
-      ],
-      "evidence": [
-        "2026-11-05 unit: headless-rpc 12 + headless-engine 14 vitest pass; ParleyCore 23 swift tests pass; tsc + eslint clean",
-        "2026-11-05 build: make -C macos build clean (0 warnings), signed Apple Development; engine.mjs 40K + node v24.22.1 117M in Resources",
-        "2026-11-05 smoke: bundled engine answers hello over stdio, refuses protocol 7; app refuses to start engine while Electron Parley runs",
-        "2026-11-05 baseline: Electron Parley 276 MB RSS over 9 processes, 541 MB on disk",
-        "2026-11-05 live: Parley Native.app, Electron quit; hello ok (engine 0.6.4); Accessibility granted live, key tap started without relaunch; 3 dictations via Left Shift x2 hold: listening -> transcribing -> pasted 14/29/23 chars -> done. Gesture release to paste 1.4 s, 1.1 s, 0.9 s (Groq via parley-api over Tailscale).",
-        "2026-11-05 Accessibility and Microphone survive a rebuild and relaunch (Apple Development signing).",
-        "2026-11-05 memory after use: app 196 MB + engine 102 MB RSS (idle before first use: 75 + 51). Not yet compared like for like with Electron (276 MB idle)."
-      ]
-    },
-    {
       "id": "parley-020",
       "priority": 22,
       "area": "native-shell",
       "title": "Native settings window: general, keys, provider, dictionary, onboarding",
       "user_visible_behavior": "A Liquid Glass settings window (design: claude.ai/artifact/Mirpic2JxR1ZZyewgN8nZL) edits settings and the personal dictionary through the engine, and a first-run flow asks for Microphone and Accessibility.",
-      "status": "not_started",
+      "status": "in_progress",
       "verification": [
         "make check",
         "Live: change gesture key and provider, add a dictionary word, both take effect on the next dictation"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-05 built: engine wiring ported from the Electron main process, protocol v2; engine tests drive it over the wire with a fake shell (428 engine tests, 31 Swift tests pass); app builds clean.",
+        "2026-11-05 live: app launches, hello v2 ok with the Keychain key; settings window, keys and dictionary panes built. Not yet used by a person."
+      ],
       "ported_from": [
         "parley-006",
         "parley-007",
         "parley-010",
         "parley-012"
-      ]
+      ],
+      "plan": "none: native, no web surface. Spec: docs/plans/parley-020-024-native-ports.md"
     },
     {
       "id": "parley-021",
@@ -60,16 +42,21 @@
       "area": "native-shell",
       "title": "Native voice edit, including terminals and long documents",
       "user_visible_behavior": "Voice edit on its own gesture rewrites the selection or focused field (terminal input after the prompt, the caret's paragraph in long documents) from the native shell, with Accessibility read in-process.",
-      "status": "not_started",
+      "status": "blocked",
       "verification": [
         "make check",
         "Live: voice edit in TextEdit, Notes and iTerm2"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-05 built: engine wiring ported from the Electron main process, protocol v2; engine tests drive it over the wire with a fake shell (428 engine tests, 31 Swift tests pass); app builds clean.",
+        "2026-11-05 in-process Accessibility read and select replace the parley-ax helper; paste over field, copy all, erase covered by ParleyCore tests."
+      ],
       "ported_from": [
         "parley-005",
         "parley-018"
-      ]
+      ],
+      "plan": "none: native, no web surface. Spec: docs/plans/parley-020-024-native-ports.md",
+      "blocker": "Built and unit-tested together with parley-020; waiting for a live check by the user, one feature at a time."
     },
     {
       "id": "parley-022",
@@ -77,16 +64,21 @@
       "area": "native-shell",
       "title": "Native Explain popover",
       "user_visible_behavior": "Explain on its own gesture answers a question about the selection in a glass popover anchored to it, streamed from parley-api.",
-      "status": "not_started",
+      "status": "blocked",
       "verification": [
         "make check",
         "Live: explain a selection in Safari and TextEdit"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-05 built: engine wiring ported from the Electron main process, protocol v2; engine tests drive it over the wire with a fake shell (428 engine tests, 31 Swift tests pass); app builds clean.",
+        "2026-11-05 Explain card (glass, anchored under the selection, outside click dismisses) built; engine test drives explain.show from a selection."
+      ],
       "ported_from": [
         "explain-selection",
         "parley-016"
-      ]
+      ],
+      "plan": "none: native, no web surface. Spec: docs/plans/parley-020-024-native-ports.md",
+      "blocker": "Built and unit-tested together with parley-020; waiting for a live check by the user, one feature at a time."
     },
     {
       "id": "parley-023",
@@ -94,15 +86,20 @@
       "area": "native-shell",
       "title": "Native Act mode with the Mastra agent",
       "user_visible_behavior": "Act on its own gesture hands the command to the bundled parley-agent, with progress and approvals on the pill.",
-      "status": "not_started",
+      "status": "blocked",
       "verification": [
         "make check",
         "Live: an Act command that needs one approval"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-05 built: engine wiring ported from the Electron main process, protocol v2; engine tests drive it over the wire with a fake shell (428 engine tests, 31 Swift tests pass); app builds clean.",
+        "2026-11-05 bundled agent starts under the bundled Node on a spare port and serves 4 tools (web search, notes); the engine attached to an already-running agent on :4112 (a leftover from the Electron app)."
+      ],
       "ported_from": [
         "parley-013"
-      ]
+      ],
+      "plan": "none: native, no web surface. Spec: docs/plans/parley-020-024-native-ports.md",
+      "blocker": "Built and unit-tested together with parley-020; waiting for a live check by the user, one feature at a time."
     },
     {
       "id": "parley-024",
@@ -110,16 +107,21 @@
       "area": "native-shell",
       "title": "Native sync, token in the Keychain",
       "user_visible_behavior": "Sync of dictionary and settings works from the native shell, the token stored in the Keychain by Swift and handed to the engine.",
-      "status": "not_started",
+      "status": "blocked",
       "verification": [
         "make check",
         "Live: a word added on Android appears on the Mac"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-11-05 built: engine wiring ported from the Electron main process, protocol v2; engine tests drive it over the wire with a fake shell (428 engine tests, 31 Swift tests pass); app builds clean.",
+        "2026-11-05 token encrypted with AES-256-GCM under a Keychain key; engine tests cover sign-in, sign-out and refusing without the key. Tokens stored by Electron must be re-entered."
+      ],
       "ported_from": [
         "parley-015",
         "parley-017"
-      ]
+      ],
+      "plan": "none: native, no web surface. Spec: docs/plans/parley-020-024-native-ports.md",
+      "blocker": "Built and unit-tested together with parley-020; waiting for a live check by the user, one feature at a time."
     }
   ]
 }
