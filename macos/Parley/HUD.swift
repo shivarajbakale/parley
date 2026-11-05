@@ -109,7 +109,11 @@ struct HUDView: View {
             Image(systemName: "exclamationmark.circle.fill")
                 .font(.system(size: 30))
                 .foregroundStyle(.red)
-        case .cancelled, .notice:
+        case .notice:
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 30))
+                .foregroundStyle(Color.accentColor)
+        case .cancelled:
             Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 30))
                 .foregroundStyle(.secondary)

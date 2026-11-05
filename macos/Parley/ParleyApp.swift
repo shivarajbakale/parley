@@ -30,7 +30,14 @@ struct MenuContent: View {
             Button("Allow Microphone…") { controller.requestMicrophone() }
         }
         if !controller.permissions.accessibility {
-            Button("Allow Accessibility…") { controller.requestAccessibility() }
+            if controller.accessibilityLooksStale {
+                Text("Parley is on in System Settings but macOS still says no.")
+                Text("Select Parley Native, remove it with −, then add it again.").font(.caption)
+                Button("Open Accessibility Settings…") { controller.openAccessibilitySettings() }
+                Button("Show Parley Native in Finder") { controller.revealAppInFinder() }
+            } else {
+                Button("Allow Accessibility…") { controller.requestAccessibility() }
+            }
         }
         if let last = controller.lastTranscript {
             Button("Copy last: \(last.prefix(40))\(last.count > 40 ? "…" : "")") {

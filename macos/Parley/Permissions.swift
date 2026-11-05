@@ -29,10 +29,17 @@ enum Permissions {
         }
     }
 
-    /// Shows the system prompt the first time; after that, opens the pane.
+    private static let promptedKey = "accessibilityPrompted"
+
+    /// The system prompt only once, ever: it adds Parley to the list. After
+    /// that, asking again just opens the pane, never a second dialog.
     static func requestAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        if !AXIsProcessTrustedWithOptions(options) {
+        guard !AXIsProcessTrusted() else { return }
+        if !UserDefaults.standard.bool(forKey: promptedKey) {
+            UserDefaults.standard.set(true, forKey: promptedKey)
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+        } else {
             openSettings(anchor: "Privacy_Accessibility")
         }
     }

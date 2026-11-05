@@ -31,8 +31,10 @@ targets:
     info:
       path: Parley/Info.plist
       properties:
-        CFBundleName: Parley
-        CFBundleDisplayName: Parley
+        # "Parley Native" while the Electron Parley still exists, so the two
+        # are told apart in System Settings' permission lists.
+        CFBundleName: Parley Native
+        CFBundleDisplayName: Parley Native
         CFBundleShortVersionString: "0.6.4"
         CFBundleVersion: "1"
         LSUIElement: true
@@ -41,7 +43,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shivarajbakale.parley.mac
-        PRODUCT_NAME: Parley
+        PRODUCT_NAME: Parley Native
     preBuildScripts:
       - name: Build engine
         basedOnDependencyAnalysis: false

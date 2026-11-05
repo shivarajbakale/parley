@@ -4,7 +4,7 @@
 #   make -C macos run      build, then open the app
 
 DERIVED := build/DerivedData
-APP := $(DERIVED)/Build/Products/Debug/Parley.app
+APP := "$(DERIVED)/Build/Products/Debug/Parley Native.app"
 
 .PHONY: project build test run clean
 

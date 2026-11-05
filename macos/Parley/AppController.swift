@@ -20,6 +20,10 @@ final class AppController {
     /// The dictation gesture as the engine's settings have it, e.g. "Right ⌥ ×3".
     private(set) var gestureLabel: String?
     private(set) var lastTranscript: String?
+    /// Accessibility was asked for, switched on in System Settings by the
+    /// user, and macOS still says no: the list entry is stale (the build's
+    /// signature changed). The menu says how to fix it.
+    private(set) var accessibilityLooksStale = false
 
     @ObservationIgnored private let log = Logger(subsystem: "com.shivarajbakale.parley.mac", category: "app")
     @ObservationIgnored private let engine = EngineProcess()
@@ -30,6 +34,9 @@ final class AppController {
     @ObservationIgnored private var peer: RPCPeer?
     @ObservationIgnored private var exits: [Date] = []
     @ObservationIgnored private var permissionTimer: Timer?
+    @ObservationIgnored private var accessibilityAskedAt: Date?
+    /// Past this, a request that still reads as untrusted is probably stale.
+    private static let staleAfter: TimeInterval = 20
 
     /// Electron's packaged id, and the dev binary when run from this repo.
     private static let electronBundleIds: Set<String> = ["parley", "com.github.Electron"]
@@ -68,7 +75,20 @@ final class AppController {
     }
 
     func requestAccessibility() {
+        // A gesture refused for Accessibility arrives on every attempt; one
+        // trip to System Settings a minute is plenty.
+        if let asked = accessibilityAskedAt, Date().timeIntervalSince(asked) < 60 { return }
+        accessibilityAskedAt = Date()
         Permissions.requestAccessibility()
+    }
+
+    func openAccessibilitySettings() {
+        accessibilityAskedAt = Date()
+        Permissions.openSettings(anchor: "Privacy_Accessibility")
+    }
+
+    func revealAppInFinder() {
+        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
     }
 
     // MARK: - Engine
@@ -104,6 +124,7 @@ final class AppController {
                 "permissions": permissionsJSON,
             ])
             engineVersion = reply["engineVersion"]?.string
+            log.info("hello ok, engine \(self.engineVersion ?? "?", privacy: .public), mic \(self.permissions.microphone), ax \(self.permissions.accessibility)")
             if let key = reply["settings"]?["gestureKey"]?.string,
                let taps = reply["settings"]?["tapCount"]?.number {
                 gestureLabel = "\(Self.keyLabel(key)) ×\(Int(taps))"
@@ -142,6 +163,7 @@ final class AppController {
                 throw RPCError(code: RPCError.handlerFailed, message: "Parley needs Accessibility to paste")
             }
             await paster.paste(text)
+            log.info("pasted \(text.count) chars")
             return ["ok": true]
         default:
             throw RPCError(code: RPCError.methodNotFound, message: "Unknown method \(method)")
@@ -175,6 +197,7 @@ final class AppController {
     }
 
     private func apply(_ phase: HUDPhase) {
+        log.info("phase \(phase.phase.rawValue, privacy: .public) \(phase.message ?? "", privacy: .public)")
         hud.model.phase = phase.phase
         hud.model.message = phase.message
         if phase.tick { playTick(for: phase.phase) }
@@ -186,6 +209,7 @@ final class AppController {
                 log.error("recording failed: \(error.localizedDescription, privacy: .public)")
             }
         case .stopAndSend:
+            log.info("take: \(self.audio.isRecording ? "recording" : "nothing recorded", privacy: .public)")
             // Always answered: the engine's session waits on exactly one.
             if let take = audio.stop() {
                 peer?.notify("audio.ready", [
@@ -223,11 +247,37 @@ final class AppController {
 
     private func pollPermissions() {
         let now = PermissionState.current()
+        if !now.accessibility, let asked = accessibilityAskedAt {
+            accessibilityLooksStale = Date().timeIntervalSince(asked) > Self.staleAfter
+        }
         guard now != permissions else { return }
+        let justTrusted = now.accessibility && !permissions.accessibility
         permissions = now
         peer?.notify("permissions.changed", permissionsJSON)
         startKeyTapIfTrusted()
+        log.info("permissions mic \(now.microphone) ax \(now.accessibility), tap \(self.keyTap.isRunning)")
         refreshStatus()
+        if justTrusted {
+            accessibilityAskedAt = nil
+            accessibilityLooksStale = false
+            if status == .ready { announce("Parley is ready. \(gestureLabel ?? "Your gesture"), hold the last.") }
+        } else if now.microphone && !now.accessibility {
+            // Microphone just landed: go straight on to the other one.
+            requestAccessibility()
+        }
+    }
+
+    /// A short pill outside any session, e.g. "ready".
+    private func announce(_ message: String) {
+        hud.show()
+        hud.model.phase = .notice
+        hud.model.message = message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.hud.model.phase == .notice else { return }
+                self.hud.hide()
+            }
+        }
     }
 
     private func startKeyTapIfTrusted() {

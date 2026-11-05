@@ -326,7 +326,10 @@
         "2026-11-05 unit: headless-rpc 12 + headless-engine 14 vitest pass; ParleyCore 23 swift tests pass; tsc + eslint clean",
         "2026-11-05 build: make -C macos build clean (0 warnings), signed Apple Development; engine.mjs 40K + node v24.22.1 117M in Resources",
         "2026-11-05 smoke: bundled engine answers hello over stdio, refuses protocol 7; app refuses to start engine while Electron Parley runs",
-        "2026-11-05 baseline: Electron Parley 276 MB RSS over 9 processes, 541 MB on disk"
+        "2026-11-05 baseline: Electron Parley 276 MB RSS over 9 processes, 541 MB on disk",
+        "2026-11-05 live: Parley Native.app, Electron quit; hello ok (engine 0.6.4); Accessibility granted live, key tap started without relaunch; 3 dictations via Left Shift x2 hold: listening -> transcribing -> pasted 14/29/23 chars -> done. Gesture release to paste 1.4 s, 1.1 s, 0.9 s (Groq via parley-api over Tailscale).",
+        "2026-11-05 Accessibility and Microphone survive a rebuild and relaunch (Apple Development signing).",
+        "2026-11-05 memory after use: app 196 MB + engine 102 MB RSS (idle before first use: 75 + 51). Not yet compared like for like with Electron (276 MB idle)."
       ]
     }
   ]
