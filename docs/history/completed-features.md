@@ -11,6 +11,7 @@ full register entry, evidence included.
 | `parley-002` | Orb window records and animates |
 | `parley-003` | Settings and onboarding window |
 | `parley-014` | Monorepo: Android and the sync API live beside the desktop app |
+| `parley-019` | Native macOS shell, phase 1: headless engine + Swift dictation |
 
 ## Register entries
 
@@ -126,5 +127,35 @@ Archived 2026-10-03. Its Express/Prisma server was replaced by the Mastra parley
     "2026-10-02 git log --oneline 66493cd^2 | wc -l = 16 (Android history kept)."
   ],
   "notes": "Spec docs/superpowers/specs/2026-10-02-monorepo-and-api-design.md, layout A."
+}
+```
+
+### parley-019
+
+```json
+{
+  "id": "parley-019",
+  "priority": 21,
+  "area": "native-shell",
+  "title": "Native macOS shell, phase 1: headless engine + Swift dictation",
+  "user_visible_behavior": "SwiftUI menu-bar Parley.app dictates end to end (gesture, speak, release, pasted) with a glass HUD, driving the TypeScript engine under bundled Node over stdio JSON-RPC.",
+  "status": "passing",
+  "plan": "none: native shell, no web surface. Spec: docs/plans/parley-019-native-shell.md",
+  "verification": [
+    "make check",
+    "Live: dictate into TextEdit, Notes, Slack from Parley.app; latency and RSS vs Electron"
+  ],
+  "evidence": [
+    "2026-11-05 unit: headless-rpc 12 + headless-engine 14 vitest pass; ParleyCore 23 swift tests pass; tsc + eslint clean",
+    "2026-11-05 build: make -C macos build clean (0 warnings), signed Apple Development; engine.mjs 40K + node v24.22.1 117M in Resources",
+    "2026-11-05 smoke: bundled engine answers hello over stdio, refuses protocol 7; app refuses to start engine while Electron Parley runs",
+    "2026-11-05 baseline: Electron Parley 276 MB RSS over 9 processes, 541 MB on disk",
+    "2026-11-05 live: Parley Native.app, Electron quit; hello ok (engine 0.6.4); Accessibility granted live, key tap started without relaunch; 3 dictations via Left Shift x2 hold: listening -> transcribing -> pasted 14/29/23 chars -> done. Gesture release to paste 1.4 s, 1.1 s, 0.9 s (Groq via parley-api over Tailscale).",
+    "2026-11-05 Accessibility and Microphone survive a rebuild and relaunch (Apple Development signing).",
+    "2026-11-05 memory after use: app 196 MB + engine 102 MB RSS (idle before first use: 75 + 51). Not yet compared like for like with Electron (276 MB idle).",
+    "2026-11-05 after the Electron removal (build with the new icon): the user dictated and confirmed it works; the app log shows pasted 6 and 64 chars at 23:15.",
+    "2026-11-05 memory settled after use: app 92 MB + engine 68 MB = 160 MB RSS, against 276 MB for the Electron build at idle (9 processes).",
+    "2026-11-05 make check green on main after PR #1 (merge 47ee962); GitHub CI passed."
+  ]
 }
 ```
