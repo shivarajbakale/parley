@@ -3,7 +3,7 @@
 
 NPM ?= $(if $(NPM_BIN),$(NPM_BIN),npm)
 
-.PHONY: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint a11y feature-plan test ui-probe ui-shots check dev build clean help commit-feature doc-lint loop-lint android-check api-check api
+.PHONY: macos-check setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint a11y feature-plan test ui-probe ui-shots check dev build clean help commit-feature doc-lint loop-lint android-check api-check api
 
 help:
 	@echo "Targets:"
@@ -22,7 +22,7 @@ help:
 	@echo "  test        vitest run"
 	@echo "  ui-probe    layout + hierarchy probe in real chromium"
 	@echo "  ui-shots    same probe, writing PNGs to .ui-probe/shots/"
-	@echo "  check       setup + type-check + lint + ui-lint + plan-lint + capability-lint + doc-links + storybook-lint + skill-lint + test + ui-probe + doc-lint + loop-lint + api-check + android-check (full baseline)"
+	@echo "  check       setup + type-check + lint + ui-lint + plan-lint + capability-lint + doc-links + storybook-lint + skill-lint + test + ui-probe + doc-lint + loop-lint + api-check + android-check + macos-check (full baseline)"
 	@echo "  dev         vite dev server + electron main process"
 	@echo "  build       production build (tsc && vite build && electron-builder)"
 	@echo "  clean       remove dist + node_modules"
@@ -39,6 +39,15 @@ api-check:
 # dictation, voice edit, Explain and the Act agent's model on 127.0.0.1:3100.
 api:
 	$(NPM) --prefix parley-api start
+
+# The native macOS shell (parley-019): ParleyCore unit tests. Skipped, not
+# failed, without a Swift toolchain, like android-check.
+macos-check:
+	@if command -v swift >/dev/null 2>&1; then \
+		$(MAKE) -C macos test; \
+	else \
+		echo "macos-check: swift not on PATH, skipped"; \
+	fi
 
 # The Android app verifies with its own harness. Skipped, not failed, when
 # flutter is absent: the desktop baseline must stay runnable without it.
@@ -125,7 +134,7 @@ doc-lint: ## Instruction budget — the harness files stay small, true and non-d
 loop-lint: ## Goal contracts — the definition of done was written first, and something ran against it
 	npm run loop-lint
 
-check: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint test ui-probe doc-lint loop-lint api-check android-check
+check: setup type-check lint ui-lint plan-lint capability-lint doc-links storybook-lint skill-lint test ui-probe doc-lint loop-lint api-check android-check macos-check
 
 dev:
 	$(NPM) run dev

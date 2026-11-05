@@ -1,0 +1,7 @@
+build/
+.build/
+Parley.xcodeproj/
+DerivedData/
+Local.xcconfig
+ParleyCore/.build/
+ParleyCore/.swiftpm/

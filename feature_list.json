@@ -309,6 +309,25 @@
         "2026-10-06 live TextEdit, 11,309-char document: --select placed the caret; captured {text:'The one i mean has a typo in it.', scope:'paragraph', range:{location:11250,length:32}}; after apply the document read 'The one I mean, fixed.' with the lines around it unchanged.",
         "Not run yet: the real gesture with the installed build in iTerm2 at the Claude Code prompt."
       ]
+    },
+    {
+      "id": "parley-019",
+      "priority": 21,
+      "area": "native-shell",
+      "title": "Native macOS shell, phase 1: headless engine + Swift dictation",
+      "user_visible_behavior": "SwiftUI menu-bar Parley.app dictates end to end (gesture, speak, release, pasted) with a glass HUD, driving the TypeScript engine under bundled Node over stdio JSON-RPC.",
+      "status": "in_progress",
+      "plan": "none: native shell, no web surface. Spec: docs/plans/parley-019-native-shell.md",
+      "verification": [
+        "make check",
+        "Live: dictate into TextEdit, Notes, Slack from Parley.app; latency and RSS vs Electron"
+      ],
+      "evidence": [
+        "2026-11-05 unit: headless-rpc 12 + headless-engine 14 vitest pass; ParleyCore 23 swift tests pass; tsc + eslint clean",
+        "2026-11-05 build: make -C macos build clean (0 warnings), signed Apple Development; engine.mjs 40K + node v24.22.1 117M in Resources",
+        "2026-11-05 smoke: bundled engine answers hello over stdio, refuses protocol 7; app refuses to start engine while Electron Parley runs",
+        "2026-11-05 baseline: Electron Parley 276 MB RSS over 9 processes, 541 MB on disk"
+      ]
     }
   ]
 }
