@@ -11,6 +11,10 @@ const field = (patch: Partial<FocusedField> = {}): FocusedField => ({
   secure: false,
   selectionBounds: null,
     frontWindowBounds: null,
+    valueOffset: 0,
+    valueLength: 0,
+    caret: null,
+    bundleId: null,
   ...patch,
 });
 

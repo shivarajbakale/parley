@@ -1,11 +1,18 @@
 // Reads the focused UI element through the macOS Accessibility API and prints
-// one JSON object: { role, subrole, editable, valueKnown, value, selectedText, secure, selectionBounds }.
+// one JSON object: { role, subrole, bundleId, editable, valueKnown, value,
+// valueOffset, valueLength, caret, selectedText, secure, selectionBounds }.
+// A value longer than `valueWindow` (a terminal's scrollback, a long document)
+// is printed only around the caret: `value` starts at `valueOffset` in the
+// whole, which is `valueLength` long. Offsets and lengths count UTF-16 units.
 // With `--window-only` it prints just { frontWindowBounds } and never touches the
 // focused field: the orb only needs to know where the window is, and a field's
 // whole value (a terminal's scrollback) is too much output to wait for.
 //
 // Read-only on purpose. Writing AXValue into a web input skips the page's own
-// input events, so Parley always writes back with a real paste instead.
+// input events, so Parley always writes back with a real paste instead. The
+// one write is `--select <location> <length>`, which moves the selection so
+// that paste lands on one paragraph of a long document; it prints
+// { selected: true|false } and changes no text.
 //
 // Runs as a child of Parley, so it rides on Parley's Accessibility grant.
 
@@ -83,6 +90,27 @@ func emit(_ object: [String: Any]) -> Never {
 
 guard AXIsProcessTrusted() else { emit(["error": "untrusted"]) }
 
+/// The caret or selection as a UTF-16 range in the element's whole value.
+func selectedRange(_ element: AXUIElement) -> CFRange? {
+  guard let value = attribute(element, kAXSelectedTextRangeAttribute),
+    CFGetTypeID(value) == AXValueGetTypeID()
+  else { return nil }
+  var range = CFRange()
+  return AXValueGetValue(value as! AXValue, .cfRange, &range) ? range : nil
+}
+
+/// Each side of the caret printed for a value too long to print whole.
+let valueWindow = 20_000
+
+if let at = CommandLine.arguments.firstIndex(of: "--select") {
+  let numbers = CommandLine.arguments.dropFirst(at + 1).prefix(2).compactMap { Int($0) }
+  guard numbers.count == 2, let element = focusedElement() else { emit(["selected": false]) }
+  var range = CFRange(location: numbers[0], length: numbers[1])
+  guard let value = AXValueCreate(.cfRange, &range) else { emit(["selected": false]) }
+  let result = AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, value)
+  emit(["selected": result == .success])
+}
+
 let windowBounds = frontWindowBounds()
 if CommandLine.arguments.contains("--window-only") {
   emit(["frontWindowBounds": windowBounds as Any? ?? NSNull()])
@@ -104,13 +132,28 @@ let editable = !secure && (textRoles.contains(role) || settable.boolValue)
 // An empty string is an answer ("the field is empty"); no string at all means
 // the app would not say, and only then is the keystroke fallback worth its risk.
 let value = editable ? attribute(element, kAXValueAttribute) as? String : nil
+let caret = secure ? nil : selectedRange(element)
+
+let whole = (value ?? "") as NSString
+var shown = NSRange(location: 0, length: whole.length)
+if whole.length > 2 * valueWindow {
+  let center = min(max(caret?.location ?? whole.length, 0), whole.length)
+  let start = max(0, center - valueWindow)
+  let end = min(whole.length, center + valueWindow)
+  // Never cut an emoji or a combined character in half.
+  shown = whole.rangeOfComposedCharacterSequences(for: NSRange(location: start, length: end - start))
+}
 
 emit([
   "role": role,
   "subrole": subrole,
+  "bundleId": NSWorkspace.shared.frontmostApplication?.bundleIdentifier as Any? ?? NSNull(),
   "editable": editable,
   "valueKnown": value != nil,
-  "value": value ?? "",
+  "value": whole.substring(with: shown),
+  "valueOffset": shown.location,
+  "valueLength": whole.length,
+  "caret": caret.map { ["location": $0.location, "length": $0.length] } as Any? ?? NSNull(),
   // The selection is read for any element that is not a password field: Explain
   // works on text the user cannot edit. Voice edit still gates on `editable`.
   "selectedText": secure ? "" : (attribute(element, kAXSelectedTextAttribute) as? String ?? ""),

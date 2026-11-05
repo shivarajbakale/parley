@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createInjector } from '../injector';
+import { createInjector, ERASE_BATCH, ERASE_SETTLE_MS } from '../injector';
 
 function setup(sendPaste = vi.fn(), copied = 'field text') {
   const log: string[] = [];
@@ -21,6 +21,7 @@ function setup(sendPaste = vi.fn(), copied = 'field text') {
     },
     sendCopy: () => log.push('copy'),
     sendSelectAll: () => log.push('selectAll'),
+    sendBackspace: () => log.push('backspace'),
     delay: async (ms) => {
       log.push(`delay:${ms}`);
     },
@@ -93,5 +94,19 @@ describe('injector', () => {
       'read',
       'restore:old clipboard',
     ]);
+  });
+
+  it('erases with backspaces, pausing every batch so a terminal keeps up', async () => {
+    const { injector, log } = setup();
+    await injector.erase(ERASE_BATCH + 2);
+    expect(log.filter((entry) => entry === 'backspace')).toHaveLength(ERASE_BATCH + 2);
+    expect(log.indexOf(`delay:${ERASE_SETTLE_MS}`)).toBe(ERASE_BATCH);
+    expect(log.at(-1)).toBe(`delay:${ERASE_SETTLE_MS}`);
+  });
+
+  it('sends nothing when there is nothing to erase', async () => {
+    const { injector, log } = setup();
+    await injector.erase(0);
+    expect(log).toEqual([]);
   });
 });

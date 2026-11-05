@@ -1,6 +1,6 @@
 {
   "project": "parley",
-  "last_updated": "2026-10-03",
+  "last_updated": "2026-10-06",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -289,6 +289,26 @@
         "Not run: the GUI walk with the real gesture (Parley server and keys block of docs/MANUAL_CHECKLIST.md)."
       ],
       "notes": "Approved 2026-10-03. Server: parley-api src/providers/route.ts. Auto-start of parley-api by the app is a follow-up; you run make api."
+    },
+    {
+      "id": "parley-018",
+      "priority": 20,
+      "area": "voice-edit",
+      "title": "Voice edit in terminals and long documents",
+      "user_visible_behavior": "In a terminal (iTerm2, Terminal, Ghostty, Warp, kitty, Alacritty, WezTerm, Hyper, Tabby) voice edit rewrites only what is typed after the prompt (Claude Code, Codex, shell and oh-my-zsh prompts), erasing it with backspaces and pasting the rewrite, instead of failing with 'Too much text to edit' on the scrollback. In a field longer than 8000 characters it rewrites the paragraph the caret is in, selected through Accessibility, instead of refusing.",
+      "status": "in_progress",
+      "verification": [
+        "make check",
+        "Unit: terminal-input (prompt detection, wrapped input, graphemes, paragraphAt), edit-target terminal and paragraph scopes, field-reader new fields and --select, injector erase",
+        "Live: parley-ax and edit targets against real Terminal.app (oh-my-zsh prompt) and TextEdit (11k-char document)",
+        "Installed build: voice edit at the Claude Code prompt in iTerm2 with a long scrollback"
+      ],
+      "evidence": [
+        "2026-10-06 root cause: parley-ax in iTerm2 returned AXTextArea value of 27,121 chars (the scrollback) for a Claude Code prompt, so edit-target threw 'Too much text to edit' at MAX_EDIT_CHARS 8000. iTerm2 reports AXSelectedTextRange (caret 90174 of 90386) and it is settable.",
+        "2026-10-06 live Terminal.app: typed 'echo hello wrld please' after '➜  ~ '; captured {text:'echo hello wrld please', scope:'terminal', erase:22}; after erase and typing the rewrite the prompt line read '➜  ~ echo rewritten ok' (prompt untouched). First run caught '~ ' leaking into the input, fixed with the oh-my-zsh prompt pattern.",
+        "2026-10-06 live TextEdit, 11,309-char document: --select placed the caret; captured {text:'The one i mean has a typo in it.', scope:'paragraph', range:{location:11250,length:32}}; after apply the document read 'The one I mean, fixed.' with the lines around it unchanged.",
+        "Not run yet: the real gesture with the installed build in iTerm2 at the Claude Code prompt."
+      ]
     }
   ]
 }

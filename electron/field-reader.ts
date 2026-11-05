@@ -4,6 +4,7 @@
  * so a read is invisible to the user and leaves the clipboard alone.
  */
 
+import type { TextRange } from './terminal-input';
 import type { Rect } from './types';
 
 /** A scrollback-sized value is not a field anyone wants rewritten. */
@@ -18,7 +19,17 @@ export interface FocusedField {
    * Electron often do; true with an empty `value` is a field that is empty.
    */
   valueKnown: boolean;
+  /**
+   * The value, or for a very long one (a terminal's scrollback) only the part
+   * around the caret: it starts at `valueOffset` in a whole `valueLength` long.
+   */
   value: string;
+  valueOffset: number;
+  valueLength: number;
+  /** The caret or selection in the whole value, when the app reports it. */
+  caret: TextRange | null;
+  /** The frontmost app, which tells a terminal from a text field. */
+  bundleId: string | null;
   selectedText: string;
   /** A password field: nothing in it is Parley's to read, by any route. */
   secure: boolean;
@@ -50,6 +61,14 @@ function parseRect(raw: unknown): Rect | null {
   return { x, y, width, height } as Rect;
 }
 
+function parseRange(raw: unknown): TextRange | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const { location, length } = raw as Record<string, unknown>;
+  if (!Number.isInteger(location) || !Number.isInteger(length)) return null;
+  if ((location as number) < 0 || (length as number) < 0) return null;
+  return { location, length } as TextRange;
+}
+
 export function parseFocusedField(stdout: string): FocusedField | null {
   let raw: unknown;
   try {
@@ -58,13 +77,30 @@ export function parseFocusedField(stdout: string): FocusedField | null {
     return null;
   }
   if (typeof raw !== 'object' || raw === null || 'error' in raw) return null;
-  const { editable, valueKnown, value, selectedText, secure, selectionBounds, frontWindowBounds } =
-    raw as Record<string, unknown>;
+  const {
+    editable,
+    valueKnown,
+    value,
+    valueOffset,
+    valueLength,
+    caret,
+    bundleId,
+    selectedText,
+    secure,
+    selectionBounds,
+    frontWindowBounds,
+  } = raw as Record<string, unknown>;
   if (typeof editable !== 'boolean') return null;
+  const text = typeof value === 'string' ? value : '';
+  const offset = Number.isInteger(valueOffset) ? (valueOffset as number) : 0;
   return {
     editable,
     valueKnown: valueKnown === true,
-    value: typeof value === 'string' ? value : '',
+    value: text,
+    valueOffset: offset,
+    valueLength: Number.isInteger(valueLength) ? (valueLength as number) : offset + text.length,
+    caret: parseRange(caret),
+    bundleId: typeof bundleId === 'string' && bundleId ? bundleId : null,
     selectedText: typeof selectedText === 'string' ? selectedText : '',
     secure: secure === true,
     selectionBounds: parseRect(selectionBounds),
@@ -146,6 +182,30 @@ export function createWindowLocator(deps: {
         // Nothing to place yet; a real read reports its own failure.
       }
     },
+  };
+}
+
+const SELECT_TIMEOUT_MS = 2000;
+
+/**
+ * Moves the focused field's selection to `range`, so a paste replaces just
+ * that part of a long document. False when the app would not take it.
+ */
+export function createRangeSelector(deps: {
+  helperPath: string;
+  run: RunHelperWithArgs;
+}): (range: TextRange) => Promise<boolean> {
+  return async (range) => {
+    try {
+      const stdout = await deps.run(
+        deps.helperPath,
+        ['--select', String(range.location), String(range.length)],
+        { timeout: SELECT_TIMEOUT_MS, maxBuffer: WINDOW_OUTPUT_BYTES }
+      );
+      return (JSON.parse(stdout) as { selected?: unknown }).selected === true;
+    } catch {
+      return false;
+    }
   };
 }
 

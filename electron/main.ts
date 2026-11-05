@@ -31,7 +31,7 @@ import { createEditTargets } from './edit-target';
 import { createExplain, createUpdateThrottle, EXPLAIN_LEAVE_MS, STREAM_UPDATE_MS } from './explain';
 import { createExplainClient } from './explain-client';
 import { CARD_MIN_HEIGHT, CARD_WIDTH, maxCardHeight, placeCard } from './explain-placement';
-import { createFieldReader, createWindowLocator } from './field-reader';
+import { createFieldReader, createRangeSelector, createWindowLocator } from './field-reader';
 import { createGestureDetector } from './gesture-detector';
 import { createInjector } from './injector';
 import { createKeyHook } from './key-hook';
@@ -233,6 +233,7 @@ async function startApp() {
     sendPaste: () => uIOhook.keyTap(UiohookKey.V, [UiohookKey.Meta]),
     sendCopy: () => uIOhook.keyTap(UiohookKey.C, [UiohookKey.Meta]),
     sendSelectAll: () => uIOhook.keyTap(UiohookKey.A, [UiohookKey.Meta]),
+    sendBackspace: () => uIOhook.keyTap(UiohookKey.Backspace),
   });
 
   const rewriter = createRewriter({ serverUrl });
@@ -243,6 +244,10 @@ async function startApp() {
       run: async (file, options) => (await execFileAsync(file, [], options)).stdout,
     }),
     injector,
+    select: createRangeSelector({
+      helperPath: AX_HELPER,
+      run: async (file, args, options) => (await execFileAsync(file, args, options)).stdout,
+    }),
   });
 
   const selectionReader = createSelectionReader({

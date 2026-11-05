@@ -15,6 +15,10 @@ export const RESTORE_DELAY_MS = 200;
 export const SELECT_SETTLE_MS = 50;
 /** Let the target app write the pasteboard after Cmd+C. */
 export const COPY_SETTLE_MS = 150;
+/** Backspaces sent before a pause, so a terminal's input queue keeps up. */
+export const ERASE_BATCH = 50;
+/** The pause between batches, and after the last one before a paste. */
+export const ERASE_SETTLE_MS = 20;
 
 export interface InjectorDeps<Snapshot> {
   snapshot(): Snapshot;
@@ -24,6 +28,7 @@ export interface InjectorDeps<Snapshot> {
   sendPaste(): void;
   sendCopy(): void;
   sendSelectAll(): void;
+  sendBackspace(): void;
   delay?(ms: number): Promise<void>;
 }
 
@@ -37,6 +42,8 @@ export interface Injector {
   copyAll(): Promise<string>;
   /** Copy whatever is selected right now and return it, without selecting anything. */
   copySelection(): Promise<string>;
+  /** Press Backspace `count` times: how a terminal's typed input is cleared. */
+  erase(count: number): Promise<void>;
 }
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -75,6 +82,14 @@ export function createInjector<Snapshot>(deps: InjectorDeps<Snapshot>): Injector
       } finally {
         deps.restore(saved);
       }
+    },
+
+    async erase(count) {
+      for (let sent = 0; sent < count; sent++) {
+        deps.sendBackspace();
+        if ((sent + 1) % ERASE_BATCH === 0) await delay(ERASE_SETTLE_MS);
+      }
+      if (count > 0) await delay(ERASE_SETTLE_MS);
     },
 
     async copySelection() {

@@ -11,6 +11,10 @@ const field = (value: string, rest: Partial<FocusedField> = {}): FocusedField =>
   secure: false,
   selectionBounds: null,
     frontWindowBounds: null,
+    valueOffset: 0,
+    valueLength: value.length,
+    caret: null,
+    bundleId: null,
   ...rest,
 });
 

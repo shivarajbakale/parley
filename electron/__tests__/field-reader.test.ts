@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   createFieldReader,
+  createRangeSelector,
   createWindowLocator,
   parseFocusedField,
   parseFrontWindowBounds,
@@ -15,6 +16,10 @@ describe('field reader', () => {
       editable: true,
       valueKnown: true,
       value: 'hello',
+      valueOffset: 0,
+      valueLength: 5,
+      caret: { location: 0, length: 2 },
+      bundleId: 'com.apple.TextEdit',
       selectedText: 'he',
       secure: false,
       selectionBounds: { x: 10, y: 20, width: 30, height: 16 },
@@ -24,6 +29,10 @@ describe('field reader', () => {
       editable: true,
       valueKnown: true,
       value: 'hello',
+      valueOffset: 0,
+      valueLength: 5,
+      caret: { location: 0, length: 2 },
+      bundleId: 'com.apple.TextEdit',
       selectedText: 'he',
       secure: false,
       selectionBounds: { x: 10, y: 20, width: 30, height: 16 },
@@ -37,6 +46,34 @@ describe('field reader', () => {
     expect(parse({ x: 0, y: 0, width: 0, height: 0 })).toBeNull();
     expect(parse({ x: 'a', y: 0, width: 4, height: 4 })).toBeNull();
     expect(parse(null)).toBeNull();
+  });
+
+  it('keeps where a long value\'s printed part sits in the whole', () => {
+    const parsed = parseFocusedField(
+      JSON.stringify({ editable: true, value: 'tail', valueOffset: 90, valueLength: 120 })
+    );
+    expect(parsed).toMatchObject({ value: 'tail', valueOffset: 90, valueLength: 120 });
+  });
+
+  it('drops a caret the app cannot vouch for', () => {
+    const caret = (raw: unknown) =>
+      parseFocusedField(JSON.stringify({ editable: true, caret: raw }))?.caret;
+    expect(caret({ location: -1, length: 0 })).toBeNull();
+    expect(caret({ location: 1.5, length: 0 })).toBeNull();
+    expect(caret(null)).toBeNull();
+    expect(caret({ location: 3, length: 0 })).toEqual({ location: 3, length: 0 });
+  });
+
+  it('asks the helper to move the selection, and reports whether the app took it', async () => {
+    const run = vi.fn().mockResolvedValue('{"selected":true}');
+    const select = createRangeSelector({ helperPath: '/x/parley-ax', run });
+    await expect(select({ location: 40, length: 15 })).resolves.toBe(true);
+    expect(run).toHaveBeenCalledWith('/x/parley-ax', ['--select', '40', '15'], expect.any(Object));
+
+    run.mockResolvedValueOnce('{"selected":false}');
+    await expect(select({ location: 0, length: 1 })).resolves.toBe(false);
+    run.mockRejectedValueOnce(new Error('timeout'));
+    await expect(select({ location: 0, length: 1 })).resolves.toBe(false);
   });
 
   it('treats a helper error, junk output and a missing flag as no field', () => {
@@ -53,6 +90,10 @@ describe('field reader', () => {
       editable: true,
       valueKnown: false,
       value: 'v',
+      valueOffset: 0,
+      valueLength: 1,
+      caret: null,
+      bundleId: null,
       selectedText: '',
       secure: false,
       selectionBounds: null,
