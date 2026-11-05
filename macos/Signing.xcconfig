@@ -1,0 +1,14 @@
+// Ad hoc signing by default, so anyone can build the shell.
+//
+// Ad hoc signatures change on every build, and macOS ties Accessibility and
+// Microphone grants to the signature, so they reset each rebuild. To keep
+// them, put your own identity in macos/Local.xcconfig (gitignored):
+//
+//   CODE_SIGN_IDENTITY = Apple Development
+//   DEVELOPMENT_TEAM = <your team id>
+//   CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = -
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"

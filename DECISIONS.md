@@ -6,6 +6,28 @@ silently undo.
 
 ---
 
+## 2026-11-05: Native SwiftUI shell; Electron and the React UI removed
+
+- **What:** Parley is a SwiftUI menu-bar app (`macos/`, macOS 26) that runs the
+  TypeScript engine (`engine/`) under a bundled, pinned Node over stdio JSON-RPC.
+  The Swift side owns every OS touchpoint (key tap, microphone, Accessibility,
+  paste, windows); the engine keeps the session, gestures, transcription,
+  dictionary and settings logic. The Electron main process, the React/Mantine
+  renderer, Storybook, MSW and the web-UI harness (ui-lint, ui-probe,
+  capability-lint, web skills) were deleted.
+- **Why:** Parley is almost all OS integration, which Electron did worst
+  (uiohook for bare modifiers, a process per Accessibility read, permissions
+  attributed to Electron, a Chromium runtime resident for a tray icon). The
+  engine was already dependency-injected, so it moved without a rewrite.
+- **Rejected alternatives:** rewriting the engine in Swift first (weeks, and
+  it discards tested logic); keeping Electron until every feature was ported
+  (the user chose a gap in voice edit, Explain, Act and settings instead —
+  ports are parley-020…024); a macOS 14 floor (no real Liquid Glass).
+- **Constraint:** the engine's stdout is the protocol; both sides of the wire
+  move together under `protocolVersion`; the engine never requests a
+  permission. Electron-era features are archived in
+  `docs/history/electron-features.md`, not deleted.
+
 ## 2026-09-26: Act mode thinks with MiniMax and ships a dummy MCP server
 
 - **What:** The default model is `minimax/MiniMax-M3` — the same model

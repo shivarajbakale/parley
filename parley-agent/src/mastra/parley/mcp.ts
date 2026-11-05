@@ -36,7 +36,7 @@ export interface McpCatalogEntry {
   tools: number;
 }
 
-interface ServerDefinition {
+export interface ServerDefinition {
   command?: string;
   args?: string[];
   env?: Record<string, string>;
@@ -152,6 +152,19 @@ export function needsApproval(toolName: string, annotations?: ToolAnnotations): 
   return !isReadTool(toolName, annotations);
 }
 
+/** How a stdio server is spawned. A bare `node` swapped for Electron must
+ * carry `ELECTRON_RUN_AS_NODE` itself: the MCP SDK hands a child only a
+ * short allowlist of the parent's environment (PATH, HOME, USER…), so
+ * without it the binary boots a second Parley app instead of the script. */
+export function stdioLaunch(
+  server: ServerDefinition,
+  nodeBin: string | undefined
+): { command: string; args?: string[]; env?: Record<string, string> } {
+  const command = server.command as string;
+  if (command !== 'node' || !nodeBin) return { command, args: server.args, env: server.env };
+  return { command: nodeBin, args: server.args, env: { ...server.env, ELECTRON_RUN_AS_NODE: '1' } };
+}
+
 export function createMcpClient(servers: Record<string, ServerDefinition>): MCPClient {
   const nodeBin = process.env.PARLEY_NODE_BIN;
   const withPolicy: Record<string, MastraMCPServerDefinition> = {};
@@ -159,8 +172,7 @@ export function createMcpClient(servers: Record<string, ServerDefinition>): MCPC
     const approval = (ctx: RequireToolApprovalContext): boolean =>
       needsApproval(ctx.toolName, ctx.annotations);
     if (server.command !== undefined) {
-      const command = server.command === 'node' && nodeBin ? nodeBin : server.command;
-      withPolicy[name] = { command, args: server.args, env: server.env, requireToolApproval: approval };
+      withPolicy[name] = { ...stdioLaunch(server, nodeBin), requireToolApproval: approval };
     } else {
       withPolicy[name] = { url: new URL(server.url as string), requireToolApproval: approval };
     }

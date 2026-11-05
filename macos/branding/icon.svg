@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#2A2350"/>
+      <stop offset="0.55" stop-color="#141127"/>
+      <stop offset="1" stop-color="#0A0914"/>
+    </linearGradient>
+    <radialGradient id="bloom" cx="0.72" cy="0.5" r="0.45">
+      <stop offset="0" stop-color="#6E55FF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#6E55FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="pill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A493FF"/>
+      <stop offset="1" stop-color="#6A4FFF"/>
+    </linearGradient>
+    <clipPath id="body"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+  </defs>
+  <g clip-path="url(#body)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#tile)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#bloom)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#sheen)"/>
+  </g>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="url(#rim)" stroke-width="3"/>
+  <!-- the mark: tap, tap, hold -->
+  <circle cx="290" cy="512" r="58" fill="#FFFFFF"/>
+  <circle cx="440" cy="512" r="58" fill="#FFFFFF"/>
+  <rect x="537" y="454" width="242" height="116" rx="58" fill="url(#pill)"/>
+</svg>

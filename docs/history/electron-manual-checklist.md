@@ -1,0 +1,374 @@
+# Manual checklist
+
+The global key hook, the paste keystroke and macOS permissions cannot be
+automated. Walk this list with `make dev` before calling a release good.
+
+## Paste targets
+
+Dictate one sentence into each and confirm the text lands at the cursor and the
+previous clipboard content is back afterwards (copy a word first, paste it after).
+
+- [ ] Safari (a web text area)
+- [ ] Chrome (a web text area)
+- [ ] Slack (message box)
+- [ ] VS Code (editor)
+- [ ] Terminal
+- [ ] Notes
+
+## Gesture
+
+- [ ] Option+letter shortcuts and single Option taps never show the orb.
+- [ ] Tap, tap, hold shows the orb; release pastes.
+- [ ] Esc while holding cancels; nothing is pasted.
+- [ ] A press shorter than 300 ms of audio pastes nothing.
+- [ ] A second gesture during transcription is ignored.
+- [ ] At the 10-minute auto-stop the gesture modifier is still physically held,
+      so the injected Cmd+V may arrive as Cmd+Option+V (or Cmd+Shift+V) and do
+      nothing or the wrong thing. Hold past the auto-stop and confirm the
+      transcript still lands in the target app.
+- [ ] Changing the gesture key in Settings and performing the new gesture
+      works; the old key no longer shows the orb.
+- [ ] Changing the tap count in Settings and performing the new gesture works.
+
+## Window intelligence
+
+- [ ] With two displays: put a text field on the second display, move the
+      mouse cursor back to the first, and perform the gesture without moving
+      the mouse. The orb appears above the Dock on the display holding the
+      window, not the one holding the cursor.
+- [ ] With one display, the orb still appears in its usual spot regardless of
+      which app is frontmost.
+
+## Onboarding from a clean state
+
+- [ ] `tccutil reset Accessibility` and `tccutil reset Microphone`, delete
+      `~/Library/Application Support/parley/settings.json`, relaunch: the settings
+      window opens with the "Finish setup" banner.
+- [ ] Each Grant button leads to the right prompt or System Settings pane.
+- [ ] Badges turn to "Granted" without restarting the app.
+- [ ] Clicking each "open System Settings" button actually lands on the right
+      Privacy pane on macOS 26. The deep links currently used are the older
+      form, `x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone`
+      and `x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`.
+      If either fails to open the correct pane on the machine under test, note
+      it here and try the newer form as a replacement:
+      `x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone`
+      and `x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility`.
+
+## First-run flow
+
+From a clean state (delete `~/Library/Application Support/parley/settings.json`, relaunch):
+
+- [ ] Welcome opens, not the tour: the three modes with violet, amber and cyan dots; Get started goes to the microphone. There is no Back on Welcome.
+- [ ] Mic screen: grant, then the live orb follows your voice for ~3 s and the screen auto-continues. Back returns to Welcome.
+- [ ] Accessibility: the button opens the right System Settings pane; toggling Parley on auto-continues after the beat. The Missing badge and Grant button are tinted, not black, in dark mode.
+- [ ] Transcription: "Transcription runs on your Parley server", with Server and Whisper (Groq) key rows and no key field. With `make api` running and `GROQ_API_KEY` in `parley-api/.env` both read green; with the server stopped it says Not running and shows the start command; Check again re-reads; Continue works either way. There is no MiniMax screen after it.
+- [ ] Gesture trainer: each tap lights a key cap, the last cap fills while held, and the finished gesture turns all caps teal with "That’s the gesture ✓".
+- [ ] Gesture trainer misses: a slow tap says "That tap was a hold"; a long pause between taps says "Too slow between taps"; letting go of the hold early says "Hold the last press a moment longer".
+- [ ] Gesture trainer: Capture plus pressing Right Command sets the key and the caps redraw with ⌘; pressing "A" shows "Modifiers only"; More keys opens the voice edit, Explain and presses rows.
+- [ ] First words: hold the gesture, speak, release — the text lands in the sandbox and "It landed" shows. Finish with an empty box nudges instead of advancing.
+- [ ] Finale: the orb rests, then flies onto the drawn menu bar strip, and the Scene is teal. Only missing items are listed, each with Re-open step. Start using Parley lands on the tabs; Take the tour plays the tour, then lands on the tabs.
+- [ ] The real menu bar shows ◉, and clicking it offers Settings.
+- [ ] Quit mid-flow (e.g. on Transcription) and relaunch: it resumes on the same screen. The tour never shows on its own.
+- [ ] With Reduce Motion on: the ring, the Scene tone and the finale orb change with no animation; the trainer's hold cap fills at once.
+- [ ] Keyboard-only: every screen completes without a pointer; focus lands on each heading.
+- [ ] Existing users mid-wizard on 0.3.0: they resume at their stored step number, which may be one screen off from where they left. Nothing breaks.
+
+## Parley server and keys (parley-017)
+
+Provider keys live in `parley-api/.env` (`GROQ_API_KEY`, `DEEPGRAM_API_KEY`,
+`MINIMAX_API_KEY`); the app stores none. Start the server with `make api`.
+
+- [ ] Upgrading from 0.5.0 or earlier: after the first launch, `~/Library/Application Support/parley/settings.json` has `schemaVersion` 2 and no `apiKeyEncrypted`, `deepgramKeyEncrypted` or `rewriteKeyEncrypted`.
+- [ ] Settings has no field that asks for a key anywhere: Overview, wizard, any dialog.
+- [ ] Overview → Parley server: Running, the Transcription row and the Voice edit and Act row each read On the server.
+- [ ] Stop the server: within five seconds Server reads Not running, the red alert gives `make api`, the title reads Finish setup and the rail says Setup needed. Start it again: everything returns to green without reopening the window.
+- [ ] Remove `MINIMAX_API_KEY` from `.env` and restart the server: the Voice edit and Act row reads Not set and names `MINIMAX_API_KEY`; dictation still works; a voice edit shows "No MiniMax key on the Parley server" on the pill.
+- [ ] With the server stopped, dictate: the gesture is not refused, the pill listens, then shows "Parley server not running"; nothing is pasted and the clipboard is unchanged. Voice edit shows the same.
+- [ ] Act with the server running and the agent online: a voice command runs with no MiniMax key in the app; with the server stopped the run fails with a readable error.
+- [ ] From another device on the same network, `curl http://<this Mac's IP>:3100/api/providers/status` is refused: the server listens on 127.0.0.1 only.
+
+## Settings Overview
+
+After onboarding:
+
+- [ ] The settings window opens on Overview. With everything granted it reads "Parley is ready" and names your gesture.
+- [ ] Time saved starts as "Your first dictation starts the count." Dictate two sentences, reopen or refocus the window, and the words count and the minutes rise. Voice edit and Explain do not add to it.
+- [ ] Quit and relaunch: the count survives.
+- [ ] Revoke Accessibility in System Settings: within two seconds the title turns to "Finish setup", the row shows Grant Accessibility, and the rail says Setup needed. The button fixes it.
+- [ ] The Parley server group shows the server address, its state, and which keys it holds, with Check again.
+- [ ] Gesture and General are grouped lists (Keys, Timing; Behaviour, Dictation, Help) with hairlines between rows; every control still saves at once, and vocabulary saves on blur.
+- [ ] The rail labels sit left beside their icons, and the rail orb sits in line with "Parley".
+
+## Errors
+
+- [ ] Wi-Fi off: the orb turns red with "No connection" for 3 s; nothing is
+      pasted; the clipboard is unchanged.
+- [ ] An invalid `GROQ_API_KEY` in `parley-api/.env`: the orb shows "Invalid Groq key".
+
+## Menu bar
+
+- [ ] No dock icon. The tray shows the status line.
+- [ ] "Copy last transcript" is disabled until the first dictation, then
+      copies the last transcript to the clipboard.
+- [ ] Launch at login appears in System Settings, General, Login Items.
+- [ ] Quitting from the tray menu quits the app; the tray icon disappears.
+- [ ] Launching a second instance of the app (while the first is still
+      running) does not create a second tray item and does not install a
+      second global key hook; the second instance quits immediately.
+
+## Settings errors
+
+- [ ] Forcing an IPC mutation (settings update, API key save, permission
+      request) to reject shows an inline error Alert in the settings window
+      instead of a silent failure or a crash.
+
+## Offline behaviour
+
+- [ ] With no network connection, dictating leaves the system clipboard
+      exactly as it was before the gesture (nothing partially copied or
+      pasted).
+
+## Packaged build
+
+- [ ] Recording works in a packaged, hardened-runtime build. If the microphone
+      is silent there while it works under `make dev`, the hardened runtime is
+      denying capture: add an entitlements plist granting
+      `com.apple.security.device.audio-input` and point `electron-builder.json5`
+      at it, then re-test.
+
+## Orb and settings visuals
+
+- [ ] Hold the gesture: the pill grows from a dot above the Dock with a
+      small bounce, and its bars follow the voice.
+- [ ] The pill reads as tinted glass, not black, and its glow is never cut
+      off by the window edge, over light and dark wallpapers.
+- [ ] Release: a crest sweeps the bars while transcribing, the pill flashes
+      teal and folds back to a dot. The text field keeps focus throughout.
+- [ ] Dictation is indigo; voice edit is lilac; an error is red with its
+      message above the pill.
+- [ ] With sounds on: a rising glass pair on start, the same pair falling on
+      release, a soft chord on done. Voice edit plays them higher.
+- [ ] Settings opens with no white flash; wallpaper blurs through the glass.
+- [ ] The tab pill slides; tab content slides in the direction of travel.
+- [ ] With Reduce Motion on, the app uses fades only and the bars drift
+      slower.
+
+
+### Orb and pill polish (parley-011)
+
+- [ ] Dictate a sentence: the pill pops (a quick swell) as the text lands, then folds.
+- [ ] Force an error (e.g. turn Wi‑Fi off and dictate): the pill shudders sideways and settles, then shows the message.
+- [ ] Press Esc mid-recording: the pill shrinks as it fades instead of only fading.
+- [ ] With Reduce Motion on, none of the three moves; the colours and fades still happen.
+- [ ] In the first-run gesture trainer, each press of your key makes the ring orb swell briefly; holding the key does not keep re-triggering it.
+- [ ] The small orbs (settings sidebar, Overview header, finale menu bar) sit centred and look calm, not noisy.
+
+### Deepgram Nova-3 provider (parley-012)
+
+- [ ] Overview → Parley server → Transcription: the choice reads Whisper (Groq) / Deepgram Nova-3, with Groq selected on an existing install.
+- [ ] Choose Deepgram Nova-3 with no `DEEPGRAM_API_KEY` on the server: the row reads Not set and names `DEEPGRAM_API_KEY`, the title flips to Finish setup, and a dictation shows "No Deepgram key on the Parley server".
+- [ ] Add a real `DEEPGRAM_API_KEY` to `parley-api/.env` and restart the server: the row reads On the server and the title returns to Parley is ready.
+- [ ] Dictate a sentence that uses a dictionary word (e.g. MiniMax): it pastes spelled as in the dictionary.
+- [ ] Voice edit and Explain still work with Deepgram selected.
+- [ ] Switch back to Whisper (Groq): dictation uses Groq again with no key re-entry.
+- [ ] General → Custom vocabulary names Deepgram while it is selected, Whisper otherwise.
+
+## Voice edit
+
+Needs `MINIMAX_API_KEY` in `parley-api/.env` and the server running. The voice edit key defaults to Right
+Command, with the same number of presses as dictation.
+
+- [ ] Type a sentence into Notes, leave the cursor in it with nothing
+      selected, hold the voice edit gesture and say "make it shorter". The
+      whole note is replaced by a shorter version, and Cmd+Z brings the
+      original back.
+- [ ] Select one sentence of several and say "make it more formal": only the
+      selection changes.
+- [ ] Repeat the first check in Safari, Chrome, Slack and VS Code. Where the
+      app hides the field's value the text visibly selects before it is
+      replaced; that is the keystroke fallback, not a bug.
+- [ ] With the Finder or a web page body focused (no text field), the orb
+      shows "No text field focused" and nothing is selected or pasted.
+- [ ] With the cursor in a password field, the orb shows "No text field
+      focused".
+- [ ] In an empty field the orb shows "Nothing to edit".
+- [ ] The clipboard holds what it held before each of the checks above.
+- [ ] With no `MINIMAX_API_KEY` on the server, voice edit shows "No MiniMax
+      key on the Parley server" on the pill and dictation still works.
+- [ ] Setting the voice edit key to the dictation key turns voice edit off
+      and the row says so.
+- [ ] Voice edit works in the packaged build: `parley-ax` is inside
+      `Parley.app/Contents/Resources`.
+
+## Personal dictionary
+
+The dictionary is `dictionary.json` in the app's userData folder. Until the
+Dictionary tab exists, accepting an offer is the only way to add to it from
+inside the app.
+
+- [ ] In Notes, dictate a sentence of five or more words that contains a name
+      Whisper gets wrong. Fix only that name by hand and stop typing. Within
+      about five seconds the pill asks `Remember “Name”?` and names the
+      dictation key.
+- [ ] Tap the dictation key once: the pill turns teal with `Added “Name”`, and
+      `dictionary.json` holds the name with the misspelling under `soundsLike`.
+- [ ] Dictate the same sentence again: the name is pasted correctly.
+- [ ] Let an offer pass twice for the same word: it is not offered a third
+      time.
+- [ ] With an offer showing, start a dictation with the usual gesture: the
+      offer gives way to the waveform and nothing is added.
+- [ ] With an offer showing, type a capital letter with Shift: nothing is
+      added.
+- [ ] Change an ordinary word (`today` to `tomorrow`), rewrite half the
+      sentence, or add a sentence after it: no offer appears.
+- [ ] Repeat the first check in Chrome and Slack. Where the app hides the
+      field's value no offer appears; that is expected, not a bug.
+- [ ] The offer never takes focus from the text field.
+
+## Explain
+
+Needs parley-api running at the Parley server address (Settings, Sync;
+default http://localhost:3100) with `MINIMAX_API_KEY` and `EXA_API_KEY` in
+`parley-api/.env`: `make api`. Default explain key is Right Control.
+
+- [ ] Select a word in Notes, tap-tap-hold the explain key: the usual orb
+      appears above the Dock (indigo) and listens. Say "why is this named that?"
+      and release: the orb finishes, then a card fades in just below the
+      selection, headed by your question, with a loading skeleton, then the
+      answer streams in word by word with a caret at its end. It explains, not
+      just defines: plain meaning, why it matters, an example. The selection stays highlighted and the text field
+      keeps focus.
+- [ ] A quick tap-tap-hold-release with no question gives a plain explanation.
+- [ ] The answers are in English.
+- [ ] Select a line of code with an unusual identifier (`useMemo`, `dedupeRecords`)
+      and ask a question naming it out loud ("what does dedupeRecords do here?").
+      The transcript spells it the way it is spelled in the code, not a
+      phonetic guess.
+- [ ] With the card still open, perform the gesture again and ask a follow-up
+      ("what about the second point?"). A new turn appears below the first,
+      marked as a reply, and the card scrolls to keep it in view — the first
+      answer is not replaced. The answer takes the earlier turn into account.
+- [ ] A third follow-up keeps growing the same thread past the 60% cap, and it
+      scrolls; the earlier turns are still there above it.
+- [ ] While the card is open, selecting different text and performing the
+      gesture still follows up on the original selection, not the new one —
+      dismiss the card first to explain the new selection instead.
+- [ ] Esc, the X button, or a click outside closes the whole thread, not just
+      the latest turn; the next gesture starts a new one.
+- [ ] Select a recent product or obscure name and ask "what is this?": a line
+      reads Searching "…" with a spinner; any "let me search" text disappears;
+      the answer streams with current facts, and a Sources row lists site names.
+      Clicking one opens that page in the default browser. Selecting a common
+      word or code does not search and shows no Sources row.
+- [ ] Close the card mid-answer: the stream stops (parley-api's log shows no
+      further model output for that request).
+- [ ] Stop parley-api and trigger Explain: the card says "Can't reach the Parley
+      server at http://localhost:3100", never a stuck skeleton.
+- [ ] Repeat in Safari, Chrome, VS Code and Terminal. Where the app hides its
+      selection, the card appears beside the pointer instead.
+- [ ] Select text at the bottom of the screen: the card flips above it. Select
+      at the right edge: the card shifts left. Try a second display.
+- [ ] A typical answer shows without a scrollbar. Select a whole paragraph of
+      code: the card grows as the answer streams, and only scrolls past 60% of
+      the screen height; then it keeps the newest line in view, unless you
+      scroll up to reread, which it respects.
+- [ ] The Copy icon puts the answer's markdown on the clipboard and shows a tick. Esc, the X button, or a click
+      outside the card dismisses it; the card melts away rather than vanishing.
+- [ ] The card reads as glass: the desktop blurs through it, over light and dark
+      wallpapers, and its text stays legible. Its corners match the window's.
+- [ ] Clicking Copy or X, and scrolling a long answer with the wheel, work without
+      the text field losing focus.
+- [ ] With nothing selected the card says "Select some text first" and goes away
+      after two seconds.
+- [ ] Selecting text in a password field shows nothing to explain, and the
+      clipboard is untouched.
+- [ ] With no MiniMax key the gesture still opens the card and answers.
+- [ ] The clipboard holds what it held before each of the checks above.
+- [ ] Setting the explain key to the dictation or voice edit key turns Explain
+      off and the row says so.
+
+## Act mode (parley-013)
+
+Needs the in-repo `parley-agent/` project with its dependencies installed
+(`./init.sh` covers it) and a MiniMax key saved (voice edit's — act mode
+thinks with the same one). Default act key is ShiftRight, with the same
+number of presses as dictation. `make dev` spawns `mastra dev` itself —
+never start the server by hand except where a check says to. No MCP
+setup is needed for the first run: the dummy notes server answers
+until a real `mcp-servers.json` replaces it.
+
+- [ ] With no MiniMax key saved, hold the act gesture: the MiniMax offer
+      opens, now listing Voice edit, Explain and Act. Save the key there:
+      the gesture works on the next try.
+- [ ] Fresh, with no `mcp-servers.json`: Settings → Agent reads Online
+      with `notes` and 3 tools, and the Overview's Agent row agrees.
+- [ ] Hold the act gesture and say "what are my notes": the pill works,
+      then answers with the two seeded notes ("water the plants", "read
+      the act-mode manual"). No approval is asked for a read.
+- [ ] Say "note down buy milk": the pill asks first. Tap the act key:
+      it answers done. Ask "what are my notes" again: milk is there.
+- [ ] Say "delete the milk note" and press Esc at the question: the
+      pill flashes "Skipped — continuing…", and the note survives.
+- [ ] Launch with the checkout in place: Settings → Agent reads Online with
+      the MCP server names and tool counts, and the Overview's Agent row
+      agrees.
+- [ ] Hold the act gesture and say a read ("what is on my calendar today"):
+      the pill shows Working… then one line per step, and the answer lands
+      as one line — or "Copied — paste anywhere" for a long one, with the
+      text on the clipboard.
+- [ ] Run a command that writes: the pill asks the summary-first question
+      with the transcript echo ("From … · Tap ShiftRight to run · Esc
+      cancels") and the question is read aloud. Tap the act key: the tool
+      runs and the run continues.
+- [ ] Run another write and press Esc: the pill flashes "Skipped —
+      continuing…" and the run goes on without that tool.
+- [ ] With parley-api running, Settings → Agent lists `web search` above
+      the MCP servers. Ask "what's the weather in Pune right now": the pill
+      shows "Using Web search…" and answers from the results.
+- [ ] Say "note down buy milk" five times: every time the pill asks before
+      adding — it never answers "Added" without the question. If MiniMax
+      answers without a tool twice, the pill reads "Nothing was done — no
+      tool ran" instead of a made-up line.
+- [ ] While a run is working, open Settings → Agent: the waiting approval
+      mirrors with Approve and Decline. Answer from the tab: the pill and
+      the run follow.
+- [ ] Press Esc mid-run with no question showing: the pill folds, nothing
+      lands, and the Agent tab keeps no failure (a cancel is not an error).
+- [ ] Start a second act command while one runs: the first run is cancelled
+      on the server and the new one takes the pill.
+- [ ] Gesture the instant the app launches, while the Agent tab says
+      Starting: the pill says "Agent starting — a few seconds" and Settings
+      stays closed.
+- [ ] With a run working, kill the server process: the pill names the
+      failure, the Agent tab keeps it standing with its recovery action,
+      and the server is back Online within seconds (retry 1 of 3).
+- [ ] `kill -9` the server mid-approval and tap the act key anyway: the
+      pill folds with "Run ended", not a hang.
+- [ ] Quit Parley mid-run: the run is cancelled on the server first (no
+      orphaned run), then the app exits.
+- [ ] Hold :4111 with a stranger (`python3 -m http.server 4111`) and
+      relaunch: the Agent tab reads Offline and names the busy port; it
+      never retries a stranger. Quit the stranger and press Restart: Online.
+- [ ] Start `mastra dev` by hand in the checkout, then launch Parley: it
+      attaches (no second server), the tab says attached, and Restart is
+      disabled with its cause.
+- [ ] Turn "Start agent with Parley" off and relaunch with no server
+      running: the tab reads Offline and says auto-start is off. Start the
+      server by hand: the next refresh reads Online.
+- [ ] Type a bad URL and Test and save: the named failure shows and nothing
+      is stored. Save a remote URL: it attaches, never spawns.
+- [ ] Setting the act key to the dictation, edit or explain key turns Act
+      off and the row says so.
+- [ ] Act works in the packaged build: `parley-agent/index.mjs` is inside
+      `Parley.app/Contents/Resources`.
+
+## Sync (parley-015)
+
+Run `make -C parley-api dev` (:3100) beside `make dev`.
+
+- [ ] Settings > Sync: sign in with any email, add a word in the dictionary
+      UI, press Sync now.
+- [ ] `make -C parley-api studio`: the word is a row in DictionaryEntry.
+- [ ] Kill the API and press Sync now: the tab shows the error alert.
+- [ ] With the API still down, dictate into a text field: the paste works.

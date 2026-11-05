@@ -45,10 +45,27 @@ interface RunRecord {
   subscribers: Set<SendEvent>;
   mastraRunId: string | null;
   pending: PendingApproval | null;
+  /** A tool was called in this run — an answer without one is not trusted. */
+  toolUsed: boolean;
+  /** The one fresh attempt a tool-less answer gets has been spent. */
+  retried: boolean;
 }
 
 const DECLINE_REASON =
   'The user declined this tool call — say what was skipped in one line and carry on with the rest.';
+
+/** A run that answered twice without calling any tool. Its words may be
+ * invented ("Added — buy milk" with nothing added), so they are not shown. */
+export const NO_TOOL_MESSAGE = 'Nothing was done — no tool ran. Try saying it another way.';
+
+/** Step one must call a tool: left free, MiniMax sometimes answers "Added —
+ * buy milk" having called nothing. Later steps are free, so the run can
+ * still end in words once a tool has spoken. MiniMax ignores this now and
+ * then too, which is what the no-tool retry in `pump` is for. */
+export const STREAM_OPTIONS = {
+  prepareStep: ({ stepNumber }: { stepNumber: number }) =>
+    stepNumber === 0 ? { toolChoice: 'required' as const } : undefined,
+};
 
 /** Terminal runs kept for late status polls; working runs are never pruned. */
 const MAX_KEPT_RUNS = 100;
@@ -177,6 +194,7 @@ export function createRunStore(agent: Pumpable, toolDescriptions: Map<string, st
         const payload = chunk.payload ?? {};
         switch (chunk.type) {
           case 'tool-call': {
+            run.toolUsed = true;
             const tool = text(payload.toolName);
             if (tool) step(run, `Using ${shortToolName(tool)}…`);
             break;
@@ -211,6 +229,14 @@ export function createRunStore(agent: Pumpable, toolDescriptions: Map<string, st
         }
       }
       if (run.status === 'cancelled') return;
+      if (!run.toolUsed) {
+        if (!run.retried) {
+          run.retried = true;
+          await begin(run);
+          return;
+        }
+        throw new Error(NO_TOOL_MESSAGE);
+      }
       const answer = await (output as unknown as { text: Promise<string> }).text;
       const line = oneLine(answer, 2000) || 'Done.';
       settle(run, 'done');
@@ -231,6 +257,21 @@ export function createRunStore(agent: Pumpable, toolDescriptions: Map<string, st
     }
   }
 
+  /** Open the agent stream for a run and pump it; a failure to open settles
+   * the run as failed. */
+  async function begin(run: RunRecord): Promise<void> {
+    try {
+      const output = await agent.stream(run.transcript, STREAM_OPTIONS);
+      run.mastraRunId = output.runId;
+      void pump(run, output);
+    } catch (error) {
+      settle(run, 'failed');
+      emit(run, 'failed', { message: errorMessage(error) });
+      for (const send of [...run.subscribers]) send('close', {});
+      run.subscribers.clear();
+    }
+  }
+
   return {
     async start(transcript: string): Promise<string> {
       const run: RunRecord = {
@@ -243,18 +284,11 @@ export function createRunStore(agent: Pumpable, toolDescriptions: Map<string, st
         subscribers: new Set(),
         mastraRunId: null,
         pending: null,
+        toolUsed: false,
+        retried: false,
       };
       runs.set(run.runId, run);
-      try {
-        const output = await agent.stream(transcript);
-        run.mastraRunId = output.runId;
-        void pump(run, output);
-      } catch (error) {
-        settle(run, 'failed');
-        emit(run, 'failed', { message: errorMessage(error) });
-        for (const send of [...run.subscribers]) send('close', {});
-        run.subscribers.clear();
-      }
+      await begin(run);
       return run.runId;
     },
 

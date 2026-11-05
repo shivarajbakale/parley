@@ -1,0 +1,40 @@
+# Compose file for ts-deploy: parley-api as ONE Tailscale node on the Mac mini.
+# Deploy with `npm run deploy` (private, tailnet only).
+#
+# Never deploy this node public (Funnel): /api/providers forwards requests with
+# the provider keys added and has no auth of its own. The tailnet is the gate.
+#
+# ts-deploy puts the service into the Tailscale sidecar's network namespace, so
+# `ports:` is stripped; `expose:` tells ts-deploy which port to serve on :443.
+#
+# Keys come from .env via env_file (synced to the host, never committed). The
+# environment: block overrides the loopback HOST .env carries for local dev.
+name: parley-api
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: '3100'
+      # Listen on every interface in the node's netns, so the serve proxy reaches it.
+      HOST: '0.0.0.0'
+    expose:
+      - '3100'
+    # node:*-slim has no curl, so probe with node.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:3100/',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3

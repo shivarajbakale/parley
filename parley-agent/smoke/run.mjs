@@ -12,7 +12,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DIR = dirname(dirname(fileURLToPath(import.meta.url)));
-const BASE = 'http://localhost:4111';
+// SMOKE_PORT moves the boots off 4111 when another server holds it.
+const PORT = process.env.SMOKE_PORT ?? '4111';
+const BASE = `http://localhost:${PORT}`;
 
 // The stdio spawn's working directory is the bundler's, not the project
 // root, so the smoke config carries an absolute fixture path. Real
@@ -46,6 +48,8 @@ function boot(model, serversFile = `${DIR}/mcp-servers.smoke.json`) {
   // (mcp-servers.json, then the shipped example) decides.
   if (serversFile !== null) env.PARLEY_MCP_SERVERS_FILE = serversFile;
   else delete env.PARLEY_MCP_SERVERS_FILE;
+  env.PORT = PORT;
+  delete env.PARLEY_SERVER_URL;
   const child = spawn(`${DIR}/node_modules/.bin/mastra`, ['dev'], {
     cwd: DIR,
     env,

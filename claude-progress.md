@@ -1,23 +1,17 @@
-# parley-014 / parley-015: monorepo and sync API (branch feat/parley-014-monorepo)
+# Progress
 
-## What landed
+## Now
 
-- One clone: desktop app at root, `parley-agent/`, `parley-api/` (Express +
-  Prisma + SQLite on :3100) and `parley-android/` (subtree merge, history
-  kept). `./init.sh` installs all; `make check` runs all, skipping Android
-  without flutter.
-- Desktop sync: `electron/sync/` (client + engine; dictionary and settings,
-  never keys, last writer wins) and a Settings > Sync tab.
-- `parley-014` passing. `parley-015` in_progress: headless sync against the
-  live API proven; the GUI walk is pending.
-
-## Run the API
-
-`make -C parley-api db` once, then `make -C parley-api dev`; inspect rows
-with `make -C parley-api studio`.
+- The Electron shell and React UI are gone (2026-11-05). Parley is the native
+  SwiftUI app in `macos/` driving the TypeScript engine in `engine/` over stdio.
+- **parley-019** (native shell, dictation) is `in_progress`: three live
+  dictations pasted end to end on 2026-11-05. Left before `passing`: a dictation
+  into Notes and Slack, and a like-for-like memory and latency comparison.
+- The ports of what the Electron app did are `not_started`: parley-020 settings
+  window, 021 voice edit, 022 Explain, 023 Act, 024 sync. Their Electron-era
+  register entries are in `docs/history/electron-features.md`.
 
 ## Next step
 
-Walk the Sync block of `docs/MANUAL_CHECKLIST.md` with `make dev`, then
-mark `parley-015` passing. Remains: the Android sync client and a key proxy.
-`parley-013` still waits on its Act mode block (real model key).
+Finish parley-019's live checks, mark it `passing`, then start parley-020
+(settings window; design: https://claude.ai/artifact/Mirpic2JxR1ZZyewgN8nZL).

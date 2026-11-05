@@ -1,6 +1,6 @@
 <!-- agent-protocol -->
-> **Agent working protocol:** read [AGENTS.md](AGENTS.md) before coding, and
-> [ARCHITECTURE.md](ARCHITECTURE.md) before composing a screen. Session state is
+> **Agent working protocol:** read [AGENTS.md](AGENTS.md) before coding and
+> [ARCHITECTURE.md](ARCHITECTURE.md) before touching the wire. Session state is
 > `feature_list.json` + `claude-progress.md`. Start with `./init.sh`, verify with
 > `make check`.
 
@@ -18,12 +18,12 @@ only what is specific to running as Claude Code here.
 
 ## What bites here
 
-- **Skills, in order: `plan-feature`, `add-ipc-channel` for anything crossing
-  to main, `ux-prepass` last.** `make plan-lint` fails an unplanned change; a
-  hand-written channel skips the preload contract and fails at the boundary
-  test. The `use-mantine` skill routes a capability to its component.
-- `src/lib/auth.ts` is a local demo shim, not a real auth client — swap the
-  file, keep the exports. The macOS traffic-light inset is defined in both
-  `src/lib/platform.ts` and `electron/window-options.ts`; change them together.
+- Accessibility and Microphone grants follow the app's signature. Build with
+  your own identity in `macos/Local.xcconfig` (gitignored) or they reset every
+  build. If System Settings shows Parley Native on but the app still says no,
+  remove the entry and add it again.
+- The Electron Parley may still be installed in /Applications. The native app
+  refuses to start its engine while it runs: both would answer the same keys.
+- Logs: `log show --last 5m --info --predicate 'subsystem == "com.shivarajbakale.parley.mac"'`.
 
-Verification beats speed: done means `make check` green and evidence written.
+Verification beats speed: done means `make check` green and the real app used.

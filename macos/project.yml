@@ -1,0 +1,60 @@
+# XcodeGen spec for the native shell. `make -C macos project` generates
+# Parley.xcodeproj from this file; the .xcodeproj is not committed.
+name: Parley
+options:
+  bundleIdPrefix: com.shivarajbakale
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+packages:
+  ParleyCore:
+    path: ParleyCore
+configFiles:
+  Debug: Signing.xcconfig
+  Release: Signing.xcconfig
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    # The app target is in Swift 5 mode for phase 1; ParleyCore is Swift 6.
+    SWIFT_VERSION: "5.0"
+    ENABLE_HARDENED_RUNTIME: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    DEAD_CODE_STRIPPING: YES
+targets:
+  Parley:
+    type: application
+    platform: macOS
+    sources:
+      - Parley
+    dependencies:
+      - package: ParleyCore
+    info:
+      path: Parley/Info.plist
+      properties:
+        # "Parley Native" while the Electron Parley still exists, so the two
+        # are told apart in System Settings' permission lists.
+        CFBundleName: Parley Native
+        CFBundleDisplayName: Parley Native
+        CFBundleShortVersionString: "0.6.4"
+        CFBundleVersion: "1"
+        LSUIElement: true
+        LSMinimumSystemVersion: "26.0"
+        NSMicrophoneUsageDescription: Parley listens only while you hold the dictation key.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shivarajbakale.parley.mac
+        PRODUCT_NAME: Parley Native
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    preBuildScripts:
+      - name: Build engine
+        basedOnDependencyAnalysis: false
+        script: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          "$SRCROOT/../scripts/build-engine.sh"
+    postBuildScripts:
+      - name: Copy engine into Resources
+        basedOnDependencyAnalysis: false
+        script: |
+          DEST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/engine"
+          mkdir -p "$DEST"
+          cp -f "$SRCROOT/build/engine/engine.mjs" "$SRCROOT/build/engine/node" "$DEST/"
