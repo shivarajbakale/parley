@@ -44,6 +44,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shivarajbakale.parley.mac
         PRODUCT_NAME: Parley Native
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     preBuildScripts:
       - name: Build engine
         basedOnDependencyAnalysis: false

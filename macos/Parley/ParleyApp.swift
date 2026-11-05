@@ -8,7 +8,8 @@ struct ParleyApp: App {
         MenuBarExtra {
             MenuContent(controller: controller)
         } label: {
-            Image(systemName: "waveform")
+            // The mark: tap, tap, hold. A template image, so macOS tints it.
+            Image("MenuBarIcon")
                 .task { controller.launch() }
         }
         .menuBarExtraStyle(.menu)
