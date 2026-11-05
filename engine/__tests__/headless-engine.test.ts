@@ -417,6 +417,54 @@ describe('headless engine: settings and dictionary', () => {
   });
 });
 
+describe('headless engine: provider keys on the server', () => {
+  it('server.setKey sends the key to parley-api once and answers with the fresh status', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response('{"deepgram":true}', { status: 200 }));
+    const { engine, deps, notes } = setup({ fetch: fetchFn as unknown as typeof fetch }, { syncUrl: 'http://127.0.0.1:3100' });
+    const status = await engine.onRequest('server.setKey', { provider: 'deepgram', key: '  dg_secret_123456 ' });
+    expect(fetchFn).toHaveBeenCalledWith(
+      'http://127.0.0.1:3100/api/providers/keys/deepgram',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ key: 'dg_secret_123456' }) })
+    );
+    expect(status).toEqual({ reachable: true, url: 'x', keys: null });
+    expect(deps.fetchServerStatus).toHaveBeenCalled();
+    expect(JSON.stringify(notes)).not.toContain('dg_secret');
+  });
+
+  it('server.removeKey deletes it on the server', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response('{"groq":false}', { status: 200 }));
+    const { engine } = setup({ fetch: fetchFn as unknown as typeof fetch });
+    await engine.onRequest('server.removeKey', { provider: 'groq' });
+    expect(fetchFn.mock.calls[0][1]).toMatchObject({ method: 'DELETE' });
+  });
+
+  it('refuses unknown providers and empty keys without calling the server', async () => {
+    const fetchFn = vi.fn();
+    const { engine } = setup({ fetch: fetchFn as unknown as typeof fetch });
+    await expect(engine.onRequest('server.setKey', { provider: 'openai', key: 'sk-x' })).rejects.toThrow('Unknown provider');
+    await expect(engine.onRequest('server.setKey', { provider: 'groq', key: '  ' })).rejects.toThrow('Paste a key first');
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('an old server without the keys route says so', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response('Not Found', { status: 404 }));
+    const { engine } = setup({ fetch: fetchFn as unknown as typeof fetch });
+    await expect(engine.onRequest('server.setKey', { provider: 'groq', key: 'gsk_abcdefgh' })).rejects.toThrow(
+      'too old to take keys'
+    );
+  });
+
+  it('the server refusing a key passes its reason through', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      new Response('{"error":{"code":"invalid_key","message":"That does not look like an API key"}}', { status: 400 })
+    );
+    const { engine } = setup({ fetch: fetchFn as unknown as typeof fetch });
+    await expect(engine.onRequest('server.setKey', { provider: 'groq', key: 'gsk_abcdefgh' })).rejects.toThrow(
+      'That does not look like an API key'
+    );
+  });
+});
+
 describe('headless engine: sync', () => {
   it('sign-in stores the token encrypted with the Keychain key, and sign-out forgets it', async () => {
     const signIn = vi.fn().mockResolvedValue({ token: 'tok-123' });

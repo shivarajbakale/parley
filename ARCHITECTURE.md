@@ -50,6 +50,7 @@ in `engine/headless/rpc.ts` and `ParleyCore/RPC.swift` must match.
 | `settings.get`, `settings.update {patch}`, `settings.setProvider {provider}` | request | → the settings view |
 | `dictionary.list`, `dictionary.upsert {word, soundsLike, id?}`, `dictionary.remove {id}` | request | |
 | `server.status` | request | is parley-api up, which keys it holds |
+| `server.setKey {provider, key}`, `server.removeKey {provider}` | request | → status; the key goes to parley-api's `/api/providers/keys` and is kept only there |
 | `agent.status`, `agent.setUrl {url}`, `agent.test`, `agent.restart`, `agent.decide {callId, approved}` | request | |
 | `sync.signIn {email}`, `sync.signOut`, `sync.now` | request | |
 

@@ -192,7 +192,13 @@ export interface ServerKeys {
   groq: boolean;
   deepgram: boolean;
   minimax: boolean;
+  /** Web search for Explain and Act. Absent from servers older than the key settings. */
+  exa?: boolean;
 }
+
+/** The keys the settings window can set on the server. */
+export const SERVER_KEY_IDS = ['groq', 'deepgram', 'minimax', 'exa'] as const;
+export type ServerKeyId = (typeof SERVER_KEY_IDS)[number];
 
 /** What `server:status` reports: whether the Parley server answers at `url`,
  * and if so which keys it has. `keys` is null when it did not answer. */

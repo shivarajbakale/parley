@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # deploy-kit: ts-deploy output holds the expanded .env
 .ts-deploy.*
+
+# Provider keys saved from the app in local dev (src/providers/keys.ts).
+.data/

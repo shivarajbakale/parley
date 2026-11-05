@@ -71,6 +71,28 @@ final class SettingsModel {
         }
     }
 
+    /// The key goes to the server and is not kept here, not even in this model.
+    func setKey(_ provider: String, _ key: String) async -> Bool {
+        var saved = false
+        await run {
+            self.server = JSONBridge.decode(ServerStatus.self, from: try await self.call(
+                "server.setKey", ["provider": .string(provider), "key": .string(key)]))
+            self.notice = "Key saved on the Parley server"
+            saved = true
+        }
+        return saved
+    }
+
+    func removeKey(_ provider: String) {
+        Task {
+            await run {
+                self.server = JSONBridge.decode(ServerStatus.self, from: try await self.call(
+                    "server.removeKey", ["provider": .string(provider)]))
+                self.notice = "Key removed"
+            }
+        }
+    }
+
     func signIn(_ email: String) {
         Task {
             await run {
@@ -483,6 +505,75 @@ private struct AgentPane: View {
     }
 }
 
+struct ProviderKey: Identifiable {
+    let id: String
+    let name: String
+    let purpose: String
+    let console: URL
+
+    static let all = [
+        ProviderKey(id: "groq", name: "Groq", purpose: "Transcription (Whisper)",
+                    console: URL(string: "https://console.groq.com/keys")!),
+        ProviderKey(id: "deepgram", name: "Deepgram", purpose: "Transcription (Nova), optional",
+                    console: URL(string: "https://console.deepgram.com")!),
+        ProviderKey(id: "minimax", name: "MiniMax", purpose: "Voice edit, Explain and Act",
+                    console: URL(string: "https://www.minimax.io/platform")!),
+        ProviderKey(id: "exa", name: "Exa", purpose: "Web search for Explain and Act",
+                    console: URL(string: "https://dashboard.exa.ai/api-keys")!),
+    ]
+}
+
+private struct ProviderKeyRow: View {
+    let model: SettingsModel
+    let provider: ProviderKey
+    /// nil while the server has not answered.
+    let isSet: Bool?
+    let inUse: Bool
+    @State private var editing = false
+    @State private var key = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            LabeledContent {
+                HStack(spacing: 10) {
+                    switch isSet {
+                    case true?: Label("Set", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    case false?: Label(inUse ? "Missing — in use" : "Not set", systemImage: inUse ? "exclamationmark.triangle.fill" : "circle")
+                        .foregroundStyle(inUse ? .orange : .secondary)
+                    case nil: Text("—").foregroundStyle(.secondary)
+                    }
+                    Button(isSet == true ? "Replace…" : "Add…") { editing.toggle() }
+                    if isSet == true {
+                        Button("Remove", role: .destructive) { model.removeKey(provider.id) }
+                    }
+                }
+            } label: {
+                Text(provider.name)
+                Text(provider.purpose)
+            }
+            if editing {
+                HStack {
+                    SecureField("Paste the \(provider.name) key", text: $key)
+                        .onSubmit(save)
+                    Link("Get a key", destination: provider.console)
+                    Button("Save", action: save)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+
+    private func save() {
+        let value = key
+        // Cleared at once: the key does not linger in the view.
+        key = ""
+        Task {
+            if await model.setKey(provider.id, value) { editing = false }
+        }
+    }
+}
+
 private struct ServerPane: View {
     let model: SettingsModel
     let view: SettingsView
@@ -499,15 +590,22 @@ private struct ServerPane: View {
                     StatusDot(ok: model.server?.reachable == true,
                               text: model.server?.reachable == true ? "Connected" : "Not reachable")
                 }
-                if let keys = model.server?.keys {
-                    LabeledContent("Provider keys", value: [keys.groq ? "Groq" : nil, keys.deepgram ? "Deepgram" : nil, keys.minimax ? "MiniMax" : nil]
-                        .compactMap { $0 }.joined(separator: ", "))
-                }
                 Button("Save and check", action: save)
             } header: {
                 Text("Parley server")
             } footer: {
                 Text("Transcription, voice edit, Explain and sync go through this server; it holds the provider keys.")
+            }
+            Section {
+                ForEach(ProviderKey.all) { provider in
+                    ProviderKeyRow(model: model, provider: provider,
+                                   isSet: model.server?.keys?.has(provider.id),
+                                   inUse: provider.id == view.transcriptionProvider)
+                }
+            } header: {
+                Text("Provider keys")
+            } footer: {
+                Text("Keys are sent to your Parley server and kept there — never on this Mac. Paste a new key to replace one.")
             }
             Section("Sync") {
                 if view.hasSyncToken {

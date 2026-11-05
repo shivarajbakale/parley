@@ -14,6 +14,7 @@ import { createGestureDetector } from '../gesture-detector';
 import type { Rewriter } from '../rewriter';
 import { createSelectionReader } from '../selection-reader';
 import { createWordOffer } from '../word-offer';
+import { isServerKeyId, removeServerKey, setServerKey } from '../server-keys';
 import { fetchServerStatus as defaultFetchServerStatus } from '../server-status';
 import { createSession, ERROR_MS, type Session } from '../session';
 import type { SettingsStore } from '../settings-store';
@@ -87,6 +88,7 @@ export interface EngineDeps {
   fetchServerStatus?(url: string): Promise<ServerStatus>;
   createAgentClient?(baseUrl: string): AgentClient;
   createSyncClient?(options: { baseUrl: string; token: string | null }): SyncClient;
+  fetch?: typeof fetch;
 }
 
 export interface Engine {
@@ -739,6 +741,21 @@ export function createEngine(deps: EngineDeps): Engine {
       return { entries: dictionary.list() };
     },
     'server.status': () => fetchStatus(serverUrl()),
+    // The key is passed straight to the server: never stored, never logged.
+    'server.setKey': async (params) => {
+      const provider = params?.provider;
+      const key = string(params?.key);
+      if (!isServerKeyId(provider)) throw new RpcError('Unknown provider', RPC_ERRORS.invalidRequest);
+      if (!key?.trim()) throw new RpcError('Paste a key first', RPC_ERRORS.invalidRequest);
+      await setServerKey(serverUrl(), provider, key, deps.fetch);
+      return fetchStatus(serverUrl());
+    },
+    'server.removeKey': async (params) => {
+      const provider = params?.provider;
+      if (!isServerKeyId(provider)) throw new RpcError('Unknown provider', RPC_ERRORS.invalidRequest);
+      await removeServerKey(serverUrl(), provider, deps.fetch);
+      return fetchStatus(serverUrl());
+    },
     'agent.status': () => agentSummary(),
     'agent.setUrl': (params) => setAgentUrl(params?.url),
     'agent.test': async (): Promise<AgentTestResult> => {

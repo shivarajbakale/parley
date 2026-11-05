@@ -6,6 +6,23 @@ silently undo.
 
 ---
 
+## 2026-11-06: Provider keys can be set from the app, and still live only on the server
+
+- **What:** Settings → Server & sync has a row per provider (Groq, Deepgram,
+  MiniMax, Exa). A pasted key goes through the engine to parley-api's
+  `PUT /api/providers/keys/:id`, which stores it in a 0600 file (a Docker
+  volume on the Mac mini) and uses it at once. Saved keys win over `.env`;
+  removing one stays removed across restarts. Status only ever says set/not set.
+- **Why:** editing `.env` and redeploying to change a key was the only way;
+  the app is where people look. Keeping the store on the server preserves the
+  parley-017 rule that the desktop app never holds a key.
+- **Rejected alternatives:** keys in the macOS Keychain sent with each request
+  (puts keys back in the app); writing `.env` on the server (a redeploy
+  overwrites it).
+- **Constraint:** the route is exactly as reachable as `/api/providers`
+  (loopback locally, the tailnet on the mini). Never expose parley-api
+  publicly: anyone who can reach it can replace the keys.
+
 ## 2026-11-05: The engine ports the whole Electron composition; the token key lives in the Keychain
 
 - **What:** `engine/headless/engine.ts` wires every mode the way the Electron

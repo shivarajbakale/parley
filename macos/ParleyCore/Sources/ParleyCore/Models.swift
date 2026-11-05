@@ -92,6 +92,18 @@ public struct ServerStatus: Codable, Equatable, Sendable {
         public var groq: Bool
         public var deepgram: Bool
         public var minimax: Bool
+        /// Absent from servers older than key settings.
+        public var exa: Bool?
+
+        public func has(_ id: String) -> Bool {
+            switch id {
+            case "groq": groq
+            case "deepgram": deepgram
+            case "minimax": minimax
+            case "exa": exa ?? false
+            default: false
+            }
+        }
     }
     public var reachable: Bool
     public var url: String

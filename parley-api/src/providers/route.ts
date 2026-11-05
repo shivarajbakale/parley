@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream';
 import { Router, type Request, type Response } from 'express';
+import { MANAGED_KEYS } from './keys.js';
 
 /**
  * /api/providers: the provider keys live here, not in the desktop app. The app
@@ -66,7 +67,7 @@ export function createProvidersRouter(deps: { env?: Env; fetch?: typeof fetch } 
 
   /** Which keys this server has; never the keys. */
   router.get('/status', (_req: Request, res: Response) => {
-    res.json(Object.fromEntries(Object.entries(PROVIDERS).map(([id, p]) => [id, Boolean(keyFor(p, env))])));
+    res.json(Object.fromEntries(Object.entries(MANAGED_KEYS).map(([id, name]) => [id, Boolean(env[name]?.trim())])));
   });
 
   router.post('/:provider/*path', async (req: Request, res: Response) => {
