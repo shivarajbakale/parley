@@ -1,5 +1,5 @@
 /// Key events as the engine's gesture detector expects them: the names in
-/// `GESTURE_KEYS` (electron/types.ts), plus Escape and Other.
+/// `GESTURE_KEYS` (engine/types.ts), plus Escape and Other.
 ///
 /// Modifiers arrive from a CGEventTap as `flagsChanged`, which says only that
 /// some modifier changed. The device-dependent bits in the flags tell left

@@ -1,62 +1,43 @@
 # Parley
 
+Tap-tap-hold voice dictation for macOS. Tap your dictation key, hold the last
+tap, speak, release: the words are transcribed and pasted at your cursor.
+
 ## Projects in this repo
 
 | Folder | What | Verify |
 |---|---|---|
-| `/` (root) | macOS desktop app (Electron) | `make check` |
-| `parley-agent/` | Mastra agent behind act mode | `cd parley-agent && npm test` |
-| `parley-api/` | Express sync API (dictionary, settings, history, tasks) | `make -C parley-api check` |
-| `parley-android/` | Android app (Flutter) | `make -C parley-android check` |
+| `macos/` | the macOS app (SwiftUI, macOS 26) | `make -C macos test` |
+| `engine/` | the TypeScript engine the app runs under a bundled Node | `npm test` |
+| `parley-api/` | the server: provider keys, sync, the agent's model | `make -C parley-api check` |
+| `parley-agent/` | the Mastra agent behind Act mode | `cd parley-agent && npm test` |
+| `parley-android/` | the Android app (Flutter) | `make -C parley-android check` |
 
-`~/Projects/parley_android` is a stale copy. Edit only `parley-android/` here.
-
-Tap-tap-hold voice dictation for macOS. Tap Right Option twice, hold the third
-press, speak, release: Groq Whisper transcribes and the text is pasted at your
-cursor. Design: [docs/superpowers/specs/2026-09-21-parley-design.md](docs/superpowers/specs/2026-09-21-parley-design.md).
-
-Voice edit is the same gesture on a second key (Right Command by default):
-with the cursor in a text field, say "make it shorter" and the selection, or
-the whole field, is rewritten by MiniMax and pasted back. It reads the field with `native/parley-ax.swift`, which `npm run dev`
-and `npm run build` compile (Xcode command line tools required).
-
-Run it with `make dev`. It needs Microphone and Accessibility permission, set
-from the tray's Settings window, and the Parley server: `make api` runs
-parley-api on 127.0.0.1:3100. The provider keys live only in
-`parley-api/.env` (`GROQ_API_KEY`, `DEEPGRAM_API_KEY`, `MINIMAX_API_KEY`,
-`EXA_API_KEY`); the app stores none and calls the providers through the
-server.
+`make check` runs all of them.
 
 ## Run
 
-```bash
-npm install
-cp .env.example .env   # if not already created
-npm run dev
-```
-
-The dev command opens an Electron window backed by the Vite dev server.
-
-## What's inside
-
-- Electron + React 19 + Vite + TypeScript (strict)
-- Mantine 9 as the single design system — no second styling layer
-- TanStack Router + TanStack Query
-- MSW (Mock Service Worker) for API mocking
-- Storybook for component development
-- electron-builder for packaging
-
-## Scripts
+Needs Xcode 26, XcodeGen (`brew install xcodegen`) and Node 22+.
 
 ```bash
-npm run dev          # Vite dev server + Electron window
-npm run build        # tsc && vite build && electron-builder
-npm run preview      # preview the production renderer build
-npm run lint         # ESLint
+./init.sh        # install dependencies and verify
+make api         # the Parley server on 127.0.0.1:3100 (keys in parley-api/.env)
+make run         # build and open Parley Native.app
 ```
 
-## Identifiers
+Grant Microphone and Accessibility from the menu bar icon. The provider keys
+(`GROQ_API_KEY`, `DEEPGRAM_API_KEY`, `MINIMAX_API_KEY`, `EXA_API_KEY`) live only
+in `parley-api/.env`; the app stores none.
 
-- npm package: `parley`
+To keep permissions across rebuilds, sign with your own identity: create
+`macos/Local.xcconfig` with `CODE_SIGN_IDENTITY`, `DEVELOPMENT_TEAM` and
+`CODE_SIGN_STYLE = Automatic` (see `macos/Signing.xcconfig`).
 
-See `CLAUDE.md` for the full architecture guide and conventions.
+## Status
+
+Dictation works in the native app. Voice edit, Explain, Act, the settings
+window and sync worked in the earlier Electron app and are being ported
+(`feature_list.json`, parley-020 to parley-024; the old entries are in
+`docs/history/electron-features.md`).
+
+How it fits together: [ARCHITECTURE.md](ARCHITECTURE.md).

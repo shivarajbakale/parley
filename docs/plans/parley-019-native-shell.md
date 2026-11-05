@@ -95,11 +95,11 @@ and stdio framing stays trivial.
 ## Files
 
 **New** (as built)
-- `electron/headless/main.ts` — Node entry: stdio, console → stderr, data dir.
-- `electron/headless/engine.ts` — composition: session + gesture detector +
+- `engine/headless/main.ts` — Node entry: stdio, console → stderr, data dir.
+- `engine/headless/engine.ts` — composition: session + gesture detector +
   transcriber + dictionary, OS effects as RPC messages; testable with fakes.
-- `electron/headless/rpc.ts` — framing, correlation, timeouts.
-- `electron/__tests__/headless-rpc.test.ts`, `headless-engine.test.ts`.
+- `engine/headless/rpc.ts` — framing, correlation, timeouts.
+- `engine/__tests__/headless-rpc.test.ts`, `headless-engine.test.ts`.
 - `scripts/build-engine.sh` — esbuild bundle → `macos/build/engine/engine.mjs`, plus
   an official Node v24.22.1 (static, SHA-256 verified) as `macos/build/engine/node`.
 - `macos/ParleyCore/` (SwiftPM, Swift 6) — `JSONValue`, `RPC` (codec, line buffer,
@@ -112,7 +112,7 @@ and stdio framing stays trivial.
   `Local.xcconfig`), `Makefile` (`test`, `build`, `run`).
 
 **Changed**
-- `electron/transcribers/groq.ts` — filename from mime type (`speech.m4a` for
+- `engine/transcribers/groq.ts` — filename from mime type (`speech.m4a` for
   `audio/mp4`); today it is hard-coded `speech.webm`.
 - `Makefile` — `check` adds `macos-check` (skipped without Swift). The engine
   tests run in the existing `npm test`.

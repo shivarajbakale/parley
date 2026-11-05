@@ -1,5 +1,5 @@
 /// What the engine's `hud.phase` says, and what the recorder does about it.
-/// Mirrors `src/orb/phase-handler.ts`, which this replaces: the session in
+/// Mirrors the old Electron orb's phase handler: the session in
 /// the engine waits on exactly one `audio.ready` after `transcribing`, so the
 /// shell must answer every `transcribing`, even with nothing recorded.
 public struct HUDPhase: Equatable, Sendable {

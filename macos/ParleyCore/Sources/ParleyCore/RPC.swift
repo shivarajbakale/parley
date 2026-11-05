@@ -1,7 +1,7 @@
 import Foundation
 
 /// The shell's side of the engine wire: newline-delimited JSON-RPC 2.0, the
-/// same framing as `electron/headless/rpc.ts`. Bump both together.
+/// same framing as `engine/headless/rpc.ts`. Bump both together.
 public let protocolVersion = 1
 
 public enum RPCIncoming: Sendable, Equatable {

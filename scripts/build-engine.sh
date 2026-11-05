@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bundles the headless engine (electron/headless/main.ts, no Electron imports)
+# Bundles the headless engine (engine/headless/main.ts, no Electron imports)
 # into one ESM file for the native shell, and lays down the Node runtime that
 # runs it. Output: macos/build/engine/{engine.mjs,node}, which the Xcode
 # project copies into Parley.app/Contents/Resources.
@@ -12,7 +12,7 @@ mkdir -p "$OUT"
 
 VERSION="$(node -p "require('$ROOT/package.json').version")"
 
-"$ROOT/node_modules/.bin/esbuild" "$ROOT/electron/headless/main.ts" \
+"$ROOT/node_modules/.bin/esbuild" "$ROOT/engine/headless/main.ts" \
   --bundle \
   --platform=node \
   --format=esm \

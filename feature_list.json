@@ -1,6 +1,6 @@
 {
   "project": "parley",
-  "last_updated": "2026-10-06",
+  "last_updated": "2026-11-05",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -13,303 +13,6 @@
     "passing": "Required verification has passed and evidence is recorded."
   },
   "features": [
-    {
-      "id": "parley-004",
-      "priority": 5,
-      "area": "release",
-      "title": "End-to-end dictation verified by hand",
-      "user_visible_behavior": "Dictation pastes into Safari, Chrome, Slack, VS Code, Terminal and Notes.",
-      "status": "blocked",
-      "plan": "none: packaging config and a manual checklist, no UI",
-      "verification": [
-        "Walk docs/MANUAL_CHECKLIST.md."
-      ],
-      "evidence": [
-        "make check exit 0 on 2026-09-22; full unit suite 275 tests across 37 files pass (includes src/orb/__tests__/phase-handler.test.ts, 9 tests, and electron/__tests__/audio-watchdog.test.ts, 4 tests), story-probe suite 106 tests pass, skill-lint 36 files/145 code blocks pass.",
-        "docs/MANUAL_CHECKLIST.md written on 2026-09-22 covering paste targets, gesture (including changing gesture key/tap count), onboarding from a clean state (including the System Settings deep-link check on macOS 26), a real Groq key and an invalid key, errors, offline behaviour, and the tray (including quit and single-instance). No box on that checklist has been ticked yet — manual verification with `make dev` is pending and this feature stays in_progress until it is walked."
-      ],
-      "notes": "Blocked on a human: cannot be marked passing without someone walking docs/MANUAL_CHECKLIST.md by hand with `make dev`. No code change is pending. Moved from in_progress on 2026-09-22 so parley-006 can be the one feature in flight."
-    },
-    {
-      "id": "parley-005",
-      "priority": 6,
-      "area": "dictation",
-      "title": "Voice edit: rewrite the focused field by speaking",
-      "user_visible_behavior": "With the cursor in a text field, the voice edit gesture turns speech into an instruction (\"make it shorter\") that rewrites the selection, or the whole field when nothing is selected, through MiniMax.",
-      "status": "blocked",
-      "plan": "none: one Select row and one key form added to existing settings tabs; the rest is main process",
-      "verification": [
-        "make check",
-        "Walk the Voice edit section of docs/MANUAL_CHECKLIST.md with a real MiniMax key."
-      ],
-      "evidence": [
-        "make check exit 0 on 2026-09-22 on branch voice-edit; unit suite 376 tests across 54 files pass, including electron/__tests__/edit-target.test.ts, field-reader.test.ts, rewriter.test.ts and the voice edit block in session.test.ts.",
-        "resources/parley-ax built universal (arm64 + x86_64) by scripts/build-ax-helper.sh and returned the focused element's role and value when run by hand."
-      ],
-      "notes": "Blocked on a human: needs `make dev`, a MiniMax API key and the manual checklist. The MiniMax request shape (MiniMax-M3, thinking disabled) follows platform.minimax.io docs but has never been sent with a real key."
-    },
-    {
-      "id": "parley-006",
-      "priority": 7,
-      "area": "dictation",
-      "title": "Personal dictionary: names and jargon spelled the user's way",
-      "user_visible_behavior": "Words in the dictionary are sent to Whisper with the audio so it leans toward the user's spelling, and sounds-like rules (\"mini max\" to \"MiniMax\") fix what it still gets wrong before the paste. Later slices add a Dictionary settings tab, snippets, add-by-voice, learning from corrections and on-screen context.",
-      "status": "in_progress",
-      "plan": "none: slices 1 and 5 are main process plus one words-only state of the existing pill; the Dictionary tab is planned with plan-feature before it is built",
-      "verification": [
-        "make check",
-        "Add an entry to dictionary.json by hand, dictate its sounds-like phrase, and see the stored spelling pasted.",
-        "Walk the Personal dictionary section of docs/MANUAL_CHECKLIST.md."
-      ],
-      "evidence": [
-        "Slice 1 on branch personal-dictionary, 2026-09-22: electron/dictionary.ts (whisperPrompt, applyReplacements), electron/dictionary-store.ts and the session wiring, with 17 + 11 + 3 new unit tests passing.",
-        "Learning from corrections on branch personal-dictionary, 2026-09-22: electron/correction-detect.ts, correction-watcher.ts, word-offer.ts, common-words.ts and the pill notice (src/orb/Notice.tsx), 40 new unit tests; type-check, lint, ui-lint, test (458 passing), ui-probe and storybook-lint each exit 0. The notice was rendered in headless Chromium over a light-to-dark background and read correctly in both its offer and accepted states. Not yet exercised in the Electron app against a real text field."
-      ],
-      "notes": "No Dictionary tab yet: entries come from accepting an offer or from editing dictionary.json in the userData folder. The old free-text vocabulary setting still feeds the Whisper prompt until the tab replaces and migrates it. Learning has no off switch until the tab exists. make check as a whole currently stops at plan-lint because of an untracked explain-selection.feature-plan.json that belongs to another worktree, not to this feature."
-    },
-    {
-      "id": "explain-selection",
-      "priority": 8,
-      "area": "explain",
-      "title": "Explain the selected text in a popover",
-      "user_visible_behavior": "Select text in any app, tap-tap-hold the explain key and say a question about it on the usual orb, and a short markdown answer appears beside the selection without taking focus. The gesture again while the card is open asks a follow-up in the same thread. Whisper is primed with the selected words themselves, so a question that names something in the selection is heard spelled correctly.",
-      "status": "in_progress",
-      "plan": "FEATURE-PLAN.md",
-      "verification": [
-        "make check",
-        "Walk the Explain section of docs/MANUAL_CHECKLIST.md with a real MiniMax key."
-      ],
-      "evidence": [],
-      "notes": "Built in worktree explain-selection. Needs a human with make dev: the card has never been shown, and AX selection bounds have never been read from a real app."
-    },
-    {
-      "id": "parley-007",
-      "priority": 9,
-      "area": "onboarding",
-      "title": "Guided onboarding: product tour + setup wizard",
-      "user_visible_behavior": "First launch shows a 4-slide animated product tour (literal mini-UI scenes), then a 6-step setup wizard (mic, accessibility, Groq key, MiniMax optional, hotkeys, practice), then lands on Settings ready to use.",
-      "status": "in_progress",
-      "plan": "parley-007.feature-plan.json",
-      "verification": [
-        "make check",
-        "Walk tour → wizard → settings from a clean userData without touching tabs.",
-        "Quit mid-wizard and confirm it resumes at the saved step; Replay tour never auto-shows."
-      ],
-      "evidence": [
-        "2026-09-22 automated: tsc clean; eslint 0 warnings; ui-lint 0 violations; plan-lint 0 violations (2 plans valid); capability-lint 0; storybook-lint 25 files OK; full unit suite green incl. 25 new onboarding tests; ui-probe 121/121 in Chromium with Tour + Wizard stories at 0 failing; doc-lint 0.",
-        "2026-09-22 caveat: one make check run hung in ui-probe (frozen CPU, no output 30+ min); killed and re-ran the probe standalone green. Flake, not a code hang — same tree passed in under 4 min."
-      ],
-      "notes": "Design + plan approved 2026-09-22. Manual walk (13 boxes in MANUAL_CHECKLIST.md) still needs a human with make dev, so this stays in_progress. Shipped in 0.3.0 on automated verification + owner waiver."
-    },
-    {
-      "id": "parley-008",
-      "priority": 10,
-      "area": "design",
-      "title": "Revamp phase 1: mode-colored orb, scene backdrop, one progress ring",
-      "user_visible_behavior": "The orb glows violet for dictation, amber for voice edit and teal for explain. Tour and wizard sit on a full-bleed tinted scene, the wizard shows progress as a single ring around a live orb, and only the primary button carries the gradient.",
-      "status": "blocked",
-      "plan": "parley-008.feature-plan.json",
-      "verification": [
-        "make check",
-        "Walk the wizard: only the ring shows progress; one gradient button per step.",
-        "make dev: overlay orb hue matches mode for dictate, edit, explain."
-      ],
-      "evidence": [
-        "2026-09-23 automated: make check exit 0; unit suite 554 passed incl. new OrbProgress.test.tsx and windows.test.ts titlebar case; ui-probe 121/121 incl. all Tour and Wizard stories; ui-lint 0; plan-lint 0.",
-        "2026-09-23 visual: Storybook renders of wizard (fresh start, accessibility, done) and tour (voice edit, explain) at 760x560 in dark and light; ring orb centred, scene tone follows slide (amber edit, cyan explain), done ring teal."
-      ],
-      "notes": "Plan approved 2026-09-23 with explain in cyan (teal stays the done flash). Stays in_progress until a human runs make dev: overlay orb hue per mode, the hiddenInset titlebar drag strip, and the Reduce Motion pass. Known leftover for phase 2: PermissionRow's Missing badge and Grant button render near-black on the dark scene. Moved to blocked on 2026-09-23: waiting on a human with make dev, no code change pending, so parley-009 can be in flight."
-    },
-    {
-      "id": "parley-009",
-      "priority": 11,
-      "area": "design",
-      "title": "Revamp phase 2: one first-run flow, gesture trainer, MiniMax on first use, menu-bar finale",
-      "user_visible_behavior": "First run is one six-screen flow on the Scene (Welcome, Microphone, Accessibility, Transcription, Gesture trainer, First words) that ends with the orb flying to the menu bar. The trainer lights a key cap per press and says why a try failed. MiniMax is asked for on the first voice edit or Explain gesture, not during setup. Light-variant badges and buttons no longer render black in dark mode.",
-      "status": "blocked",
-      "plan": "parley-009.feature-plan.json",
-      "verification": [
-        "make check",
-        "make dev from a clean userData: Welcome to finale with no tour; the orb lands by the menu bar item.",
-        "make dev with no MiniMax key: the voice edit gesture opens the offer, with the settings window closed and open."
-      ],
-      "evidence": [
-        "2026-09-23 automated: make check exit 0; unit suite 572 passed incl. new trainer.test.ts (9), MiniMaxOffer.test.tsx (5) and the rewritten onboarding.test.tsx (29); ui-probe 125/125 incl. Wizard Welcome, GestureTrainer, Finale, FinaleWithMissing and the three MiniMaxOffer stories; ui-lint 0; plan-lint 0; storybook-lint OK; doc-lint 0.",
-        "2026-09-23 visual: Storybook renders at 760x560 in dark and light of Welcome, Accessibility, GestureTrainer, Finale, FinaleWithMissing and the MiniMax offer. The Missing badge and Grant button are tinted, no longer black; the finale orb docks in the drawn menu bar and the column centres."
-      ],
-      "notes": "Plan written 2026-09-23; the user asked for phase 2 end to end. Stays in_progress until a human walks the First-run flow and MiniMax on first use sections of docs/MANUAL_CHECKLIST.md with make dev: the real ◉ tray item, the take-blocked path when the refusal itself opens the window, trainer timing against a physical key, and Reduce Motion. The dark light-variant fix in theme.ts is app-wide, so every light Badge and Button in the settings tabs changed too. Moved to blocked on 2026-09-23: waiting on a human with make dev, no code change pending, so parley-010 can be in flight."
-    },
-    {
-      "id": "parley-010",
-      "priority": 12,
-      "area": "design",
-      "title": "Revamp phase 3: Overview with status and time saved, native grouped settings",
-      "user_visible_behavior": "The settings window opens on an Overview: the live orb, “Parley is ready” or “Finish setup”, time saved from dictated words, and one status row each for microphone, accessibility and both keys, each with its own fix. Gesture and General are labelled, grouped lists like System Settings.",
-      "status": "blocked",
-      "plan": "parley-010.feature-plan.json",
-      "verification": [
-        "make check",
-        "make dev: dictate, reopen settings, and see the word count and time saved rise.",
-        "make dev: revoke Accessibility; the Overview flips to Finish setup and the row's Grant fixes it."
-      ],
-      "evidence": [
-        "2026-09-23 automated: make check exit 0; unit suite 581 passed incl. new usage.test.ts (3), three new settings-store tests (word count persists, cannot be patched, corrupt value reads as zero), and Overview cases in SettingsApp.test.tsx (ready title, time saved from 600 words, first-dictation prompt, open key form when missing, MiniMax add closes its form); ui-probe 129/129 incl. the four SettingsShell stories; ui-lint 0; plan-lint 0; storybook-lint OK.",
-        "2026-09-23 visual: Storybook renders at 760x560 in dark and light of SettingsShell Ready, NeedsSetup, Gesture and General. Grouped rows with hairlines, left-aligned rail labels, badges tinted in both themes."
-      ],
-      "notes": "Plan written 2026-09-23; the user asked for phase 3 to be finished. Stays in_progress until a human walks the Settings Overview section of docs/MANUAL_CHECKLIST.md with make dev: the word count rising after a real dictation, the Overview reacting to a revoked permission, and the rail orb and labels in the real window. The count starts at zero for everyone: dictations before this build were never counted. Moved to blocked on 2026-09-23: waiting on a human with make dev, no code change pending, so parley-011 can be in flight."
-    },
-    {
-      "id": "parley-011",
-      "priority": 13,
-      "area": "orb",
-      "title": "Orb and pill polish: centred framing, small-size detail, tap pulse, distinct endings",
-      "user_visible_behavior": "The settings orbs sit centred and stay crisp at small sizes. The orb in the setup ring swells on each trainer tap. The dictation pill pops when text lands, shudders on an error and shrinks away on a cancel.",
-      "status": "blocked",
-      "plan": "none: renderer-only motion on the existing OrbCanvas and Pill; no layout, control or screen changes",
-      "verification": [
-        "make check",
-        "Storybook: OrbCanvas badge framing at 32, 64 and 136 px sits centred and calm.",
-        "make dev: the pill pops on a dictation, shudders on an error, shrinks on Esc; the trainer taps pulse the ring orb."
-      ],
-      "evidence": [
-        "2026-09-23 automated on branch orb-polish: make check exit 0; unit suite 590 passed incl. new pill-motion.test.ts (5), orb-pulse.test.tsx (1) and three new frame.test.ts cases (phase age, pulse kick and decay, no pulse under reduced motion); ui-probe 131/131 incl. the new OrbCanvas Badge and BadgeSmall stories; ui-lint 0; storybook-lint OK.",
-        "2026-09-23 visual: Storybook renders of the badge orb at 136 px, the Overview and sidebar orbs, the trainer ring orb and the finale's docked orb, all seated centred with no per-caller offsets."
-      ],
-      "notes": "Branch orb-polish, 2026-09-23. The overlay users see while dictating is the Pill, not the WebGL orb, so the endings live on the Pill. The pill cannot pulse on taps: its window only appears once the hold registers. Stays in_progress until a human checks the pill endings and the trainer pulse with make dev (see the parley-011 block in docs/MANUAL_CHECKLIST.md). Moved to blocked on 2026-09-24: waiting on a human with make dev, no code change pending, so parley-012 can be in flight."
-    },
-    {
-      "id": "parley-012",
-      "priority": 14,
-      "area": "transcription",
-      "title": "Deepgram Nova-3 as a transcription provider",
-      "user_visible_behavior": "The Overview's Transcription row lets the user choose Whisper (Groq) or Deepgram Nova-3 and store a key for the selected one; the key is tested before it is saved. Groq stays the default. Dictation, voice edit and Explain use the selected provider, and Deepgram gets the dictionary words as keyterms. Ready and the gesture block mean the selected provider has a key.",
-      "status": "in_progress",
-      "plan": "parley-012.feature-plan.json",
-      "verification": [
-        "make check",
-        "npm run test -- electron/__tests__/deepgram.test.ts electron/__tests__/transcriber.test.ts electron/__tests__/settings-store.test.ts",
-        "make dev: choose Deepgram Nova-3, save a real Deepgram key, dictate a sentence with a dictionary word, and see it pasted."
-      ],
-      "evidence": [
-        "2026-09-24 automated on branch feat/deepgram-nova3: make check exit 0; unit suite 76 files / 627 tests passed incl. new deepgram.test.ts (Nova-3 URL and params, one keyterm per deduped term, Token and Content-Type headers, raw ArrayBuffer body, transcript parsing and empty fallback, 401/403/429/500 and network mapping with 'Deepgram error', testKey on GET /v1/projects, 100-term and 1000-char budget, per-call provider routing, Groq default and prompt unchanged), six new settings-store provider tests (Groq default, encrypted Deepgram key round-trip, provider persists, hasApiKey follows the selected provider, provider not patchable, unknown/corrupt provider rejected), two vocabularyTerms tests, one new session test, and five SettingsApp provider tests; the existing transcriber.test.ts passes unchanged; ui-probe 132/132 incl. the new SettingsShell DeepgramNeedsKey story; ui-lint 0; plan-lint 0; capability-lint 0; storybook-lint OK; doc-lint 0.",
-        "2026-09-24 visual: SettingsShell DeepgramNeedsKey and Ready rendered in real chromium at 760x560 in dark and light. The Transcription row shows the Whisper (Groq) / Deepgram Nova-3 SegmentedControl, a Missing badge, and the Deepgram API key form, with the title reading Finish setup.",
-        "Not run: make dev against the live Deepgram API (needs a real key, microphone and Accessibility grants, and a human at the Mac). See the parley-012 block in docs/MANUAL_CHECKLIST.md."
-      ],
-      "notes": "Design approved by the user 2026-09-24 on branch feat/deepgram-nova3. Stays in_progress until a human walks the parley-012 block of docs/MANUAL_CHECKLIST.md with make dev and a real Deepgram key. The first-run wizard stays Groq-only by design; Deepgram is chosen on the Overview."
-    },
-    {
-      "id": "parley-013",
-      "priority": 15,
-      "area": "actions",
-      "title": "Act mode: voice commands handed to a Mastra agent",
-      "user_visible_behavior": "A fourth gesture key turns speech into a command for a Mastra agent in a new parley-agent project: progress streams onto the pill, each destructive tool waits for one tap, and the result lands as one line or on the clipboard. Parley starts the server on launch and supervises it (attach if already running, restart on crash), with health and a Restart in the Agent settings tab.",
-      "status": "in_progress",
-      "plan": "parley-013.feature-plan.json",
-      "verification": [
-        "make check",
-        "npm run test -- electron/agent/__tests__/client.test.ts electron/agent/__tests__/events.test.ts electron/agent/__tests__/confirm.test.ts electron/agent/__tests__/supervisor.test.ts",
-        "Storybook: SettingsShell AgentOnline, AgentOffline, AgentTestError and AgentAwaitingApproval in dark and light",
-        "make dev spawns mastra dev from parley-agent/: voice-run a read, an approval tap, a decline showing 'Skipped — continuing…', Esc-cancel; kill the server and watch it restart; relaunch with the port busy to see attach; gesture during warmup shows the starting pill",
-        "kill -9 the server mid-approval and tap anyway (pill folds with 'Run ended'); hold :4111 with a stranger process and relaunch (offline names the port); answer a waiting approval from the Agent tab buttons"
-      ],
-      "evidence": [
-        "2026-09-26 automated on branch feat/parley-013-act: make check exit 0; unit suite 81 files / 699 tests pass incl. new electron/agent suites (client, events, confirm, supervisor), session act-branch tests, settings-store agent tests, AgentTab tests and the extended palette snapshot; ui-probe 136/136; eslint, ui-lint, plan-lint, capability-lint, doc-links, storybook-lint, skill-lint, doc-lint, loop-lint all 0 violations.",
-        "2026-09-26 visual: SettingsShell AgentOnline, AgentOffline, AgentTestError and AgentAwaitingApproval rendered in real Chromium at 760x560 in dark and light with zero page errors — Online badge + capability line, mirrored Approve/Decline on the approval, standing red Alert with Open Advanced on the failure; badges and Alert tinted in both themes.",
-        "2026-09-26 agent contract: in-repo parley-agent/ (mock models + fixture MCP server + 35-check smoke runner). node smoke/run.mjs all green across five fresh mastra dev boots: health catalog, free read, approve-resume-completed, decline with Skipped step, DELETE on a suspended run, unknown-run 404s. mastra build output boots under Electron-as-Node and serves health plus a full read run.",
-        "2026-09-26 storybook-render gate: 36 failures on this tree vs 38 on pristine HEAD (verified via clean worktree) — all pre-existing scaffold Shell/Pages stories, none in settings/agent/orb. Not part of make check.",
-        "2026-09-26 MiniMax + dummy on branch feat/parley-013-act: model default is minimax/MiniMax-M3 (gateway resolves it with no new dep); stored key passes as MINIMAX_API_KEY at spawn (env helper unit-tested, explicit env wins); managed act without a key opens the MiniMax offer (session gate tested, offer lists all three modes); dummy notes MCP is the default with zero config (example config + root-anchored resolution + PARLEY_NODE_BIN for packaged). Smoke is 42/42 across six boots incl. the dummy end to end; a fake key provably reaches MiniMax (gateway 401 'login fail', message-first error shaping). Not run: one real-key command end to end.",
-        "Not run: make dev against a real model and real MCP servers (needs API keys, mic + Accessibility grants, and a human at the Mac). See the Act mode block in docs/MANUAL_CHECKLIST.md.",
-        "2026-10-05 live vs MiniMax-M3: built-in web search via parley-api POST /api/search; reads used a tool 8/8 (before 2/4, one invented 'Added'); writes 3/3 asked approval; approve and decline completed. Fixes: no sample reply in instructions, tool_choice required on step one, one retry then 'Nothing was done — no tool ran'. Smoke 42/42, make check 0."
-      ],
-      "notes": "Plan written 2026-09-26; revised four times the same day: inline MCP tools to Mastra handoff, user-run to Parley-managed server, a 20-item edge-case pass, then the full impeccable critique fold (approvals wait until answered, summary-first copy with transcript echo, tab mirror with Approve/Decline, capability-first tab with Advanced collapse, standing failure record, no voice approval v1). Interview: new gesture key, confirm-writes/auto-read, new parley-agent project, Parley spawns and supervises. Implementation complete on feat/parley-013-act; stays in_progress until a human walks the Act mode block of docs/MANUAL_CHECKLIST.md with a real model key and MCP servers. Placement changed after review: parley-agent/ is an in-repo project, not a ../Mastra sibling. Two deviations from the plan worth knowing: agent routes live at /parley/* instead of /api/parley/* (Mastra reserves /api, confirmed in its own docs and the jev-poc house convention), and the packaged bundle ships ~200M of node_modules because bundler.externals:false fails on mastra 1.30 (NOTE in parley-agent/src/mastra/index.ts)."
-    },
-    {
-      "id": "parley-015",
-      "priority": 17,
-      "area": "settings",
-      "title": "Sync: dictionary and settings follow you between devices",
-      "user_visible_behavior": "A Sync tab signs this Mac in to parley-api by email; dictionary and settings (never API keys) then sync on a timer and after changes, last writer wins. Failures show in the tab and never block dictation.",
-      "status": "in_progress",
-      "plan": "parley-015.feature-plan.json",
-      "verification": [
-        "make check",
-        "npm run test -- electron/sync electron/__tests__/settings-store.test.ts electron/__tests__/dictionary-store.test.ts",
-        "make -C parley-api check",
-        "Storybook: SettingsShell SyncSignedOut, SyncSigningIn, SyncSynced, SyncError in dark and light",
-        "make dev with parley-api running on :3100: sign in, add a dictionary word, see it in sqlite via prisma studio; stop the API, press Sync now, see the error line and dictate normally"
-      ],
-      "evidence": [
-        "2026-10-02 make check exit 0 (741 unit incl. electron/sync, ui-probe 140/140); parley-api check 43/43. storybook-render: 332 renders, Sync stories pass; exit 1 on 36 pre-existing template failures (Dashboard/Projects/Topbar/Command Palette).",
-        "2026-10-02 headless run vs make -C parley-api dev on :3100 (real stores, client, engine via tsx): signIn, upsert Kubernetes, syncNow ok 1 up; row in dev.db dictionary_entries via sqlite3. API killed: syncNow ok:false 'fetch failed', syncLastError set, word kept.",
-        "Not run: GUI walk (Settings > Sync sign-in, Sync now, Prisma Studio, dictate during an outage). See Sync block in docs/MANUAL_CHECKLIST.md."
-      ],
-      "notes": "Plan docs/superpowers/plans/2026-10-02-monorepo-and-sync-api.md, tasks 7-11."
-    },
-    {
-      "id": "parley-016",
-      "priority": 18,
-      "area": "explain",
-      "title": "Explain streams from parley-api",
-      "user_visible_behavior": "The Explain card streams a teaching-style answer from parley-api (POST /api/explain over SSE): text appears as it is written, a line says what it is searching, and real source links open in the browser. When the Parley server is unreachable the card says so.",
-      "status": "in_progress",
-      "plan": "parley-016.feature-plan.json",
-      "verification": [
-        "make check",
-        "npm run test -- electron/__tests__/explain-client.test.ts electron/__tests__/explain.test.ts src/explain",
-        "Storybook: ExplainCard Streaming, Searching, ReadyWithSources, Error in dark and light",
-        "make dev with parley-api running on :3100: select text, trigger Explain, watch the answer stream, a search line, sources open in the browser; stop the API, trigger again, see the cannot-reach line"
-      ],
-      "evidence": [
-        "2026-10-03 make check exit 0: desktop 762 unit + 146 ui-probe, parley-api 27, Android flutter + 170 Kotlin. storybook-render: 348 renders, all 12 ExplainCard renders pass; exit 1 on 40 failures in untouched template stories (Command Palette, Topbar, Dashboard, Projects).",
-        "2026-10-03 headless run of the real createExplain + createUpdateThrottle + createExplainClient against parley-api on :3100 (tsx): concept answered with first text at 1.4 s, 10 throttled pushes, ready; search case went streaming -> reset -> searching 'Mastra 1.67 release notes changes' -> streaming -> ready with 3 real source URLs; unreachable server gave \"Can't reach the Parley server at http://localhost:3999\" in 5 ms.",
-        "2026-10-03 Storybook screenshots (dark and light) of Loading, Searching, Streaming, ReadyWithSources, ErrorAfterText, ServerUnreachable checked by eye; source links measured at a 44 px hit area with a tight focus ring.",
-        "Not run: the GUI walk with the real gesture (Explain block of docs/MANUAL_CHECKLIST.md). make dev quit at once on the single-instance lock because /Applications/Parley.app was running; it was left running."
-      ],
-      "notes": "Server side: parley-api src/explain (commit d616613)."
-    },
-    {
-      "id": "parley-017",
-      "priority": 19,
-      "area": "settings",
-      "title": "Provider keys live in parley-api, not the app",
-      "user_visible_behavior": "Settings never asks for a Groq, Deepgram or MiniMax key. Dictation, voice edit and Act reach the providers through parley-api on this Mac, which holds the keys in its .env. Overview shows whether the Parley server is running and which keys it has; with the server down the pill says so.",
-      "status": "in_progress",
-      "plan": "parley-017.feature-plan.json",
-      "verification": [
-        "make check",
-        "npm --prefix parley-api run check (pass-through: key added, Authorization from the app ignored, only the three paths allowed, 503 when a key is missing)",
-        "Storybook: Overview server Running, KeyMissing, NotRunning; wizard step in dark and light",
-        "Real run with the installed build: parley-api running with GROQ_API_KEY and MINIMAX_API_KEY; dictate, voice edit, Act; stop the server and dictate again to see the pill error"
-      ],
-      "evidence": [
-        "2026-10-03 make check exit 0 (desktop unit + ui-probe, parley-api 41, Android). New tests: parley-api providers-route (key added, caller Authorization dropped, only the allowed paths, 503 no_key, 502 unreachable, anthropic-version forwarded); electron server-status, transcriber/deepgram/rewriter through /api/providers, settings-store v1 to v2 migration deletes the keys, agent env base URL; renderer Overview server states and wizard server step.",
-        "2026-10-03 live against parley-api on 127.0.0.1:3100 with the real electron modules (tsx): status {groq:true,deepgram:false,minimax:true}; Groq transcription of a said WAV 'Kubernetes deployments are rolling out.'; MiniMax rewrite 'The meeting is scheduled for Tuesday at 3:00 p.m.'; Deepgram 'No Deepgram key on the Parley server'; server down 'Parley server not running'. Server listens on 127.0.0.1 only (lsof).",
-        "2026-10-03 installed 0.6.0 build: settings.json migrated from schema 1 with apiKeyEncrypted and rewriteKeyEncrypted to schema 2 with no keys; the managed agent runs with MINIMAX_BASE_URL=http://localhost:3100/api/providers/minimax/anthropic/v1 and a placeholder key, and /api/agents/parley-action/generate answered 'ready' through the server.",
-        "2026-10-03 Storybook screenshots (dark and light) of SettingsShell Ready, NeedsSetup (server down), MiniMaxKeyMissing, DeepgramNeedsKey and Wizard ServerStep, ServerStepNotRunning checked by eye.",
-        "Not run: the GUI walk with the real gesture (Parley server and keys block of docs/MANUAL_CHECKLIST.md)."
-      ],
-      "notes": "Approved 2026-10-03. Server: parley-api src/providers/route.ts. Auto-start of parley-api by the app is a follow-up; you run make api."
-    },
-    {
-      "id": "parley-018",
-      "priority": 20,
-      "area": "voice-edit",
-      "title": "Voice edit in terminals and long documents",
-      "user_visible_behavior": "In a terminal (iTerm2, Terminal, Ghostty, Warp, kitty, Alacritty, WezTerm, Hyper, Tabby) voice edit rewrites only what is typed after the prompt (Claude Code, Codex, shell and oh-my-zsh prompts), erasing it with backspaces and pasting the rewrite, instead of failing with 'Too much text to edit' on the scrollback. In a field longer than 8000 characters it rewrites the paragraph the caret is in, selected through Accessibility, instead of refusing.",
-      "status": "in_progress",
-      "verification": [
-        "make check",
-        "Unit: terminal-input (prompt detection, wrapped input, graphemes, paragraphAt), edit-target terminal and paragraph scopes, field-reader new fields and --select, injector erase",
-        "Live: parley-ax and edit targets against real Terminal.app (oh-my-zsh prompt) and TextEdit (11k-char document)",
-        "Installed build: voice edit at the Claude Code prompt in iTerm2 with a long scrollback"
-      ],
-      "evidence": [
-        "2026-10-06 root cause: parley-ax in iTerm2 returned AXTextArea value of 27,121 chars (the scrollback) for a Claude Code prompt, so edit-target threw 'Too much text to edit' at MAX_EDIT_CHARS 8000. iTerm2 reports AXSelectedTextRange (caret 90174 of 90386) and it is settable.",
-        "2026-10-06 live Terminal.app: typed 'echo hello wrld please' after '➜  ~ '; captured {text:'echo hello wrld please', scope:'terminal', erase:22}; after erase and typing the rewrite the prompt line read '➜  ~ echo rewritten ok' (prompt untouched). First run caught '~ ' leaking into the input, fixed with the oh-my-zsh prompt pattern.",
-        "2026-10-06 live TextEdit, 11,309-char document: --select placed the caret; captured {text:'The one i mean has a typo in it.', scope:'paragraph', range:{location:11250,length:32}}; after apply the document read 'The one I mean, fixed.' with the lines around it unchanged.",
-        "Not run yet: the real gesture with the installed build in iTerm2 at the Claude Code prompt."
-      ]
-    },
     {
       "id": "parley-019",
       "priority": 21,
@@ -330,6 +33,92 @@
         "2026-11-05 live: Parley Native.app, Electron quit; hello ok (engine 0.6.4); Accessibility granted live, key tap started without relaunch; 3 dictations via Left Shift x2 hold: listening -> transcribing -> pasted 14/29/23 chars -> done. Gesture release to paste 1.4 s, 1.1 s, 0.9 s (Groq via parley-api over Tailscale).",
         "2026-11-05 Accessibility and Microphone survive a rebuild and relaunch (Apple Development signing).",
         "2026-11-05 memory after use: app 196 MB + engine 102 MB RSS (idle before first use: 75 + 51). Not yet compared like for like with Electron (276 MB idle)."
+      ]
+    },
+    {
+      "id": "parley-020",
+      "priority": 22,
+      "area": "native-shell",
+      "title": "Native settings window: general, keys, provider, dictionary, onboarding",
+      "user_visible_behavior": "A Liquid Glass settings window (design: claude.ai/artifact/Mirpic2JxR1ZZyewgN8nZL) edits settings and the personal dictionary through the engine, and a first-run flow asks for Microphone and Accessibility.",
+      "status": "not_started",
+      "verification": [
+        "make check",
+        "Live: change gesture key and provider, add a dictionary word, both take effect on the next dictation"
+      ],
+      "evidence": [],
+      "ported_from": [
+        "parley-006",
+        "parley-007",
+        "parley-010",
+        "parley-012"
+      ]
+    },
+    {
+      "id": "parley-021",
+      "priority": 23,
+      "area": "native-shell",
+      "title": "Native voice edit, including terminals and long documents",
+      "user_visible_behavior": "Voice edit on its own gesture rewrites the selection or focused field (terminal input after the prompt, the caret's paragraph in long documents) from the native shell, with Accessibility read in-process.",
+      "status": "not_started",
+      "verification": [
+        "make check",
+        "Live: voice edit in TextEdit, Notes and iTerm2"
+      ],
+      "evidence": [],
+      "ported_from": [
+        "parley-005",
+        "parley-018"
+      ]
+    },
+    {
+      "id": "parley-022",
+      "priority": 24,
+      "area": "native-shell",
+      "title": "Native Explain popover",
+      "user_visible_behavior": "Explain on its own gesture answers a question about the selection in a glass popover anchored to it, streamed from parley-api.",
+      "status": "not_started",
+      "verification": [
+        "make check",
+        "Live: explain a selection in Safari and TextEdit"
+      ],
+      "evidence": [],
+      "ported_from": [
+        "explain-selection",
+        "parley-016"
+      ]
+    },
+    {
+      "id": "parley-023",
+      "priority": 25,
+      "area": "native-shell",
+      "title": "Native Act mode with the Mastra agent",
+      "user_visible_behavior": "Act on its own gesture hands the command to the bundled parley-agent, with progress and approvals on the pill.",
+      "status": "not_started",
+      "verification": [
+        "make check",
+        "Live: an Act command that needs one approval"
+      ],
+      "evidence": [],
+      "ported_from": [
+        "parley-013"
+      ]
+    },
+    {
+      "id": "parley-024",
+      "priority": 26,
+      "area": "native-shell",
+      "title": "Native sync, token in the Keychain",
+      "user_visible_behavior": "Sync of dictionary and settings works from the native shell, the token stored in the Keychain by Swift and handed to the engine.",
+      "status": "not_started",
+      "verification": [
+        "make check",
+        "Live: a word added on Android appears on the Mac"
+      ],
+      "evidence": [],
+      "ported_from": [
+        "parley-015",
+        "parley-017"
       ]
     }
   ]

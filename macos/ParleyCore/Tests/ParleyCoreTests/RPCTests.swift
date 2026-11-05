@@ -16,7 +16,7 @@ import Testing
     }
 
     @Test func decodesWhatTheEngineSends() throws {
-        // Exact frames from electron/headless/rpc.ts.
+        // Exact frames from engine/headless/rpc.ts.
         #expect(try RPCCodec.decode(#"{"jsonrpc":"2.0","method":"hud.phase","params":{"phase":"listening","tick":true}}"#)
             == .notification(method: "hud.phase", params: ["phase": "listening", "tick": true]))
         #expect(try RPCCodec.decode(#"{"jsonrpc":"2.0","id":1,"method":"paste.text","params":{"text":"hi"}}"#)
