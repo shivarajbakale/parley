@@ -63,6 +63,7 @@ in `engine/headless/rpc.ts` and `ParleyCore/RPC.swift` must match.
 | `ax.focusedField` → field, `ax.select {location, length}` → `{selected}` | request | Accessibility, in-process |
 | `explain.show {anchor, content}`, `explain.update {content}`, `explain.hide` | notify | the Explain card |
 | `clipboard.write`, `speak`, `app.launchAtLogin`, `settings.changed` | notify | |
+| `clipboard.recent {withinMs}` → `{text}` | request | what the user copied in that window, else empty (Explain fallback) |
 | `transcript`, `session.blocked {reason}`, `ui.openSettings`, `log` | notify | |
 
 The recorder follows `hud.phase`: `listening` starts, `transcribing` stops and

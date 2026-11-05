@@ -57,6 +57,7 @@ function setup(
     'inject.copyAll': () => ({ text: '' }),
     'inject.copySelection': () => ({ text: '' }),
     'inject.erase': () => ({ ok: true }),
+    'clipboard.recent': () => ({ text: '' }),
     ...shell,
   };
   const deps: EngineDeps = {
@@ -316,6 +317,43 @@ describe('headless engine: Explain', () => {
     expect(phases()).toContain('done');
     engine.onNotify('explain.dismiss', undefined);
     expect(notes.some((n) => n.method === 'explain.hide')).toBe(true);
+  });
+});
+
+describe('headless engine: Explain when the app draws its own selection', () => {
+  it('nothing selected, nothing copied by ⌘C: explains a copy made in the last 30 s and says so', async () => {
+    const { engine, notes, hello, calls } = setup({}, {}, {
+      'ax.focusedField': () => field('scrollback', { bundleId: 'com.googlecode.iterm2' }),
+      'clipboard.recent': () => ({ text: 'the copied sentence' }),
+    });
+    await hello();
+    gesture(engine, DEFAULT_SETTINGS.explainGestureKey)();
+    engine.onNotify('audio.ready', { path: '', mimeType: 'audio/mp4', durationMs: 0 });
+    await vi.waitFor(() => expect(notes.some((n) => n.method === 'explain.show')).toBe(true));
+    expect(calls('inject.copySelection')).toHaveLength(1);
+    expect(calls('clipboard.recent')[0].params).toEqual({ withinMs: 30_000 });
+    const shown = notes.find((n) => n.method === 'explain.show')!.params!;
+    expect(shown.fromClipboard).toBe(true);
+    expect(shown.anchor).toBeNull();
+    expect(notes.filter((n) => n.method === 'log').map((n) => n.params?.message)).toEqual(
+      expect.arrayContaining([
+        'explain: AX read app=com.googlecode.iterm2 editable=true selected=0 chars',
+        'explain: ⌘C fallback copied 0 chars',
+        'explain: recent copy 19 chars',
+      ])
+    );
+  });
+
+  it('a real selection never reaches for the clipboard', async () => {
+    const { engine, notes, hello, calls } = setup({}, {}, {
+      'ax.focusedField': () => field('a b', { selectedText: 'idempotent' }),
+    });
+    await hello();
+    gesture(engine, DEFAULT_SETTINGS.explainGestureKey)();
+    engine.onNotify('audio.ready', { path: '', mimeType: 'audio/mp4', durationMs: 0 });
+    await vi.waitFor(() => expect(notes.some((n) => n.method === 'explain.show')).toBe(true));
+    expect(calls('clipboard.recent')).toHaveLength(0);
+    expect(notes.find((n) => n.method === 'explain.show')!.params!.fromClipboard).toBe(false);
   });
 });
 

@@ -23,6 +23,8 @@ export interface Platform {
     hide(): void;
   };
   writeClipboard(text: string): void;
+  /** Text the user copied within `withinMs`, or ''. */
+  recentCopy(withinMs: number): Promise<string>;
   speak(text: string): void;
   setLaunchAtLogin(enabled: boolean): void;
   openSettings(reason?: SessionBlockedReason): void;
@@ -91,6 +93,15 @@ export function createPlatform(rpc: Pick<Rpc, 'request' | 'notify'>): Platform {
         return reply?.selected === true;
       } catch {
         return false;
+      }
+    },
+
+    async recentCopy(withinMs) {
+      try {
+        const reply = await rpc.request<{ text?: unknown }>('clipboard.recent', { withinMs });
+        return typeof reply?.text === 'string' ? reply.text : '';
+      } catch {
+        return '';
       }
     },
 

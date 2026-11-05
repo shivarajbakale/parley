@@ -43,6 +43,11 @@ final class AppController {
     @ObservationIgnored private var exits: [Date] = []
     @ObservationIgnored private var permissionTimer: Timer?
     @ObservationIgnored private var accessibilityAskedAt: Date?
+    /// When the user (not Parley) last copied something, for Explain's
+    /// "explain what I just copied" fallback.
+    @ObservationIgnored private var lastSeenChangeCount = NSPasteboard.general.changeCount
+    @ObservationIgnored private var lastUserCopyAt: Date?
+    @ObservationIgnored private var clipboardTimer: Timer?
     /// Past this, a request that still reads as untrusted is probably stale.
     private static let staleAfter: TimeInterval = 20
 
@@ -72,6 +77,17 @@ final class AppController {
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.pollPermissions() }
         }
+        clipboardTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.watchClipboard() }
+        }
+    }
+
+    /// Only the change count is read here, never the contents.
+    private func watchClipboard() {
+        let count = NSPasteboard.general.changeCount
+        guard count != lastSeenChangeCount else { return }
+        lastSeenChangeCount = count
+        if count != paster.ownChangeCount { lastUserCopyAt = Date() }
     }
 
     func quit() {
@@ -207,11 +223,20 @@ final class AppController {
             return ["text": .string(await paster.copyAll())]
         case "inject.copySelection":
             try requireAccessibility()
-            return ["text": .string(await paster.copySelection())]
+            let held = CGEventSource.flagsState(.combinedSessionState)
+            let before = NSPasteboard.general.changeCount
+            let text = await paster.copySelection()
+            log.info("copySelection: modifiers held cmd=\(held.contains(.maskCommand)) ctrl=\(held.contains(.maskControl)) opt=\(held.contains(.maskAlternate)) shift=\(held.contains(.maskShift)); pasteboard changes \(NSPasteboard.general.changeCount - before); \(text.count) chars")
+            return ["text": .string(text)]
         case "inject.erase":
             try requireAccessibility()
             await paster.erase(Int(params?["count"]?.number ?? 0))
             return ["ok": true]
+        case "clipboard.recent":
+            watchClipboard()
+            let within = (params?["withinMs"]?.number ?? 30_000) / 1000
+            guard let at = lastUserCopyAt, Date().timeIntervalSince(at) <= within else { return ["text": ""] }
+            return ["text": .string(NSPasteboard.general.string(forType: .string) ?? "")]
         case "ax.focusedField":
             return await Task.detached(priority: .userInitiated) { Accessibility.focusedField() }.value
         case "ax.select":
@@ -238,7 +263,10 @@ final class AppController {
             apply(phase)
         case "explain.show":
             let anchor = Self.rect(params?["anchor"])
-            explain.show(anchor: anchor, content: JSONBridge.decode(ExplainContent.self, from: params?["content"]) ?? .empty)
+            explain.show(anchor: anchor,
+                         content: JSONBridge.decode(ExplainContent.self, from: params?["content"]) ?? .empty,
+                         fromClipboard: params?["fromClipboard"]?.bool == true,
+                         app: NSWorkspace.shared.frontmostApplication?.localizedName)
         case "explain.update":
             explain.update(JSONBridge.decode(ExplainContent.self, from: params?["content"]) ?? .empty)
         case "explain.hide":

@@ -137,13 +137,26 @@ import Testing
         #expect(board.string(forType: .string) == "original")
     }
 
-    @Test func copySelectionThatCopiesNothingReadsAsNothing() async {
+    @Test func copySelectionThatCopiesNothingReadsAsNothingAndLeavesTheClipboardAlone() async {
         let board = board()
         defer { board.releaseGlobally() }
         seed(board)
+        let before = board.changeCount
         let paster = Paster(pasteboard: board, send: { _ in }, sleep: { _ in })
         #expect(await paster.copySelection() == "")
         #expect(board.string(forType: .string) == "original")
+        #expect(board.changeCount == before)
+    }
+
+    @Test func ownChangeCountTracksParleysWrites() async {
+        let board = board()
+        defer { board.releaseGlobally() }
+        let paster = Paster(pasteboard: board, send: { _ in }, sleep: { _ in })
+        paster.writeClipboard("x")
+        #expect(paster.ownChangeCount == board.changeCount)
+        board.clearContents()
+        board.setString("user copy", forType: .string)
+        #expect(paster.ownChangeCount != board.changeCount)
     }
 
     @Test func eraseSendsOneBackspacePerCharacterInBatches() async {

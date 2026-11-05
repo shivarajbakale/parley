@@ -56,6 +56,8 @@ export const QUIT_GRACE_MS = 500;
 export const SYNC_FIRST_MS = 10_000;
 export const SYNC_EVERY_MS = 5 * 60_000;
 export const SYNC_SOON_MS = 30_000;
+/** How recent a copy Explain falls back to when nothing is selected. */
+export const RECENT_COPY_MS = 30_000;
 
 type Params = Record<string, unknown> | undefined;
 
@@ -169,11 +171,52 @@ export function createEngine(deps: EngineDeps): Engine {
     injector: platform.injector,
     select: (range) => platform.selectRange(range),
   });
-  const selectionReader = createSelectionReader({ reader: fieldReader, injector: platform.injector });
+  // Explain's two routes to the selection, each logged (sizes and app only,
+  // never the text) so a "nothing selected" can be traced to which one failed.
+  const selectionReader = createSelectionReader({
+    reader: {
+      read: async () => {
+        const field = await platform.readField();
+        log(
+          'info',
+          field
+            ? `explain: AX read app=${field.bundleId ?? '?'} editable=${field.editable} selected=${field.selectedText.length} chars`
+            : 'explain: AX read returned no field'
+        );
+        return field;
+      },
+    },
+    injector: {
+      copySelection: async () => {
+        const text = await platform.injector.copySelection();
+        log('info', `explain: ⌘C fallback copied ${text.length} chars`);
+        return text;
+      },
+    },
+    recentCopy: async () => {
+      const text = await platform.recentCopy(RECENT_COPY_MS);
+      log('info', `explain: recent copy ${text.length} chars`);
+      return text;
+    },
+  });
+  /** Whether the open card answers a recent copy rather than a selection. */
+  let explainingCopy = false;
+  const explainView: Platform['explainView'] = {
+    show: (anchor, content) => {
+      platform.notify('explain.show', { anchor, content, fromClipboard: explainingCopy });
+    },
+    update: (content) => platform.explainView.update(content),
+    hide: () => platform.explainView.hide(),
+  };
+  const readSelection = async () => {
+    const snapshot = await selectionReader.read();
+    explainingCopy = snapshot?.fromClipboard === true;
+    return snapshot;
+  };
   const explain = createExplain({
-    selection: selectionReader,
+    selection: { read: readSelection },
     client: deps.explainClient,
-    view: platform.explainView,
+    view: explainView,
   });
 
   const isCommonWord = deps.isCommonWord ?? (() => false);
@@ -421,7 +464,7 @@ export function createEngine(deps: EngineDeps): Engine {
     injector: platform.injector,
     rewriter: deps.rewriter,
     editTargets,
-    selection: selectionReader,
+    selection: { read: readSelection },
     explain,
     dictionary: {
       prompt: () => whisperPrompt(dictionary.list(), splitVocabulary(store.get().vocabulary)),

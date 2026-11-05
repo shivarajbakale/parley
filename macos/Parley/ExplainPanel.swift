@@ -6,6 +6,10 @@ import SwiftUI
 @Observable
 final class ExplainModel {
     var content: ExplainContent = .empty
+    /// The card answers a recent copy, not a selection.
+    var fromClipboard = false
+    /// The app the user was in, for a "nothing selected" that names it.
+    var app: String?
 }
 
 /// The Explain card: a glass popover anchored under the selection. It takes
@@ -52,9 +56,11 @@ final class ExplainPanel {
     var isVisible: Bool { panel.isVisible }
 
     /// `anchor` is the selection in Accessibility's top-left coordinates.
-    func show(anchor: CGRect?, content: ExplainContent) {
+    func show(anchor: CGRect?, content: ExplainContent, fromClipboard: Bool = false, app: String? = nil) {
         self.anchor = anchor
         model.content = content
+        model.fromClipboard = fromClipboard
+        model.app = app
         resizeAndPlace()
         panel.alphaValue = 0
         panel.orderFrontRegardless()
@@ -139,8 +145,7 @@ struct ExplainCard: View {
                         TurnView(turn: turn)
                     }
                     if model.content.status == "empty" {
-                        Text("Select some text, then ask.")
-                            .foregroundStyle(.secondary)
+                        EmptySelection(app: model.app)
                     }
                 }
                 .padding(.horizontal, 18)
@@ -164,6 +169,11 @@ struct ExplainCard: View {
                 .foregroundStyle(Brand.hue(for: "explain"))
             Text("Explain")
                 .font(.system(size: 13, weight: .semibold))
+            if model.fromClipboard {
+                Text("· what you copied")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             if let lastAnswer {
                 Button { copy(lastAnswer) } label: { Image(systemName: "doc.on.doc") }
@@ -179,6 +189,22 @@ struct ExplainCard: View {
         .padding(.horizontal, 18)
         .padding(.top, 14)
         .padding(.bottom, 10)
+    }
+}
+
+/// Nothing selected that Parley could read: say why, and what works instead.
+private struct EmptySelection: View {
+    let app: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Parley couldn’t read a selection\(app.map { " in \($0)" } ?? "").")
+                .font(.system(size: 13.5, weight: .semibold))
+            Text("Some apps draw their own selection, like Claude Code or vim in a terminal, so macOS can’t see it. Copy the text (⌘C) and use Explain within 30 seconds, or select with the terminal itself (hold ⌥ while dragging in iTerm2).")
+                .font(.system(size: 12.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

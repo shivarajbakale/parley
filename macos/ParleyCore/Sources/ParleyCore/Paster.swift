@@ -50,28 +50,36 @@ public final class Paster {
     /// Select everything in the focused field and return it. Only safe once
     /// the focus is known to be a text field.
     public func copyAll() async -> String {
+        await copy(selectingAll: true)
+    }
+
+    /// Copy what is selected right now, without selecting anything.
+    public func copySelection() async -> String {
+        await copy(selectingAll: false)
+    }
+
+    /// ⌘C, read back only if the app actually put something on the pasteboard.
+    /// The clipboard is never cleared first: an app that copied on select
+    /// (some terminals do) keeps what it copied, and "nothing copied" is told
+    /// apart by the change count, not by an emptied board.
+    private func copy(selectingAll: Bool) async -> String {
         let saved = snapshot()
-        // Emptied first, so a ⌘C that copies nothing reads back as nothing.
-        write("")
-        send(.selectAll)
-        await sleep(Self.selectSettle)
+        let before = pasteboard.changeCount
+        if selectingAll {
+            send(.selectAll)
+            await sleep(Self.selectSettle)
+        }
         send(.copy)
         await sleep(Self.copySettle)
+        guard pasteboard.changeCount != before else { return "" }
         let text = pasteboard.string(forType: .string) ?? ""
         restore(saved)
         return text
     }
 
-    /// Copy what is selected right now, without selecting anything.
-    public func copySelection() async -> String {
-        let saved = snapshot()
-        write("")
-        send(.copy)
-        await sleep(Self.copySettle)
-        let text = pasteboard.string(forType: .string) ?? ""
-        restore(saved)
-        return text
-    }
+    /// The pasteboard change count after Parley's own last write, so a
+    /// watcher can tell the user's copies from Parley's.
+    public private(set) var ownChangeCount = 0
 
     /// Backspace `count` times: how a terminal's typed input is cleared.
     public func erase(_ count: Int) async {
@@ -91,6 +99,7 @@ public final class Paster {
     private func write(_ text: String) {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        ownChangeCount = pasteboard.changeCount
     }
 
     /// Every item, every type, as raw data: rich text, images and files
@@ -107,6 +116,7 @@ public final class Paster {
 
     func restore(_ saved: [[NSPasteboard.PasteboardType: Data]]) {
         pasteboard.clearContents()
+        ownChangeCount = pasteboard.changeCount
         guard !saved.isEmpty else { return }
         let items = saved.map { types -> NSPasteboardItem in
             let item = NSPasteboardItem()
@@ -114,5 +124,6 @@ public final class Paster {
             return item
         }
         pasteboard.writeObjects(items)
+        ownChangeCount = pasteboard.changeCount
     }
 }
