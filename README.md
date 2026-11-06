@@ -70,6 +70,41 @@ want. Pick one another mode uses and the two swap.
 
 Press **Esc** at any time to cancel.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img alt="A text document with Parley's dictation pill at the bottom: a violet dot, a live level meter and a 0:03 timer" src="docs/assets/screenshots/dictate.png"><br>
+      <sub><b>Dictate.</b> The pill appears over the window you're typing in while you hold the key.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img alt="Parley's Explain card under the selected word 'idempotent', answering 'What does this mean here?' with a definition and examples" src="docs/assets/screenshots/explain.png"><br>
+      <sub><b>Explain.</b> Select a word, ask out loud, and the answer opens beside it.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <img alt="A long, rambling sentence selected in a document while the Voice edit pill listens" src="docs/assets/screenshots/voice-edit-before.png"><br>
+      <sub><b>Voice edit, before.</b> Select text and say <i>“Make it shorter and more professional.”</i></sub>
+    </td>
+    <td valign="top">
+      <img alt="The same document after the edit: 'Team, retries are now idempotent, so timed-out requests can be safely resent.'" src="docs/assets/screenshots/voice-edit-after.png"><br>
+      <sub><b>Voice edit, after.</b> The selection is replaced in place.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <img alt="Settings, Keys and gestures: each mode's key shown as three keycaps, like a shortcut recorder" src="docs/assets/screenshots/settings-keys.png"><br>
+      <sub><b>Keys.</b> Click a mode and press a modifier to change it.</sub>
+    </td>
+    <td valign="top">
+      <img alt="Settings, Server and sync: connection status and provider keys for Groq, Deepgram, MiniMax and Exa" src="docs/assets/screenshots/settings-server.png"><br>
+      <sub><b>Provider keys.</b> Sent to your server, never stored on the Mac.</sub>
+    </td>
+  </tr>
+</table>
+
 ## Quick start
 
 ### Requirements
