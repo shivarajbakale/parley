@@ -382,8 +382,8 @@ describe('headless engine: settings and dictionary', () => {
   it('settings.update persists and returns the view', async () => {
     const { engine, store } = setup();
     const view = await engine.onRequest('settings.update', { patch: { tapCount: 2, tickSound: false } });
-    expect(view).toMatchObject({ tapCount: 2, tickSound: false });
-    expect(store.get().tapCount).toBe(2);
+    expect(view).toMatchObject({ tapCount: 3, tickSound: false });
+    expect(store.get().tapCount).toBe(3);
   });
 
   it('settings.setProvider switches the transcriber and ignores unknown names', async () => {

@@ -27,7 +27,7 @@ describe('settings store', () => {
   it('persists an update across instances', () => {
     createSettingsStore({ dir, crypto }).update({ tapCount: 2, vocabulary: 'Groq' });
     const reopened = createSettingsStore({ dir, crypto });
-    expect(reopened.get()).toEqual({ ...DEFAULT_SETTINGS, tapCount: 2, vocabulary: 'Groq' });
+    expect(reopened.get()).toEqual({ ...DEFAULT_SETTINGS, vocabulary: 'Groq' }); // tap count is always 3
   });
 
   it('drops invalid values instead of storing them', () => {
@@ -83,7 +83,7 @@ describe('settings store', () => {
       })
     );
     const store = createSettingsStore({ dir, crypto });
-    expect(store.get()).toEqual({ ...DEFAULT_SETTINGS, tapCount: 2 });
+    expect(store.get()).toEqual(DEFAULT_SETTINGS);
     expect(store.get().tourSeen).toBe(false);
     const saved = JSON.parse(readFileSync(path.join(dir, 'settings.json'), 'utf8')) as Record<string, unknown>;
     expect(saved.schemaVersion).toBe(2);
@@ -111,7 +111,7 @@ describe('settings store', () => {
     for (const field of ['apiKeyEncrypted', 'deepgramKeyEncrypted', 'rewriteKeyEncrypted']) {
       expect(saved).not.toHaveProperty(field);
     }
-    expect(store.get()).toMatchObject({ tapCount: 4, transcriptionProvider: 'deepgram' });
+    expect(store.get()).toMatchObject({ tapCount: 3, transcriptionProvider: 'deepgram' });
     expect(store.getSyncToken()).toBe('tok');
     expect(store.view().wordsDictated).toBe(12);
   });

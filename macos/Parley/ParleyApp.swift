@@ -38,7 +38,7 @@ struct MenuContent: View {
         }
         if let view = controller.settings {
             Divider()
-            Section("Tap, hold the last (×\(view.tapCount))") {
+            Section("Tap, tap, hold") {
                 gesture("Dictate", view.gestureKey, on: true)
                 gesture("Voice edit", view.editGestureKey, on: view.editGestureKey != view.gestureKey)
                 gesture("Explain", view.explainGestureKey,

@@ -365,37 +365,148 @@ private struct KeysPane: View {
     var body: some View {
         Form {
             Section {
-                Picker("Taps", selection: Binding(get: { view.tapCount }, set: { model.update(["tapCount": .number(Double($0))]) })) {
-                    Text("Tap, hold").tag(2)
-                    Text("Tap, tap, hold").tag(3)
-                    Text("Tap, tap, tap, hold").tag(4)
-                }
+                keyRow("Dictate", "Types what you say", "gestureKey", view.gestureKey)
+                keyRow("Voice edit", "Rewrites the selection or field", "editGestureKey", view.editGestureKey)
+                keyRow("Explain", "Answers about the selection", "explainGestureKey", view.explainGestureKey)
+                keyRow("Act", "Hands the command to the agent", "actGestureKey", view.actGestureKey)
+            } header: {
+                Text("Modes")
             } footer: {
-                Text("Every mode uses the same count; the last press is held while you speak.")
-            }
-            Section("Modes") {
-                keyRow("Dictate", "Types what you say", "gestureKey", view.gestureKey, conflict: nil)
-                keyRow("Voice edit", "Rewrites the selection or field", "editGestureKey", view.editGestureKey,
-                       conflict: view.editGestureKey == view.gestureKey ? "Dictate" : nil)
-                keyRow("Explain", "Answers about the selection", "explainGestureKey", view.explainGestureKey,
-                       conflict: [view.gestureKey, view.editGestureKey].contains(view.explainGestureKey) ? "an earlier mode" : nil)
-                keyRow("Act", "Hands the command to the agent", "actGestureKey", view.actGestureKey,
-                       conflict: [view.gestureKey, view.editGestureKey, view.explainGestureKey].contains(view.actGestureKey) ? "an earlier mode" : nil)
+                Text("Tap the key twice, then hold it while you speak. Click a key and press a modifier to change it; a key another mode uses is swapped with it.")
             }
         }
         .formStyle(.grouped)
     }
 
-    private func keyRow(_ title: String, _ detail: String, _ field: String, _ value: GestureKeyName, conflict: String?) -> some View {
-        Picker(selection: Binding(get: { value }, set: { model.update([field: .string($0.rawValue)]) })) {
-            ForEach(GestureKeyName.allCases) { key in Text(key.label).tag(key) }
+    @State private var recording: String?
+    @State private var swapped: (field: String, with: String)?
+
+    private var current: [String: GestureKeyName] {
+        ["gestureKey": view.gestureKey, "editGestureKey": view.editGestureKey,
+         "explainGestureKey": view.explainGestureKey, "actGestureKey": view.actGestureKey]
+    }
+
+    private static let titles = ["gestureKey": "Dictate", "editGestureKey": "Voice edit",
+                                 "explainGestureKey": "Explain", "actGestureKey": "Act"]
+
+    private func keyRow(_ title: String, _ detail: String, _ field: String, _ value: GestureKeyName) -> some View {
+        let duplicate = ModeKeys.fields.prefix { $0 != field }.contains { current[$0] == value }
+        return LabeledContent {
+            KeyRecorder(key: value, recording: Binding(
+                get: { recording == field },
+                set: { recording = $0 ? field : nil }
+            )) { key in assign(key, to: field) }
         } label: {
             Text(title)
-            if let conflict {
-                Text("Off: same key as \(conflict)").foregroundStyle(.orange)
+            if duplicate {
+                Text("Off: same key as another mode. Record a new one.").foregroundStyle(.orange)
+            } else if let swapped, swapped.field == field {
+                Text("Swapped with \(swapped.with)").foregroundStyle(.secondary)
             } else {
                 Text(detail)
             }
+        }
+    }
+
+    private func assign(_ key: GestureKeyName, to field: String) {
+        let patch = ModeKeys.assign(key, to: field, current: current)
+        guard !patch.isEmpty else { return }
+        model.update(.object(patch.mapValues { .string($0.rawValue) }))
+        if let other = patch.keys.first(where: { $0 != field }) {
+            swapped = (field, Self.titles[other] ?? "another mode")
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                if swapped?.field == field { swapped = nil }
+            }
+        } else {
+            swapped = nil
+        }
+    }
+}
+
+/// A Raycast-style shortcut field: shows the key as a keycap; click it and
+/// press a modifier to change it. Esc or a click elsewhere cancels. Only
+/// modifiers count: a gesture is taps of one modifier key.
+private struct KeyRecorder: View {
+    let key: GestureKeyName
+    @Binding var recording: Bool
+    let onRecord: (GestureKeyName) -> Void
+    @State private var monitor: Any?
+
+    var body: some View {
+        Button { recording.toggle() } label: {
+            HStack(spacing: 6) {
+                if recording {
+                    Text("Press a modifier…")
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 4)
+                } else {
+                    // Tap, tap, hold: the gesture drawn as three presses.
+                    HStack(spacing: 3) {
+                        ForEach(0..<3, id: \.self) { press in
+                            Text(key.symbol)
+                                .font(.system(size: 13, weight: .semibold))
+                                .frame(minWidth: press == 2 ? 34 : 22, minHeight: 20)
+                                .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+                        }
+                    }
+                    Text(key.name)
+                }
+            }
+            .font(.system(size: 12.5, weight: .medium))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .frame(minWidth: 210)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(recording ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(recording ? Color.accentColor : Color.primary.opacity(0.1), lineWidth: recording ? 1.5 : 0.5)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .animation(.smooth(duration: 0.15), value: recording)
+        .onChange(of: recording) { _, on in on ? start() : stop() }
+        .onDisappear { recording = false; stop() }
+        .help("Click, then press a modifier key")
+    }
+
+    private func start() {
+        stop()
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown, .leftMouseDown]) { event in
+            switch event.type {
+            case .flagsChanged:
+                // A press, not the release: the key's own flag is now set.
+                if let pressed = GestureKeyName(keyCode: event.keyCode),
+                   event.modifierFlags.contains(Self.flag(for: pressed)) {
+                    onRecord(pressed)
+                    recording = false
+                }
+                return nil
+            case .keyDown:
+                recording = false // Esc, or any non-modifier: cancel
+                return nil
+            default:
+                recording = false // a click elsewhere cancels; let it through
+                return event
+            }
+        }
+    }
+
+    private func stop() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+    }
+
+    private static func flag(for key: GestureKeyName) -> NSEvent.ModifierFlags {
+        switch key {
+        case .AltRight, .Alt: .option
+        case .CtrlRight, .Ctrl: .control
+        case .ShiftRight, .Shift: .shift
+        case .MetaRight, .Meta: .command
         }
     }
 }
