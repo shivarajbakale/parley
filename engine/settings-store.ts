@@ -142,9 +142,8 @@ function sanitize(input: Partial<Settings>): Partial<Settings> {
     out.syncEmail = input.syncEmail.trim();
   }
   if (typeof input.agentAutoStart === 'boolean') out.agentAutoStart = input.agentAutoStart;
-  if (input.tapCount === 2 || input.tapCount === 3 || input.tapCount === 4) {
-    out.tapCount = input.tapCount;
-  }
+  // Every gesture is tap, tap, hold: a stored or patched 2 or 4 (older
+  // builds offered them) is dropped, so the default 3 applies.
   if (typeof input.vocabulary === 'string') out.vocabulary = input.vocabulary.slice(0, 2000);
   if (typeof input.tickSound === 'boolean') out.tickSound = input.tickSound;
   if (typeof input.launchAtLogin === 'boolean') out.launchAtLogin = input.launchAtLogin;
