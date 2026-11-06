@@ -1,0 +1,37 @@
+name: Bug report
+description: Something in Parley does not work as it should
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Dictate, Voice edit, Explain, Act, Settings, Sync, parley-api, Android, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Select text in iTerm2\n2. Tap, tap, hold Right ⌃\n3. …"
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: macOS version and Parley commit
+      placeholder: macOS 26.1, 04a0d5c
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >-
+        Output of `log show --last 5m --info --predicate 'subsystem == "com.shivarajbakale.parley.mac"'`.
+        Remove anything private first — never paste API keys.
+      render: text
