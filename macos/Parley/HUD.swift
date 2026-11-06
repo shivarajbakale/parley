@@ -93,11 +93,13 @@ final class HUDPanel {
         panel.contentView = NSHostingView(rootView: HUDView(model: model))
     }
 
-    var isVisible: Bool { panel.isVisible && panel.alphaValue > 0 }
+    /// Ours, not AppKit's: during the fade-out the panel is still visible and
+    /// its alpha is mid-animation, so neither says whether it is showing.
+    private(set) var isVisible = false
 
     func show() {
-        let wasVisible = isVisible
-        if !wasVisible {
+        if !isVisible {
+            isVisible = true
             model.reset()
             // At once on the mouse's screen, then onto the user's window once
             // Accessibility says where it is (it can be on another display).
@@ -112,17 +114,29 @@ final class HUDPanel {
                 }
             }
         }
-        panel.alphaValue = 1
+        // Cancels a fade-out still running from the last session, whose
+        // completion would otherwise order this one out.
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0
+            panel.animator().alphaValue = 1
+        }
         panel.orderFrontRegardless()
     }
 
     func hide() {
+        guard isVisible else { return }
+        isVisible = false
         placement += 1
+        let mine = placement
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.15
             panel.animator().alphaValue = 0
-        }, completionHandler: { [panel] in
-            MainActor.assumeIsolated { panel.orderOut(nil) }
+        }, completionHandler: { [weak self] in
+            MainActor.assumeIsolated {
+                // A new session began during the fade: leave it on screen.
+                guard let self, mine == self.placement, !self.isVisible else { return }
+                self.panel.orderOut(nil)
+            }
         })
     }
 
@@ -131,17 +145,15 @@ final class HUDPanel {
     }
 
     private func place(in frame: NSRect) {
-        panel.setFrameOrigin(NSPoint(x: frame.midX - Self.size.width / 2, y: frame.minY + 40))
+        panel.setFrameOrigin(NSPoint(x: frame.midX - Self.size.width / 2, y: frame.minY + HUDPlacement.inset))
     }
 
     /// `window` is in Accessibility's top-left coordinates.
     private func place(onto window: CGRect) {
         guard let primary = NSScreen.screens.first else { return }
-        let flipped = NSRect(x: window.minX, y: primary.frame.maxY - window.maxY, width: window.width, height: window.height)
+        let flipped = HUDPlacement.cocoaRect(fromTopLeft: window, primaryMaxY: primary.frame.maxY)
         let visible = Self.screenFrame(containing: NSPoint(x: flipped.midX, y: flipped.midY))
-        let bottom = max(flipped.minY, visible.minY) + 40
-        let x = min(max(flipped.midX - Self.size.width / 2, visible.minX + 8), visible.maxX - Self.size.width - 8)
-        panel.setFrameOrigin(NSPoint(x: x, y: bottom))
+        panel.setFrameOrigin(HUDPlacement.origin(window: flipped, visible: visible, size: Self.size))
     }
 }
 

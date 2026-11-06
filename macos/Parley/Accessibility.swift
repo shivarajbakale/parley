@@ -63,23 +63,57 @@ enum Accessibility {
         return rect(bounds)
     }
 
-    /// The frontmost app's key window: the window the user is on, which can be
-    /// on a different display than the mouse.
+    /// The window that has keyboard focus: the window the user is on, which
+    /// can be on a different display than the mouse.
+    ///
+    /// Not simply the frontmost app's window. A non-activating panel (Spotlight,
+    /// Raycast, Alfred, a quick-entry box) takes the keyboard without becoming
+    /// the frontmost app, so `frontmostApplication` names the app behind it and
+    /// its window is the wrong one. Accessibility's system-wide focus follows
+    /// the keyboard, so it is asked first.
     static func frontWindowBounds() -> CGRect? {
-        guard let front = NSWorkspace.shared.frontmostApplication else { return nil }
-        let application = AXUIElementCreateApplication(front.processIdentifier)
-        AXUIElementSetMessagingTimeout(application, messagingTimeout)
-        AXUIElementSetAttributeValue(application, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-        guard let window = attribute(application, kAXFocusedWindowAttribute)
-            ?? attribute(application, kAXMainWindowAttribute)
-        else { return nil }
-        guard let positionValue = attribute(window as! AXUIElement, kAXPositionAttribute),
-              let sizeValue = attribute(window as! AXUIElement, kAXSizeAttribute)
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, messagingTimeout)
+
+        // 1. The window holding the focused element: exactly where the caret is.
+        if let element = attribute(system, kAXFocusedUIElementAttribute),
+           let window = attribute(element as! AXUIElement, kAXWindowAttribute),
+           let bounds = windowBounds(window as! AXUIElement) {
+            return bounds
+        }
+
+        // 2. The focused window of the app that has the keyboard, then of the
+        // frontmost app (Electron builds its tree only when asked).
+        var pids: [pid_t] = []
+        if let focusedApp = attribute(system, kAXFocusedApplicationAttribute) {
+            var pid: pid_t = 0
+            if AXUIElementGetPid(focusedApp as! AXUIElement, &pid) == .success { pids.append(pid) }
+        }
+        if let front = NSWorkspace.shared.frontmostApplication?.processIdentifier, !pids.contains(front) {
+            pids.append(front)
+        }
+        for pid in pids {
+            let application = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(application, messagingTimeout)
+            AXUIElementSetAttributeValue(application, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+            if let window = attribute(application, kAXFocusedWindowAttribute)
+                ?? attribute(application, kAXMainWindowAttribute),
+               let bounds = windowBounds(window as! AXUIElement) {
+                return bounds
+            }
+        }
+        return nil
+    }
+
+    private static func windowBounds(_ window: AXUIElement) -> CGRect? {
+        guard let positionValue = attribute(window, kAXPositionAttribute),
+              let sizeValue = attribute(window, kAXSizeAttribute)
         else { return nil }
         var point = CGPoint.zero
         var size = CGSize.zero
         guard AXValueGetValue(positionValue as! AXValue, .cgPoint, &point),
-              AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
+              AXValueGetValue(sizeValue as! AXValue, .cgSize, &size),
+              size.width > 0, size.height > 0
         else { return nil }
         return CGRect(origin: point, size: size)
     }
